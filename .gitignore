@@ -1,0 +1,12 @@
+# Bağımlılıklar
+node_modules/
+
+# Resim klasöründeki her şeyi yoksay...
+images/*
+
+# ...ama .gitkeep dosyasını istisna tut (klasör yapısı korunsun)
+!images/.gitkeep
+
+# Çevre değişkenleri ve loglar
+.env
+*.log
