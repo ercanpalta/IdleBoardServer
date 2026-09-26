@@ -10,3 +10,4 @@ images/*
 # Çevre değişkenleri ve loglar
 .env
 *.log
+admin-password.json
