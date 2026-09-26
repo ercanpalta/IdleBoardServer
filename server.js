@@ -33,6 +33,73 @@ const upload = multer({ storage });
 let clients = [];
 let currentImageIndex = 0;
 
+const MIN_INTERVAL_SEC = 1;
+const MAX_INTERVAL_SEC = 300;
+let slideIntervalSec = 5;
+let slideshowTimer = null;
+let slideshowTickInFlight = false;
+
+function getSlideIntervalSec() {
+    return slideIntervalSec;
+}
+
+function broadcastToAll(payload) {
+    if (clients.length === 0) return;
+    const chunk = `data: ${JSON.stringify(payload)}\n\n`;
+    clients.forEach(c => c.res.write(chunk));
+}
+
+function listImageFiles(files) {
+    return (files || []).filter(f => {
+        const ext = path.extname(f).toLowerCase();
+        return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+    }).sort();
+}
+
+function slideshowTick() {
+    if (clients.length === 0 || slideshowTickInFlight) return;
+
+    slideshowTickInFlight = true;
+    fs.readdir(IMAGES_DIR, (err, files) => {
+        slideshowTickInFlight = false;
+        if (err || !files) return;
+
+        const imageFiles = listImageFiles(files);
+        if (imageFiles.length === 0) return;
+
+        if (currentImageIndex >= imageFiles.length) {
+            currentImageIndex = 0;
+        }
+
+        const selectedFile = imageFiles[currentImageIndex];
+        broadcastImage(selectedFile);
+        currentImageIndex++;
+    });
+}
+
+function restartSlideshowTimer() {
+    if (slideshowTimer) {
+        clearInterval(slideshowTimer);
+        slideshowTimer = null;
+    }
+    slideshowTimer = setInterval(slideshowTick, slideIntervalSec * 1000);
+}
+
+function setSlideIntervalSec(seconds) {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value < MIN_INTERVAL_SEC || value > MAX_INTERVAL_SEC) {
+        return false;
+    }
+    slideIntervalSec = Math.round(value);
+    restartSlideshowTimer();
+    broadcastToAll({
+        tip: 'config',
+        slideInterval: slideIntervalSec
+    });
+    console.log(`[i] Slayt süresi güncellendi: ${slideIntervalSec}sn`);
+    return true;
+}
+
 // SSE Endpoint (C# WPF İstemcisinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -46,8 +113,11 @@ app.get('/events', (req, res) => {
 
     console.log(`[+] Windows Kiosk istemcisi bağlandı. (ID: ${clientId})`);
 
-    // İlk bağlantıda bağlı olduğunu teyit et
-    res.write(`data: ${JSON.stringify({ tip: "init", mesaj: "Bağlantı Başarılı" })}\n\n`);
+    res.write(`data: ${JSON.stringify({
+        tip: 'init',
+        mesaj: 'Bağlantı Başarılı',
+        slideInterval: getSlideIntervalSec()
+    })}\n\n`);
 
     req.on('close', () => {
         clients = clients.filter(c => c.id !== clientId);
@@ -67,43 +137,19 @@ function broadcastImage(fileName) {
 
         const base64Image = data.toString('base64');
         const payload = {
-            tip: "image",
+            tip: 'image',
             dosyaAdi: fileName,
             zaman: new Date().toLocaleTimeString(),
+            slideInterval: getSlideIntervalSec(),
             resimData: base64Image
         };
 
-        clients.forEach(c => c.res.write(`data: ${JSON.stringify(payload)}\n\n`));
+        broadcastToAll(payload);
         console.log(`[>] Slayt Yayını Yapıldı: ${fileName} (${clients.length} İstemci)`);
     });
 }
 
-/**
- * Otomatik Slayt Zamanlayıcısı (Her 4 saniyede bir sıradaki resmi basar)
- */
-setInterval(() => {
-    if (clients.length === 0) return; // İstemci yoksa işlem yapma
-
-    fs.readdir(IMAGES_DIR, (err, files) => {
-        if (err || !files) return;
-
-        const imageFiles = files.filter(f => {
-            const ext = path.extname(f).toLowerCase();
-            return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
-        }).sort();
-
-        if (imageFiles.length === 0) return;
-
-        if (currentImageIndex >= imageFiles.length) {
-            currentImageIndex = 0;
-        }
-
-        const selectedFile = imageFiles[currentImageIndex];
-        broadcastImage(selectedFile);
-
-        currentImageIndex++;
-    });
-}, 4000);
+restartSlideshowTimer();
 
 // REST API'ler (Web Paneli İçin)
 
@@ -139,6 +185,20 @@ app.delete('/api/images/:name', (req, res) => {
 app.post('/api/broadcast/:name', (req, res) => {
     broadcastImage(req.params.name);
     res.json({ success: true });
+});
+
+app.get('/api/settings', (req, res) => {
+    res.json({ interval: getSlideIntervalSec() });
+});
+
+app.post('/api/settings/interval', (req, res) => {
+    if (!setSlideIntervalSec(req.body && req.body.interval)) {
+        return res.status(400).json({
+            success: false,
+            error: `Süre ${MIN_INTERVAL_SEC}-${MAX_INTERVAL_SEC} saniye arasında olmalıdır`
+        });
+    }
+    res.json({ success: true, interval: getSlideIntervalSec() });
 });
 
 app.listen(3000, () => {

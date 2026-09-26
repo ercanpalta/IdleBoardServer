@@ -40,6 +40,14 @@
 
         <h2 style="color: #334155; margin-bottom: 5px;">🖼️ Sunucudaki Galeri</h2>
         <div class="grid" id="imageGrid"></div>
+        <!-- MEVCUT KODLARINIZIN ALTINA/YANINA EKLENECEK KISIM -->
+        <div class="kiosk-settings-card" style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
+            <h3>Slayt Geçiş Ayarı</h3>
+            <label for="slideInterval">Geçiş Süresi (Saniye):</label>
+            <input type="number" id="slideInterval" value="5" min="1" max="300" style="width: 70px; padding: 5px;">
+            <button id="btnSaveInterval" onclick="updateSlideInterval()" style="padding: 5px 15px; cursor: pointer;">Kaydet</button>
+            <span id="intervalStatus" style="margin-left: 10px; font-weight: bold;"></span>
+        </div>
     </div>
 
     <script>
@@ -120,8 +128,46 @@
             }
         }
 
-        // Sayfa açıldığında galeriyi çek
+        // Sayfa açıldığında galeriyi ve slayt süresini çek
         loadImages();
+        loadSlideInterval();
+
+        async function loadSlideInterval() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                if (data.interval) {
+                    document.getElementById('slideInterval').value = data.interval;
+                }
+            } catch (err) {
+                console.error('Slayt süresi okunamadı:', err);
+            }
+        }
+
+        async function updateSlideInterval() {
+            const val = document.getElementById('slideInterval').value;
+            const status = document.getElementById('intervalStatus');
+
+            try {
+                const res = await fetch('/api/settings/interval', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interval: Number(val) })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = 'green';
+                    status.innerText = `Güncellendi (${data.interval}sn)`;
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = 'red';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = 'red';
+                status.innerText = 'Hata oluştu';
+            }
+        }
     </script>
 </body>
 </html>
