@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const chokidar = require('chokidar');
 
@@ -18,6 +19,26 @@ if (!fs.existsSync(IMAGES_DIR)) {
 }
 
 app.use('/images', express.static(IMAGES_DIR));
+
+// Kimlik Doğrulama (Auth) Yapılandırması
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const activeTokens = new Set();
+
+function generateToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function requireAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = (authHeader && authHeader.startsWith('Bearer ')) 
+        ? authHeader.slice(7) 
+        : req.headers['x-admin-token'];
+
+    if (!token || !activeTokens.has(token)) {
+        return res.status(401).json({ error: 'Yetkisiz erişim. Lütfen giriş yapın.' });
+    }
+    next();
+}
 
 // Multer Dosya Yükleme Ayarları
 const storage = multer.diskStorage({
@@ -218,10 +239,48 @@ watcher
 
 restartSlideshowTimer();
 
-// REST API'ler (Web Paneli İçin)
+// Kimlik Doğrulama (Auth) API'leri
+app.post('/api/login', (req, res) => {
+    const { password } = req.body || {};
+    if (!password || password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Hatalı parola!' });
+    }
+
+    const token = generateToken();
+    activeTokens.add(token);
+    console.log(`[🔐 Auth] Yönetim paneline başarılı giriş yapıldı.`);
+    res.json({ success: true, token });
+});
+
+app.get('/api/auth/check', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = (authHeader && authHeader.startsWith('Bearer ')) 
+        ? authHeader.slice(7) 
+        : req.headers['x-admin-token'];
+
+    if (token && activeTokens.has(token)) {
+        return res.json({ authenticated: true });
+    }
+    res.status(401).json({ authenticated: false });
+});
+
+app.post('/api/logout', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = (authHeader && authHeader.startsWith('Bearer ')) 
+        ? authHeader.slice(7) 
+        : req.headers['x-admin-token'];
+
+    if (token) {
+        activeTokens.delete(token);
+        console.log(`[🔒 Auth] Yönetim panelinden çıkış yapıldı.`);
+    }
+    res.json({ success: true });
+});
+
+// REST API'ler (Web Paneli İçin - Parola Korumalı)
 
 // 1. Resim Listesi
-app.get('/api/images', (req, res) => {
+app.get('/api/images', requireAuth, (req, res) => {
     fs.readdir(IMAGES_DIR, (err, files) => {
         if (err) return res.status(500).json({ error: "Klasör okunamadı" });
         const images = listImageFiles(files);
@@ -230,7 +289,7 @@ app.get('/api/images', (req, res) => {
 });
 
 // 2. Yeni Resim Yükle
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi" });
     
     // Yüklenen resmi anında ekrana bas
@@ -240,7 +299,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 });
 
 // 3. Resim Sil
-app.delete('/api/images/:name', (req, res) => {
+app.delete('/api/images/:name', requireAuth, (req, res) => {
     const filePath = path.join(IMAGES_DIR, req.params.name);
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -250,17 +309,17 @@ app.delete('/api/images/:name', (req, res) => {
 });
 
 // 4. Web Panelinden Manuel Tetikleme (Seçilen Resmi Anında Ekrana Bas)
-app.post('/api/broadcast/:name', (req, res) => {
+app.post('/api/broadcast/:name', requireAuth, (req, res) => {
     broadcastImage(req.params.name);
     restartSlideshowTimer();
     res.json({ success: true });
 });
 
-app.get('/api/settings', (req, res) => {
+app.get('/api/settings', requireAuth, (req, res) => {
     res.json({ interval: getSlideIntervalSec() });
 });
 
-app.post('/api/settings/interval', (req, res) => {
+app.post('/api/settings/interval', requireAuth, (req, res) => {
     if (!setSlideIntervalSec(req.body && req.body.interval)) {
         return res.status(400).json({
             success: false,
@@ -275,5 +334,6 @@ app.listen(3000, () => {
     console.log('🚀 Kiosk Yönetim Paneli: http://localhost:3000');
     console.log('📡 SSE Stream Adresi:   http://localhost:3000/events');
     console.log('👀 Chokidar Watcher:     Aktif (images/ izleniyor)');
+    console.log('🔒 Parola Koruması:      Aktif');
     console.log('================================================');
 });

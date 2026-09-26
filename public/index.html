@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiosk Yönetim Paneli</title>
+    <title>IdleBoard Yönetim Paneli</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
         .container { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1 { color: #2c3e50; margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: 10px; font-size: 24px; }
+        .btn-logout { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+        .btn-logout:hover { background: #ef4444; color: white; }
+        
         .upload-card { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; background: #f8fafc; cursor: pointer; margin-bottom: 25px; transition: all 0.2s; }
         .upload-card:hover { border-color: #2563eb; background: #eff6ff; }
         input[type="file"] { display: none; }
@@ -25,11 +29,40 @@
         .btn-send { background: #10b981; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .empty-msg { color: #94a3b8; text-align: center; grid-column: 1 / -1; padding: 40px; font-style: italic; }
+
+        /* Login Card */
+        .login-wrap { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; width: 100%; max-width: 380px; padding: 35px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; border: 1px solid #e2e8f0; }
+        .login-card h2 { margin: 0 0 10px 0; color: #1e293b; font-size: 22px; }
+        .login-card p { color: #64748b; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+        .login-input { width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 15px; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px; outline: none; transition: border-color 0.2s; }
+        .login-input:focus { border-color: #2563eb; }
+        .btn-login { width: 100%; padding: 12px; font-size: 15px; }
+        .login-error { color: #ef4444; font-size: 13px; margin-top: 12px; min-height: 18px; font-weight: 500; }
+        .login-hint { color: #94a3b8; font-size: 12px; margin-top: 18px; }
+        .login-hint code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #334155; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🖥️ IdleBoard Görsel Yönetim Paneli</h1>
+    <!-- 1. Giriş (Login) Ekranı -->
+    <div id="loginSection" class="login-wrap">
+        <div class="login-card">
+            <div style="font-size: 42px; margin-bottom: 12px;">🔒</div>
+            <h2>Yönetici Girişi</h2>
+            <p>IdleBoard ayarlarını yönetmek için lütfen parolanızı girin.</p>
+            <input type="password" id="passwordInput" class="login-input" placeholder="Yönetici parolası..." autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+            <button class="btn btn-login" onclick="login()">Giriş Yap</button>
+            <div id="loginError" class="login-error"></div>
+            <div class="login-hint">Varsayılan parola: <code>admin123</code></div>
+        </div>
+    </div>
+
+    <!-- 2. Yönetim Paneli Ekranı (Giriş Yapılınca Gösterilir) -->
+    <div id="dashboardSection" class="container" style="display: none;">
+        <div class="header-bar">
+            <h1>🖥️ IdleBoard Görsel Yönetim Paneli</h1>
+            <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
+        </div>
         
         <!-- Dosya Yükleme Alanı -->
         <div class="upload-card" onclick="document.getElementById('fileInput').click()">
@@ -40,21 +73,122 @@
 
         <h2 style="color: #334155; margin-bottom: 5px;">🖼️ Sunucudaki Galeri</h2>
         <div class="grid" id="imageGrid"></div>
-        <!-- MEVCUT KODLARINIZIN ALTINA/YANINA EKLENECEK KISIM -->
-        <div class="kiosk-settings-card" style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
-            <h3>Slayt Geçiş Ayarı</h3>
-            <label for="slideInterval">Geçiş Süresi (Saniye):</label>
-            <input type="number" id="slideInterval" value="5" min="1" max="300" style="width: 70px; padding: 5px;">
-            <button id="btnSaveInterval" onclick="updateSlideInterval()" style="padding: 5px 15px; cursor: pointer;">Kaydet</button>
+
+        <div class="kiosk-settings-card" style="margin-top: 25px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+            <h3 style="margin-top: 0; color: #1e293b;">⏱️ Slayt Geçiş Ayarı</h3>
+            <label for="slideInterval" style="font-weight: 500; color: #475569;">Geçiş Süresi (Saniye):</label>
+            <input type="number" id="slideInterval" value="5" min="1" max="300" style="width: 70px; padding: 6px 10px; margin: 0 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+            <button id="btnSaveInterval" class="btn" style="padding: 6px 16px;" onclick="updateSlideInterval()">Kaydet</button>
             <span id="intervalStatus" style="margin-left: 10px; font-weight: bold;"></span>
         </div>
     </div>
 
     <script>
+        const TOKEN_KEY = 'idleboard_admin_token';
+        let sseSource = null;
+        let debounceTimer = null;
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem(TOKEN_KEY);
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+
+        async function checkAuth() {
+            const token = localStorage.getItem(TOKEN_KEY);
+            if (!token) {
+                showLogin();
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/check', {
+                    headers: getAuthHeaders()
+                });
+                if (res.ok) {
+                    showDashboard();
+                } else {
+                    showLogin();
+                }
+            } catch (err) {
+                showLogin();
+            }
+        }
+
+        async function login() {
+            const passInput = document.getElementById('passwordInput');
+            const errDiv = document.getElementById('loginError');
+            errDiv.innerText = '';
+
+            const password = passInput.value.trim();
+            if (!password) {
+                errDiv.innerText = 'Lütfen parola girin.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success && data.token) {
+                    localStorage.setItem(TOKEN_KEY, data.token);
+                    passInput.value = '';
+                    showDashboard();
+                } else {
+                    errDiv.innerText = data.error || 'Hatalı parola!';
+                }
+            } catch (err) {
+                errDiv.innerText = 'Sunucuya bağlanılamadı.';
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+            } catch (e) {}
+
+            localStorage.removeItem(TOKEN_KEY);
+            if (sseSource) {
+                sseSource.close();
+                sseSource = null;
+            }
+            showLogin();
+        }
+
+        function showLogin() {
+            document.getElementById('loginSection').style.display = 'flex';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('passwordInput').focus();
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+            loadImages();
+            loadSlideInterval();
+            connectLiveUpdates();
+        }
+
+        function handleApiError(res) {
+            if (res.status === 401) {
+                logout();
+                return true;
+            }
+            return false;
+        }
+
         // Sunucudaki resimleri çek ve önizlemeleriyle ekrana bas
         async function loadImages() {
             try {
-                const res = await fetch('/api/images');
+                const res = await fetch('/api/images', { headers: getAuthHeaders() });
+                if (handleApiError(res)) return;
+
                 const images = await res.json();
                 const grid = document.getElementById('imageGrid');
                 grid.innerHTML = '';
@@ -67,9 +201,7 @@
                 images.forEach(img => {
                     const card = document.createElement('div');
                     card.className = 'card';
-                    
-                    // Statik resim önizleme URL'si (express.static 'images' klasörü)
-                    const imgUrl = `/images/${img}?t=${Date.now()}`;
+                    const imgUrl = `/images/${encodeURIComponent(img)}?t=${Date.now()}`;
 
                     card.innerHTML = `
                         <img src="${imgUrl}" alt="${img}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x130?text=Resim+Yuklenemedi'">
@@ -97,16 +229,19 @@
             formData.append('image', file);
 
             try {
-                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: formData
+                });
+                if (handleApiError(res)) return;
+
                 const result = await res.json();
-                
                 if (result.success) {
-                    // Yükleme input'unu sıfırla
                     event.target.value = '';
-                    // Galeriyi anında güncelle
                     await loadImages();
                 } else {
-                    alert('Resim yüklenirken bir hata oluştu.');
+                    alert(result.error || 'Resim yüklenirken bir hata oluştu.');
                 }
             } catch (err) {
                 alert('Sunucuyla iletişim kurulurken hata oluştu.');
@@ -115,26 +250,32 @@
 
         // Seçilen Resmi Anında Kiosk Ekranına Gönder
         async function broadcast(name) {
-            await fetch(`/api/broadcast/${name}`, { method: 'POST' });
+            const res = await fetch(`/api/broadcast/${encodeURIComponent(name)}`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+            handleApiError(res);
         }
 
         // Resim Silme
         async function deleteImage(name) {
             if (!confirm(`"${name}" görselini silmek istediğinize emin misiniz?`)) return;
             
-            const res = await fetch(`/api/images/${name}`, { method: 'DELETE' });
+            const res = await fetch(`/api/images/${encodeURIComponent(name)}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            if (handleApiError(res)) return;
             if (res.ok) {
                 await loadImages();
             }
         }
 
-        // Sayfa açıldığında galeriyi ve slayt süresini çek
-        loadImages();
-        loadSlideInterval();
-
         async function loadSlideInterval() {
             try {
-                const res = await fetch('/api/settings');
+                const res = await fetch('/api/settings', { headers: getAuthHeaders() });
+                if (handleApiError(res)) return;
+
                 const data = await res.json();
                 if (data.interval) {
                     document.getElementById('slideInterval').value = data.interval;
@@ -151,9 +292,14 @@
             try {
                 const res = await fetch('/api/settings/interval', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
                     body: JSON.stringify({ interval: Number(val) })
                 });
+                if (handleApiError(res)) return;
+
                 const data = await res.json();
                 if (data.success) {
                     status.style.color = 'green';
@@ -170,9 +316,6 @@
         }
 
         // Canlı SSE Senkronizasyonu (Chokidar Watcher & Ayar Değişiklikleri)
-        let sseSource = null;
-        let debounceTimer = null;
-
         function connectLiveUpdates() {
             if (sseSource) {
                 sseSource.close();
@@ -184,11 +327,9 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.tip === 'gallery_update') {
-                        // Watcher yeni bir dosya algıladığında veya silindiğinde galeriyi anında güncelle
                         clearTimeout(debounceTimer);
                         debounceTimer = setTimeout(loadImages, 200);
                     } else if (data.tip === 'config' && data.slideInterval) {
-                        // Başka bir sekmeden veya istemciden süre değiştirildiğinde input'u güncelle
                         document.getElementById('slideInterval').value = data.slideInterval;
                     }
                 } catch (e) {
@@ -197,7 +338,8 @@
             };
         }
 
-        connectLiveUpdates();
+        // Başlangıç kontrolü
+        checkAuth();
     </script>
 </body>
 </html>
