@@ -30,6 +30,45 @@
         .gallery-card img { display: block; }
         .gallery-checkbox { display: flex; align-items: center; gap: 7px; color: #334155; font-size: 12px; }
         .gallery-checkbox input { display: inline-block; width: 16px; height: 16px; margin: 0; }
+        .dashboard-view { max-width: 1240px; padding: 0; background: transparent; box-shadow: none; }
+        .dashboard-hero { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 180px; box-sizing: border-box; margin-bottom: 22px; padding: 30px 34px; overflow: hidden; border-radius: 18px; background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 62%, #2563eb 100%); color: white; }
+        .dashboard-hero::after { position: absolute; top: -100px; right: -35px; width: 300px; height: 300px; border: 1px solid rgba(255,255,255,0.15); border-radius: 50%; box-shadow: 0 0 0 35px rgba(255,255,255,0.04), 0 0 0 75px rgba(255,255,255,0.03); content: ''; pointer-events: none; }
+        .dashboard-eyebrow { margin: 0 0 10px; color: #bfdbfe; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+        .dashboard-hero h1 { margin: 0; color: white; font-size: clamp(25px, 4vw, 36px); }
+        .dashboard-hero p:last-child { margin: 10px 0 0; color: #dbeafe; font-size: 14px; }
+        .dashboard-live { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; background: rgba(15,23,42,0.25); color: #eff6ff; font-size: 13px; font-weight: 600; }
+        .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 4px rgba(74,222,128,0.16); }
+        .live-dot.offline { background: #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,0.16); }
+        .dashboard-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+        .metric-card { position: relative; min-height: 144px; box-sizing: border-box; padding: 20px; overflow: hidden; border: 1px solid #e8edf5; border-radius: 14px; background: white; box-shadow: 0 8px 22px rgba(15,23,42,0.045); }
+        .metric-card::after { position: absolute; right: -24px; bottom: -42px; width: 110px; height: 110px; border-radius: 50%; background: var(--metric-tint); content: ''; }
+        .metric-card.clients { --metric-tint: #dbeafe; --metric-color: #2563eb; }
+        .metric-card.images { --metric-tint: #dcfce7; --metric-color: #059669; }
+        .metric-card.selected { --metric-tint: #fef3c7; --metric-color: #d97706; }
+        .metric-card.interval { --metric-tint: #ede9fe; --metric-color: #7c3aed; }
+        .metric-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 13px; font-weight: 600; }
+        .metric-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 11px; background: var(--metric-tint); color: var(--metric-color); font-size: 18px; }
+        .metric-value { position: relative; z-index: 1; margin-top: 13px; color: #0f172a; font-size: 34px; font-weight: 750; letter-spacing: -0.04em; line-height: 1; }
+        .metric-caption { position: relative; z-index: 1; margin-top: 8px; color: #94a3b8; font-size: 12px; }
+        .dashboard-lower { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(270px, 0.75fr); gap: 16px; }
+        .dashboard-panel { min-width: 0; padding: 22px; border: 1px solid #e8edf5; border-radius: 14px; background: white; box-shadow: 0 8px 22px rgba(15,23,42,0.045); }
+        .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .panel-heading h2 { margin: 0; color: #0f172a; font-size: 17px; }
+        .panel-kicker { color: #94a3b8; font-size: 12px; }
+        .latest-image-wrap { display: grid; min-height: 180px; place-items: center; overflow: hidden; border-radius: 11px; background: linear-gradient(135deg, #f1f5f9, #e2e8f0); }
+        .latest-image-wrap img { width: 100%; height: 230px; object-fit: cover; }
+        .latest-placeholder { padding: 30px; color: #94a3b8; text-align: center; font-size: 14px; }
+        .latest-image-name { margin-top: 12px; overflow: hidden; color: #334155; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+        .selection-summary { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 6px 0 12px; color: #475569; font-size: 13px; }
+        .selection-summary strong { color: #0f172a; font-size: 19px; }
+        .selection-track { height: 9px; overflow: hidden; border-radius: 99px; background: #e2e8f0; }
+        .selection-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #34d399); transition: width 0.35s ease; }
+        .dashboard-settings { margin-top: 18px; padding-top: 18px; border-top: 1px solid #eef2f7; }
+        .dashboard-settings h3 { margin: 0 0 12px; color: #334155; font-size: 14px; }
+        .settings-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; color: #64748b; font-size: 13px; }
+        .settings-row input { width: 72px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 7px; }
+        .settings-row .btn { padding: 8px 12px; }
+        .dashboard-updated { margin-top: 14px; color: #94a3b8; font-size: 11px; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
         h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: 10px; font-size: 24px; }
         .btn-back { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
@@ -45,6 +84,19 @@
             .admin-layout.sidebar-open .sidebar-backdrop { display: block; }
             .app-main { padding: 16px; }
             .mobile-menu-toggle { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; background: #1e293b; }
+        }
+        @media (max-width: 1040px) {
+            .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 700px) {
+            .dashboard-hero { align-items: flex-start; flex-direction: column; padding: 24px; }
+            .dashboard-lower { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 420px) {
+            .dashboard-metrics { gap: 10px; }
+            .metric-card { min-height: 132px; padding: 15px; }
+            .metric-value { font-size: 29px; }
+            .dashboard-panel { padding: 17px; }
         }
         .upload-card { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; background: #f8fafc; cursor: pointer; margin-bottom: 25px; transition: all 0.2s; }
         .upload-card:hover { border-color: #2563eb; background: #eff6ff; }
@@ -121,18 +173,77 @@
             <button class="mobile-menu-toggle" type="button" onclick="toggleSidebar()">☰ Menü</button>
 
     <!-- Yönetim paneli -->
-    <div id="dashboardSection" class="container" style="display: none;">
-        <div class="header-bar">
-            <h1>🖥️ IdleBoard Yönetim Paneli</h1>
-        </div>
-        
-        <div class="kiosk-settings-card" style="margin-top: 25px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
-            <h3 style="margin-top: 0; color: #1e293b;">⏱️ Slayt Geçiş Ayarı</h3>
-            <label for="slideInterval" style="font-weight: 500; color: #475569;">Geçiş Süresi (Saniye):</label>
-            <input type="number" id="slideInterval" value="5" min="1" max="300" style="width: 70px; padding: 6px 10px; margin: 0 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-            <button id="btnSaveInterval" class="btn" style="padding: 6px 16px;" onclick="updateSlideInterval()">Kaydet</button>
-            <span id="intervalStatus" style="margin-left: 10px; font-weight: bold;"></span>
-        </div>
+    <div id="dashboardSection" class="container dashboard-view" style="display: none;">
+        <section class="dashboard-hero">
+            <div>
+                <p class="dashboard-eyebrow">IdleBoard Yönetim Merkezi</p>
+                <h1>Yönetim Özeti</h1>
+                <p>İstemcilerinizi, görsel yayınınızı ve galeri durumunuzu tek ekrandan takip edin.</p>
+            </div>
+            <div class="dashboard-live"><span id="dashboardLiveDot" class="live-dot"></span><span id="dashboardLiveText">Sistem hazır</span></div>
+        </section>
+
+        <section class="dashboard-metrics" aria-label="Sistem istatistikleri">
+            <article class="metric-card clients">
+                <div class="metric-top"><span>Bağlı istemciler</span><span class="metric-icon">⌁</span></div>
+                <div id="connectedClientCount" class="metric-value">—</div>
+                <div class="metric-caption">Şu anda yayın akışına bağlı ekranlar</div>
+            </article>
+            <article class="metric-card images">
+                <div class="metric-top"><span>Galerideki görseller</span><span class="metric-icon">▧</span></div>
+                <div id="dashboardImageCount" class="metric-value">—</div>
+                <div class="metric-caption">Sunucuda yüklü toplam görsel</div>
+            </article>
+            <article class="metric-card selected">
+                <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon">◉</span></div>
+                <div id="dashboardSelectedCount" class="metric-value">—</div>
+                <div class="metric-caption">Slayt döngüsüne dahil edilen görseller</div>
+            </article>
+            <article class="metric-card interval">
+                <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon">◷</span></div>
+                <div class="metric-value"><span id="dashboardInterval">—</span><span style="font-size: 16px; letter-spacing: 0;"> sn</span></div>
+                <div class="metric-caption">Her görsel arasındaki süre</div>
+            </article>
+        </section>
+
+        <section class="dashboard-lower">
+            <article class="dashboard-panel">
+                <div class="panel-heading">
+                    <h2>Son yayınlanan görsel</h2>
+                    <span id="dashboardLastBroadcast" class="panel-kicker">Henüz yayın yok</span>
+                </div>
+                <div id="latestImagePreview" class="latest-image-wrap">
+                    <div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>
+                </div>
+                <div id="latestImageName" class="latest-image-name">Henüz görsel yayınlanmadı</div>
+            </article>
+
+            <article class="dashboard-panel">
+                <div class="panel-heading">
+                    <h2>Galeri yayın durumu</h2>
+                    <span class="panel-kicker">Seçim özeti</span>
+                </div>
+                <div class="selection-summary">
+                    <span>Yayına dahil edilenler</span>
+                    <strong><span id="dashboardSelectionRatio">—</span></strong>
+                </div>
+                <div class="selection-track" role="progressbar" aria-label="Yayındaki görsellerin galeriye oranı" aria-valuemin="0" aria-valuemax="100">
+                    <div id="dashboardSelectionProgress" class="selection-fill"></div>
+                </div>
+                <button class="btn" style="margin-top: 16px;" type="button" onclick="showGallery()">Galeriyi yönet</button>
+                <div class="dashboard-settings">
+                    <h3>⏱️ Slayt geçiş ayarı</h3>
+                    <div class="settings-row">
+                        <label for="slideInterval">Geçiş süresi</label>
+                        <input type="number" id="slideInterval" value="5" min="1" max="300">
+                        <span>saniye</span>
+                        <button id="btnSaveInterval" class="btn" onclick="updateSlideInterval()">Kaydet</button>
+                    </div>
+                    <span id="intervalStatus" class="dashboard-updated" role="status"></span>
+                </div>
+                <div id="dashboardUpdatedAt" class="dashboard-updated">İstatistikler yükleniyor...</div>
+            </article>
+        </section>
     </div>
 
     <div id="gallerySection" class="container" style="display: none;">
@@ -178,6 +289,7 @@
         let galleryImages = [];
         let savedSelection = new Set();
         let galleryDirty = false;
+        let dashboardRefreshTimer = null;
 
         function getAuthHeaders() {
             const token = localStorage.getItem(TOKEN_KEY);
@@ -293,6 +405,8 @@
             } catch (e) {}
 
             localStorage.removeItem(TOKEN_KEY);
+            clearInterval(dashboardRefreshTimer);
+            dashboardRefreshTimer = null;
             if (sseSource) {
                 sseSource.close();
                 sseSource = null;
@@ -328,6 +442,9 @@
             setActiveNavigation('dashboardNav');
             closeMobileSidebar();
             loadSlideInterval();
+            loadDashboardStats();
+            clearInterval(dashboardRefreshTimer);
+            dashboardRefreshTimer = setInterval(loadDashboardStats, 10000);
             connectLiveUpdates();
         }
 
@@ -377,6 +494,67 @@
 
         function closeMobileSidebar() {
             document.getElementById('adminLayout').classList.remove('sidebar-open');
+        }
+
+        function formatUptime(totalSeconds) {
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            return days > 0 ? `${days} gün ${hours} sa ${minutes} dk`
+                : hours > 0 ? `${hours} sa ${minutes} dk`
+                    : `${minutes} dk`;
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const res = await fetch('/api/dashboard-stats', { headers: getAuthHeaders() });
+                if (handleApiError(res)) return;
+                if (!res.ok) throw new Error('Dashboard istatistikleri alınamadı.');
+
+                const stats = await res.json();
+                document.getElementById('connectedClientCount').innerText = stats.connectedClients;
+                document.getElementById('dashboardImageCount').innerText = stats.imageCount;
+                document.getElementById('dashboardSelectedCount').innerText = stats.selectedImageCount;
+                document.getElementById('dashboardInterval').innerText = stats.slideInterval;
+                document.getElementById('slideInterval').value = stats.slideInterval;
+
+                const ratio = stats.imageCount === 0
+                    ? 0
+                    : Math.round((stats.selectedImageCount / stats.imageCount) * 100);
+                document.getElementById('dashboardSelectionRatio').innerText =
+                    `${stats.selectedImageCount} / ${stats.imageCount}`;
+                document.getElementById('dashboardSelectionProgress').style.width = `${ratio}%`;
+                document.querySelector('.selection-track').setAttribute('aria-valuenow', String(ratio));
+
+                const live = stats.connectedClients > 0;
+                document.getElementById('dashboardLiveDot').classList.toggle('offline', !live);
+                document.getElementById('dashboardLiveText').innerText =
+                    live ? `${stats.connectedClients} istemci yayında` : 'İstemci bekleniyor';
+
+                const preview = document.getElementById('latestImagePreview');
+                const imageName = document.getElementById('latestImageName');
+                const broadcastTime = document.getElementById('dashboardLastBroadcast');
+                if (stats.latestImage) {
+                    preview.innerHTML = '';
+                    const image = document.createElement('img');
+                    image.src = `/images/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
+                    image.alt = stats.latestImage;
+                    preview.appendChild(image);
+                    imageName.innerText = stats.latestImage;
+                    broadcastTime.innerText = stats.latestBroadcastAt
+                        ? new Date(stats.latestBroadcastAt).toLocaleTimeString('tr-TR')
+                        : 'Son yayın';
+                } else {
+                    preview.innerHTML = '<div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>';
+                    imageName.innerText = 'Henüz görsel yayınlanmadı';
+                    broadcastTime.innerText = 'Henüz yayın yok';
+                }
+                document.getElementById('dashboardUpdatedAt').innerText =
+                    `Sunucu çalışma süresi: ${formatUptime(stats.uptimeSeconds)} · Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`;
+            } catch (err) {
+                console.error('Dashboard istatistikleri yüklenemedi:', err);
+                document.getElementById('dashboardUpdatedAt').innerText = 'İstatistikler güncellenemedi.';
+            }
         }
 
         async function changePassword() {
@@ -640,6 +818,7 @@
                 if (data.success) {
                     status.style.color = 'green';
                     status.innerText = `Güncellendi (${data.interval}sn)`;
+                    loadDashboardStats();
                     setTimeout(() => status.innerText = '', 3000);
                 } else {
                     status.style.color = 'red';
@@ -657,13 +836,14 @@
                 sseSource.close();
             }
 
-            sseSource = new EventSource('/events');
+            sseSource = new EventSource('/events?source=admin');
 
             sseSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.tip === 'gallery_update') {
                         clearTimeout(debounceTimer);
+                        loadDashboardStats();
                         debounceTimer = setTimeout(() => {
                             if (document.getElementById('gallerySection').style.display === 'block') {
                                 loadGallery(true);
@@ -671,6 +851,9 @@
                         }, 200);
                     } else if (data.tip === 'config' && data.slideInterval) {
                         document.getElementById('slideInterval').value = data.slideInterval;
+                        loadDashboardStats();
+                    } else if (data.tip === 'client_count' || data.tip === 'dashboard_update' || data.tip === 'image') {
+                        loadDashboardStats();
                     }
                 } catch (e) {
                     console.error('SSE mesaj ayrıştırma hatası:', e);

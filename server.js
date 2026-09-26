@@ -104,6 +104,7 @@ const upload = multer({ storage });
 let clients = [];
 let currentImageIndex = 0;
 let selectedImageFiles = new Set();
+const serverStartedAt = Date.now();
 
 const MIN_INTERVAL_SEC = 1;
 const MAX_INTERVAL_SEC = 300;
@@ -114,6 +115,19 @@ let lastBroadcast = { fileName: null, time: 0 };
 
 function getSlideIntervalSec() {
     return slideIntervalSec;
+}
+
+function getConnectedClientCount() {
+    return clients.filter(client => !client.isAdmin).length;
+}
+
+function broadcastDashboardUpdate() {
+    broadcastToAdmins({ tip: 'dashboard_update' });
+}
+
+function broadcastToAdmins(payload) {
+    const chunk = `data: ${JSON.stringify(payload)}\n\n`;
+    clients.filter(client => client.isAdmin).forEach(client => client.res.write(chunk));
 }
 
 function broadcastToAll(payload) {
@@ -206,11 +220,15 @@ app.get('/events', (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
 
-    const clientId = Date.now();
-    const newClient = { id: clientId, res };
+    const clientId = crypto.randomUUID();
+    const isAdmin = req.query.source === 'admin';
+    const newClient = { id: clientId, res, isAdmin };
     clients.push(newClient);
 
-    console.log(`[+] Yeni istemci bağlandı. (ID: ${clientId}, Toplam: ${clients.length})`);
+    if (!isAdmin) {
+        broadcastToAdmins({ tip: 'client_count', connectedClients: getConnectedClientCount() });
+    }
+    console.log(`[+] Yeni istemci bağlandı. (ID: ${clientId}, Toplam: ${getConnectedClientCount()})`);
 
     res.write(`data: ${JSON.stringify({
         tip: 'init',
@@ -225,7 +243,10 @@ app.get('/events', (req, res) => {
 
     req.on('close', () => {
         clients = clients.filter(c => c.id !== clientId);
-        console.log(`[-] İstemci ayrıldı. (ID: ${clientId}, Kalan: ${clients.length})`);
+        if (!isAdmin) {
+            broadcastToAdmins({ tip: 'client_count', connectedClients: getConnectedClientCount() });
+        }
+        console.log(`[-] İstemci ayrıldı. (ID: ${clientId}, Kalan: ${getConnectedClientCount()})`);
     });
 });
 
@@ -250,6 +271,7 @@ function broadcastImage(fileName) {
 
         lastBroadcast = { fileName, time: Date.now() };
         broadcastToAll(payload);
+        broadcastDashboardUpdate();
         console.log(`[>] Slayt Yayını Yapıldı: ${fileName} (${clients.length} İstemci)`);
     });
 }
@@ -277,6 +299,7 @@ watcher
             action: 'add',
             fileName
         });
+        broadcastDashboardUpdate();
 
         if (selectedImageFiles.has(fileName)
             && (lastBroadcast.fileName !== fileName || (Date.now() - lastBroadcast.time > 1500))) {
@@ -302,6 +325,10 @@ watcher
             action: 'unlink',
             fileName
         });
+        if (lastBroadcast.fileName === fileName) {
+            lastBroadcast = { fileName: null, time: 0 };
+        }
+        broadcastDashboardUpdate();
 
         // Slayt indeksini güvenli sınıra çek
         fs.readdir(IMAGES_DIR, (err, files) => {
@@ -431,6 +458,28 @@ app.get('/api/gallery', requireAuth, (req, res) => {
     });
 });
 
+app.get('/api/dashboard-stats', requireAuth, (req, res) => {
+    fs.readdir(IMAGES_DIR, (err, files) => {
+        if (err) return res.status(500).json({ error: 'Galeri istatistikleri okunamadı.' });
+        const images = listImageFiles(files);
+        const availableImages = new Set(images);
+        const selectedImages = [...selectedImageFiles].filter(fileName => availableImages.has(fileName));
+        const latestImage = lastBroadcast.fileName && availableImages.has(lastBroadcast.fileName)
+            ? lastBroadcast.fileName
+            : null;
+
+        res.json({
+            connectedClients: getConnectedClientCount(),
+            imageCount: images.length,
+            selectedImageCount: selectedImages.length,
+            slideInterval: getSlideIntervalSec(),
+            latestImage,
+            latestBroadcastAt: lastBroadcast.time || null,
+            uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000)
+        });
+    });
+});
+
 app.put('/api/gallery/selection', requireAuth, (req, res) => {
     const requestedImages = req.body && req.body.selectedImages;
     if (!Array.isArray(requestedImages)
@@ -456,6 +505,7 @@ app.put('/api/gallery/selection', requireAuth, (req, res) => {
         }
         currentImageIndex = 0;
         restartSlideshowTimer();
+        broadcastDashboardUpdate();
         if (selection.length > 0) {
             slideshowTick();
         }
