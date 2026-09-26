@@ -126,13 +126,6 @@
             <h1>🖥️ IdleBoard Yönetim Paneli</h1>
         </div>
         
-        <!-- Dosya Yükleme Alanı -->
-        <div class="upload-card" onclick="document.getElementById('fileInput').click()">
-            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;">📁 Yeni resim yüklemek için tıklayın veya dosya seçin</p>
-            <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(event)">
-            <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Resim Seç & Yükle</button>
-        </div>
-
         <div class="kiosk-settings-card" style="margin-top: 25px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
             <h3 style="margin-top: 0; color: #1e293b;">⏱️ Slayt Geçiş Ayarı</h3>
             <label for="slideInterval" style="font-weight: 500; color: #475569;">Geçiş Süresi (Saniye):</label>
@@ -147,6 +140,11 @@
             <h1>🖼️ Galeri Paneli</h1>
         </div>
         <p class="setup-note">İşaretlediğiniz görseller istemcilere gönderilir. Yeni yüklenen görselleri göndermek için ayrıca seçip kaydedin.</p>
+        <div class="upload-card" onclick="document.getElementById('fileInput').click()">
+            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;">📁 Galeriye resim yüklemek için tıklayın veya dosya seçin</p>
+            <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(event)">
+            <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Resim Seç & Yükle</button>
+        </div>
         <div class="gallery-toolbar">
             <button class="btn" type="button" onclick="setAllGalleryImages(true)">Tümünü Seç</button>
             <button class="btn-back" type="button" onclick="setAllGalleryImages(false)">Seçimi Temizle</button>
@@ -466,7 +464,7 @@
             grid.innerHTML = '';
 
             if (galleryImages.length === 0) {
-                grid.innerHTML = '<div class="empty-msg">Henüz hiç resim yüklenmedi. Genel Bakış bölümünden görsel ekleyebilirsiniz.</div>';
+                grid.innerHTML = '<div class="empty-msg">Henüz resim yüklenmedi. Yukarıdaki alandan galeriye ilk resminizi yükleyebilirsiniz.</div>';
                 return;
             }
 
