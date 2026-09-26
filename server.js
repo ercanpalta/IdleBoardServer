@@ -16,6 +16,8 @@ if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
 
+app.use('/images', express.static(IMAGES_DIR)); // <--- GÖRSELLER İÇİN BU SATIR EKLENDİ
+
 // Multer Dosya Yükleme Ayarları
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, IMAGES_DIR),

@@ -6,58 +6,81 @@
     <title>Kiosk Yönetim Paneli</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1 { color: #2c3e50; margin-top: 0; }
-        .upload-card { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; background: #f8fafc; cursor: pointer; margin-bottom: 25px; }
-        .upload-card:hover { border-color: #3b82f6; background: #eff6ff; }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #2c3e50; margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        .upload-card { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; background: #f8fafc; cursor: pointer; margin-bottom: 25px; transition: all 0.2s; }
+        .upload-card:hover { border-color: #2563eb; background: #eff6ff; }
         input[type="file"] { display: none; }
         .btn { background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .btn:hover { background: #1d4ed8; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
-        .card { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white; display: flex; flex-direction: column; }
-        .card img { width: 100%; height: 120px; object-fit: cover; }
-        .card-actions { padding: 8px; display: flex; justify-content: space-between; background: #f8fafc; }
-        .btn-small { padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; margin-top: 15px; }
+        .card { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white; display: flex; flex-direction: column; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card img { width: 100%; height: 130px; object-fit: cover; background: #e2e8f0; }
+        .card-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: space-between; }
+        .file-name { font-size: 12px; font-weight: 600; color: #475569; word-break: break-all; }
+        .card-actions { display: flex; gap: 6px; }
+        .btn-small { flex: 1; padding: 6px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
+        .btn-small:hover { opacity: 0.85; }
         .btn-send { background: #10b981; color: white; }
         .btn-delete { background: #ef4444; color: white; }
+        .empty-msg { color: #94a3b8; text-align: center; grid-column: 1 / -1; padding: 40px; font-style: italic; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🖥️ Kiosk Görsel Yönetim Paneli</h1>
+        <h1>🖥️ IdleBoard Görsel Yönetim Paneli</h1>
         
-        <!-- Yükleme Alanı -->
+        <!-- Dosya Yükleme Alanı -->
         <div class="upload-card" onclick="document.getElementById('fileInput').click()">
-            <p>📁 Yeni resim yüklemek için tıklayın veya sürükleyip bırakın</p>
+            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;">📁 Yeni resim yüklemek için tıklayın veya dosya seçin</p>
             <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(event)">
-            <button class="btn">Resim Seç & Yükle</button>
+            <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Resim Seç & Yükle</button>
         </div>
 
-        <h2>Galeri</h2>
+        <h2 style="color: #334155; margin-bottom: 5px;">🖼️ Sunucudaki Galeri</h2>
         <div class="grid" id="imageGrid"></div>
     </div>
 
     <script>
+        // Sunucudaki resimleri çek ve önizlemeleriyle ekrana bas
         async function loadImages() {
-            const res = await fetch('/api/images');
-            const images = await res.json();
-            const grid = document.getElementById('imageGrid');
-            grid.innerHTML = '';
+            try {
+                const res = await fetch('/api/images');
+                const images = await res.json();
+                const grid = document.getElementById('imageGrid');
+                grid.innerHTML = '';
 
-            images.forEach(img => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div style="padding:8px; font-size:11px; word-break:break-all; color:#64748b;">${img}</div>
-                    <div class="card-actions">
-                        <button class="btn-small btn-send" onclick="broadcast('${img}')">Ekrana Gönder</button>
-                        <button class="btn-small btn-delete" onclick="deleteImage('${img}')">Sil</button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
+                if (images.length === 0) {
+                    grid.innerHTML = '<div class="empty-msg">Henüz hiç resim yüklenmedi. Yukarıdaki alandan ilk resminizi ekleyebilirsiniz.</div>';
+                    return;
+                }
+
+                images.forEach(img => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    
+                    // Statik resim önizleme URL'si (express.static 'images' klasörü)
+                    const imgUrl = `/images/${img}?t=${Date.now()}`;
+
+                    card.innerHTML = `
+                        <img src="${imgUrl}" alt="${img}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x130?text=Resim+Yuklenemedi'">
+                        <div class="card-body">
+                            <div class="file-name" title="${img}">${img}</div>
+                            <div class="card-actions">
+                                <button class="btn-small btn-send" onclick="broadcast('${img}')">Ekrana Gönder</button>
+                                <button class="btn-small btn-delete" onclick="deleteImage('${img}')">Sil</button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (err) {
+                console.error("Resim galerisi yüklenemedi:", err);
+            }
         }
 
+        // Resim Yükleme İşlemi
         async function uploadImage(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -65,21 +88,39 @@
             const formData = new FormData();
             formData.append('image', file);
 
-            await fetch('/api/upload', { method: 'POST', body: formData });
-            loadImages();
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const result = await res.json();
+                
+                if (result.success) {
+                    // Yükleme input'unu sıfırla
+                    event.target.value = '';
+                    // Galeriyi anında güncelle
+                    await loadImages();
+                } else {
+                    alert('Resim yüklenirken bir hata oluştu.');
+                }
+            } catch (err) {
+                alert('Sunucuyla iletişim kurulurken hata oluştu.');
+            }
         }
 
+        // Seçilen Resmi Anında Kiosk Ekranına Gönder
         async function broadcast(name) {
             await fetch(`/api/broadcast/${name}`, { method: 'POST' });
-            alert('Görsel Kiosk ekranlarına gönderildi!');
         }
 
+        // Resim Silme
         async function deleteImage(name) {
-            if (!confirm('Bu resmi silmek istediğinize emin misiniz?')) return;
-            await fetch(`/api/images/${name}`, { method: 'DELETE' });
-            loadImages();
+            if (!confirm(`"${name}" görselini silmek istediğinize emin misiniz?`)) return;
+            
+            const res = await fetch(`/api/images/${name}`, { method: 'DELETE' });
+            if (res.ok) {
+                await loadImages();
+            }
         }
 
+        // Sayfa açıldığında galeriyi çek
         loadImages();
     </script>
 </body>
