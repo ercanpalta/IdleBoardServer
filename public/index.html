@@ -168,6 +168,36 @@
                 status.innerText = 'Hata oluştu';
             }
         }
+
+        // Canlı SSE Senkronizasyonu (Chokidar Watcher & Ayar Değişiklikleri)
+        let sseSource = null;
+        let debounceTimer = null;
+
+        function connectLiveUpdates() {
+            if (sseSource) {
+                sseSource.close();
+            }
+
+            sseSource = new EventSource('/events');
+
+            sseSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.tip === 'gallery_update') {
+                        // Watcher yeni bir dosya algıladığında veya silindiğinde galeriyi anında güncelle
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(loadImages, 200);
+                    } else if (data.tip === 'config' && data.slideInterval) {
+                        // Başka bir sekmeden veya istemciden süre değiştirildiğinde input'u güncelle
+                        document.getElementById('slideInterval').value = data.slideInterval;
+                    }
+                } catch (e) {
+                    console.error('SSE mesaj ayrıştırma hatası:', e);
+                }
+            };
+        }
+
+        connectLiveUpdates();
     </script>
 </body>
 </html>

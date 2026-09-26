@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const chokidar = require('chokidar');
 
 const app = express();
 app.use(cors());
@@ -16,7 +17,7 @@ if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
 
-app.use('/images', express.static(IMAGES_DIR)); // <--- GÖRSELLER İÇİN BU SATIR EKLENDİ
+app.use('/images', express.static(IMAGES_DIR));
 
 // Multer Dosya Yükleme Ayarları
 const storage = multer.diskStorage({
@@ -38,6 +39,7 @@ const MAX_INTERVAL_SEC = 300;
 let slideIntervalSec = 5;
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
+let lastBroadcast = { fileName: null, time: 0 };
 
 function getSlideIntervalSec() {
     return slideIntervalSec;
@@ -49,11 +51,13 @@ function broadcastToAll(payload) {
     clients.forEach(c => c.res.write(chunk));
 }
 
+function isSupportedImage(fileNameOrPath) {
+    const ext = path.extname(fileNameOrPath).toLowerCase();
+    return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+}
+
 function listImageFiles(files) {
-    return (files || []).filter(f => {
-        const ext = path.extname(f).toLowerCase();
-        return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
-    }).sort();
+    return (files || []).filter(f => isSupportedImage(f)).sort();
 }
 
 function slideshowTick() {
@@ -100,7 +104,7 @@ function setSlideIntervalSec(seconds) {
     return true;
 }
 
-// SSE Endpoint (C# WPF İstemcisinin Bağlandığı Adres)
+// SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -111,7 +115,7 @@ app.get('/events', (req, res) => {
     const newClient = { id: clientId, res };
     clients.push(newClient);
 
-    console.log(`[+] Windows Kiosk istemcisi bağlandı. (ID: ${clientId})`);
+    console.log(`[+] Yeni istemci bağlandı. (ID: ${clientId}, Toplam: ${clients.length})`);
 
     res.write(`data: ${JSON.stringify({
         tip: 'init',
@@ -119,9 +123,14 @@ app.get('/events', (req, res) => {
         slideInterval: getSlideIntervalSec()
     })}\n\n`);
 
+    // İlk istemci bağlandığında hemen ilk görseli yayınla (beklemeyi önle)
+    if (clients.length === 1) {
+        slideshowTick();
+    }
+
     req.on('close', () => {
         clients = clients.filter(c => c.id !== clientId);
-        console.log(`[-] Windows Kiosk istemcisi ayrıldı. (ID: ${clientId})`);
+        console.log(`[-] İstemci ayrıldı. (ID: ${clientId}, Kalan: ${clients.length})`);
     });
 });
 
@@ -144,10 +153,68 @@ function broadcastImage(fileName) {
             resimData: base64Image
         };
 
+        lastBroadcast = { fileName, time: Date.now() };
         broadcastToAll(payload);
         console.log(`[>] Slayt Yayını Yapıldı: ${fileName} (${clients.length} İstemci)`);
     });
 }
+
+// Chokidar Dosya İzleyici (images/ klasörünü dinamik izler)
+const watcher = chokidar.watch(IMAGES_DIR, {
+    ignored: /(^|[\/\\])\../, // .gitkeep, gizli dosyaları yoksay
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+        stabilityThreshold: 500,
+        pollInterval: 100
+    }
+});
+
+watcher
+    .on('add', (filePath) => {
+        if (!isSupportedImage(filePath)) return;
+        const fileName = path.basename(filePath);
+        console.log(`[📁 Watcher] Klasöre yeni görsel eklendi: ${fileName}`);
+
+        // Web paneli galerisini anında güncellemesi için bilgilendir
+        broadcastToAll({
+            tip: 'gallery_update',
+            action: 'add',
+            fileName
+        });
+
+        // Eğer son 1.5 saniye içinde aynı dosya web upload üzerinden basılmadıysa, hemen yayına al
+        if (lastBroadcast.fileName !== fileName || (Date.now() - lastBroadcast.time > 1500)) {
+            broadcastImage(fileName);
+            restartSlideshowTimer();
+        }
+    })
+    .on('unlink', (filePath) => {
+        if (!isSupportedImage(filePath)) return;
+        const fileName = path.basename(filePath);
+        console.log(`[🗑️ Watcher] Klasörden görsel silindi: ${fileName}`);
+
+        // Web paneli galerisini anında güncellemesi için bilgilendir
+        broadcastToAll({
+            tip: 'gallery_update',
+            action: 'unlink',
+            fileName
+        });
+
+        // Slayt indeksini güvenli sınıra çek
+        fs.readdir(IMAGES_DIR, (err, files) => {
+            if (err || !files) return;
+            const remaining = listImageFiles(files);
+            if (remaining.length === 0) {
+                currentImageIndex = 0;
+            } else if (currentImageIndex >= remaining.length) {
+                currentImageIndex = 0;
+            }
+        });
+    })
+    .on('error', (err) => {
+        console.error('[⚠️ Watcher Hatası]:', err);
+    });
 
 restartSlideshowTimer();
 
@@ -157,7 +224,7 @@ restartSlideshowTimer();
 app.get('/api/images', (req, res) => {
     fs.readdir(IMAGES_DIR, (err, files) => {
         if (err) return res.status(500).json({ error: "Klasör okunamadı" });
-        const images = files.filter(f => ['.jpg', '.jpeg', '.png', '.webp'].includes(path.extname(f).toLowerCase()));
+        const images = listImageFiles(files);
         res.json(images);
     });
 });
@@ -168,6 +235,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     
     // Yüklenen resmi anında ekrana bas
     broadcastImage(req.file.filename);
+    restartSlideshowTimer();
     res.json({ success: true, fileName: req.file.filename });
 });
 
@@ -184,6 +252,7 @@ app.delete('/api/images/:name', (req, res) => {
 // 4. Web Panelinden Manuel Tetikleme (Seçilen Resmi Anında Ekrana Bas)
 app.post('/api/broadcast/:name', (req, res) => {
     broadcastImage(req.params.name);
+    restartSlideshowTimer();
     res.json({ success: true });
 });
 
@@ -205,5 +274,6 @@ app.listen(3000, () => {
     console.log('================================================');
     console.log('🚀 Kiosk Yönetim Paneli: http://localhost:3000');
     console.log('📡 SSE Stream Adresi:   http://localhost:3000/events');
+    console.log('👀 Chokidar Watcher:     Aktif (images/ izleniyor)');
     console.log('================================================');
 });
