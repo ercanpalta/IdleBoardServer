@@ -30,23 +30,22 @@ function generateToken() {
 }
 
 function readPasswordHash() {
+    if (fs.existsSync(PASSWORD_FILE)) {
+        try {
+            const stored = JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
+            if (stored.algorithm !== 'scrypt' || !stored.salt || !stored.hash) {
+                throw new Error('Geçersiz parola yapılandırması.');
+            }
+            return { type: 'scrypt', salt: stored.salt, hash: stored.hash };
+        } catch (error) {
+            throw new Error(`Parola yapılandırması okunamadı: ${error.message}`);
+        }
+    }
+
     if (process.env.ADMIN_PASSWORD) {
         return { type: 'plain', value: process.env.ADMIN_PASSWORD };
     }
-
-    if (!fs.existsSync(PASSWORD_FILE)) {
-        return null;
-    }
-
-    try {
-        const stored = JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
-        if (stored.algorithm !== 'scrypt' || !stored.salt || !stored.hash) {
-            throw new Error('Geçersiz parola yapılandırması.');
-        }
-        return { type: 'scrypt', salt: stored.salt, hash: stored.hash };
-    } catch (error) {
-        throw new Error(`Parola yapılandırması okunamadı: ${error.message}`);
-    }
+    return null;
 }
 
 function isPasswordConfigured() {
@@ -310,6 +309,31 @@ app.post('/api/auth/setup', (req, res) => {
 
     savePassword(password);
     res.json({ success: true });
+});
+
+app.post('/api/auth/password', requireAuth, (req, res) => {
+    const { currentPassword, newPassword, passwordConfirmation } = req.body || {};
+    if (typeof currentPassword !== 'string' || !verifyPassword(currentPassword)) {
+        return res.status(400).json({ success: false, error: 'Mevcut parola hatalı.' });
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({
+            success: false,
+            error: `Yeni parola en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`
+        });
+    }
+    if (newPassword !== passwordConfirmation) {
+        return res.status(400).json({ success: false, error: 'Yeni parola tekrarı eşleşmiyor.' });
+    }
+    if (newPassword === currentPassword) {
+        return res.status(400).json({ success: false, error: 'Yeni parola mevcut paroladan farklı olmalıdır.' });
+    }
+
+    savePassword(newPassword);
+    activeTokens.clear();
+    const token = generateToken();
+    activeTokens.add(token);
+    res.json({ success: true, token });
 });
 
 app.post('/api/login', (req, res) => {

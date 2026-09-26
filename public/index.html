@@ -7,10 +7,19 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
         .container { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+        .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
         h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: 10px; font-size: 24px; }
-        .btn-logout { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+        .btn-logout, .btn-password { border: 1px solid; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+        .btn-logout { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+        .btn-password { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
         .btn-logout:hover { background: #ef4444; color: white; }
+        .btn-password:hover { background: #2563eb; color: white; }
+        @media (max-width: 620px) {
+            .header-bar { align-items: flex-start; flex-direction: column; }
+            .header-actions { width: 100%; }
+            .header-actions button { flex: 1; }
+        }
         
         .upload-card { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; background: #f8fafc; cursor: pointer; margin-bottom: 25px; transition: all 0.2s; }
         .upload-card:hover { border-color: #2563eb; background: #eff6ff; }
@@ -39,8 +48,6 @@
         .login-input:focus { border-color: #2563eb; }
         .btn-login { width: 100%; padding: 12px; font-size: 15px; }
         .login-error { color: #ef4444; font-size: 13px; margin-top: 12px; min-height: 18px; font-weight: 500; }
-        .login-hint { color: #94a3b8; font-size: 12px; margin-top: 18px; }
-        .login-hint code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #334155; }
         .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 20px; }
     </style>
 </head>
@@ -54,7 +61,6 @@
             <input type="password" id="passwordInput" class="login-input" placeholder="Yönetici parolası..." autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
             <button class="btn btn-login" onclick="login()">Giriş Yap</button>
             <div id="loginError" class="login-error"></div>
-            <div class="login-hint">Varsayılan parola: <code>admin123</code></div>
         </div>
     </div>
 
@@ -75,7 +81,19 @@
     <div id="dashboardSection" class="container" style="display: none;">
         <div class="header-bar">
             <h1>🖥️ IdleBoard Görsel Yönetim Paneli</h1>
-            <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
+            <div class="header-actions">
+                <button class="btn-password" onclick="togglePasswordChange()">🔑 Parolayı Değiştir</button>
+                <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
+            </div>
+        </div>
+
+        <div id="passwordChangeCard" class="kiosk-settings-card" style="display: none; margin-bottom: 25px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+            <h3 style="margin-top: 0; color: #1e293b;">🔑 Yönetici Parolasını Değiştir</h3>
+            <input type="password" id="currentPasswordInput" class="login-input" placeholder="Mevcut parola" autocomplete="current-password">
+            <input type="password" id="changedPasswordInput" class="login-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
+            <input type="password" id="changedPasswordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
+            <button class="btn" onclick="changePassword()">Parolayı Kaydet</button>
+            <span id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></span>
         </div>
         
         <!-- Dosya Yükleme Alanı -->
@@ -244,6 +262,62 @@
             loadImages();
             loadSlideInterval();
             connectLiveUpdates();
+        }
+
+        function togglePasswordChange() {
+            const card = document.getElementById('passwordChangeCard');
+            card.style.display = card.style.display === 'none' ? 'block' : 'none';
+            if (card.style.display === 'block') {
+                document.getElementById('currentPasswordInput').focus();
+            }
+        }
+
+        async function changePassword() {
+            const currentPasswordInput = document.getElementById('currentPasswordInput');
+            const newPasswordInput = document.getElementById('changedPasswordInput');
+            const confirmationInput = document.getElementById('changedPasswordConfirmationInput');
+            const status = document.getElementById('passwordChangeStatus');
+            status.innerText = '';
+            status.style.color = '#ef4444';
+
+            const currentPassword = currentPasswordInput.value;
+            const newPassword = newPasswordInput.value;
+            const passwordConfirmation = confirmationInput.value;
+            if (newPassword.length < 6) {
+                status.innerText = 'Yeni parola en az 6 karakter olmalıdır.';
+                return;
+            }
+            if (newPassword !== passwordConfirmation) {
+                status.innerText = 'Yeni parola tekrarı eşleşmiyor.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword, passwordConfirmation })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    status.innerText = data.error || 'Parola değiştirilemedi.';
+                    return;
+                }
+
+                localStorage.setItem(TOKEN_KEY, data.token);
+                currentPasswordInput.value = '';
+                newPasswordInput.value = '';
+                confirmationInput.value = '';
+                status.style.color = '#16a34a';
+                status.innerText = 'Parolanız başarıyla değiştirildi.';
+            } catch (err) {
+                status.innerText = 'Sunucuya bağlanılamadı.';
+            }
         }
 
         function handleApiError(res) {
