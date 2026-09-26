@@ -15,6 +15,9 @@
         .btn-password { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
         .btn-logout:hover { background: #ef4444; color: white; }
         .btn-password:hover { background: #2563eb; color: white; }
+        .btn-back { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        .btn-back:hover { background: #e2e8f0; }
+        .password-change-card { max-width: 440px; margin: 36px auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
         @media (max-width: 620px) {
             .header-bar { align-items: flex-start; flex-direction: column; }
             .header-actions { width: 100%; }
@@ -82,18 +85,9 @@
         <div class="header-bar">
             <h1>🖥️ IdleBoard Görsel Yönetim Paneli</h1>
             <div class="header-actions">
-                <button class="btn-password" onclick="togglePasswordChange()">🔑 Parolayı Değiştir</button>
+                <button class="btn-password" onclick="showPasswordChange()">🔑 Parolayı Değiştir</button>
                 <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
             </div>
-        </div>
-
-        <div id="passwordChangeCard" class="kiosk-settings-card" style="display: none; margin-bottom: 25px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
-            <h3 style="margin-top: 0; color: #1e293b;">🔑 Yönetici Parolasını Değiştir</h3>
-            <input type="password" id="currentPasswordInput" class="login-input" placeholder="Mevcut parola" autocomplete="current-password">
-            <input type="password" id="changedPasswordInput" class="login-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
-            <input type="password" id="changedPasswordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
-            <button class="btn" onclick="changePassword()">Parolayı Kaydet</button>
-            <span id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></span>
         </div>
         
         <!-- Dosya Yükleme Alanı -->
@@ -112,6 +106,25 @@
             <input type="number" id="slideInterval" value="5" min="1" max="300" style="width: 70px; padding: 6px 10px; margin: 0 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
             <button id="btnSaveInterval" class="btn" style="padding: 6px 16px;" onclick="updateSlideInterval()">Kaydet</button>
             <span id="intervalStatus" style="margin-left: 10px; font-weight: bold;"></span>
+        </div>
+    </div>
+
+    <!-- Yönetici parolası için ayrı ekran -->
+    <div id="passwordChangeSection" class="container" style="display: none;">
+        <div class="header-bar">
+            <h1>🔑 Yönetici Parolasını Değiştir</h1>
+            <div class="header-actions">
+                <button class="btn-back" onclick="showDashboard()">← Panele Dön</button>
+                <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
+            </div>
+        </div>
+        <div class="password-change-card">
+            <p class="setup-note">Güvenliğiniz için mevcut parolanızı doğrulayın ve en az 6 karakterli yeni bir parola belirleyin.</p>
+            <input type="password" id="currentPasswordInput" class="login-input" placeholder="Mevcut parola" autocomplete="current-password">
+            <input type="password" id="changedPasswordInput" class="login-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
+            <input type="password" id="changedPasswordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
+            <button class="btn btn-login" onclick="changePassword()">Parolayı Kaydet</button>
+            <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
         </div>
     </div>
 
@@ -245,6 +258,7 @@
             document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('passwordChangeSection').style.display = 'none';
             document.getElementById('passwordInput').focus();
         }
 
@@ -252,6 +266,7 @@
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('passwordChangeSection').style.display = 'none';
             document.getElementById('newPasswordInput').focus();
         }
 
@@ -259,17 +274,18 @@
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'block';
+            document.getElementById('passwordChangeSection').style.display = 'none';
             loadImages();
             loadSlideInterval();
             connectLiveUpdates();
         }
 
-        function togglePasswordChange() {
-            const card = document.getElementById('passwordChangeCard');
-            card.style.display = card.style.display === 'none' ? 'block' : 'none';
-            if (card.style.display === 'block') {
-                document.getElementById('currentPasswordInput').focus();
-            }
+        function showPasswordChange() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('passwordChangeSection').style.display = 'block';
+            document.getElementById('currentPasswordInput').focus();
         }
 
         async function changePassword() {
