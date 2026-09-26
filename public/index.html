@@ -5,25 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IdleBoard Yönetim Paneli</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
         .container { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .login-wrap { padding: 20px; }
+        .admin-layout { min-height: 100vh; }
+        .admin-sidebar { position: sticky; top: 0; display: flex; flex-direction: column; flex-shrink: 0; min-width: 0; width: 248px; height: 100vh; box-sizing: border-box; padding: 18px 12px; overflow-x: hidden; background: #0f172a; color: white; transition: width 0.2s ease; z-index: 20; }
+        .sidebar-heading { display: flex; align-items: center; justify-content: space-between; min-height: 42px; padding: 0 8px 16px; font-size: 18px; font-weight: 700; white-space: nowrap; }
+        .sidebar-toggle, .mobile-menu-toggle { border: 0; border-radius: 6px; padding: 8px 10px; background: #1e293b; color: white; cursor: pointer; font-size: 16px; }
+        .sidebar-nav { display: grid; gap: 6px; }
+        .sidebar-link { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 11px 12px; border: 0; border-radius: 7px; background: transparent; color: #cbd5e1; text-align: left; font: inherit; cursor: pointer; white-space: nowrap; }
+        .sidebar-link:hover, .sidebar-link.active { background: #1e40af; color: white; }
+        .sidebar-icon { width: 20px; text-align: center; }
+        .sidebar-footer { margin-top: auto; }
+        .sidebar-logout { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #7f1d1d; border-radius: 7px; background: #450a0a; color: #fecaca; text-align: left; cursor: pointer; font: inherit; }
+        .app-main { flex: 1; min-width: 0; padding: 24px; }
+        .mobile-menu-toggle, .sidebar-backdrop { display: none; }
+        .admin-layout.sidebar-collapsed .admin-sidebar { width: 72px; }
+        .admin-layout.sidebar-collapsed .sidebar-heading { justify-content: center; padding-right: 0; padding-left: 0; }
+        .admin-layout.sidebar-collapsed .sidebar-brand, .admin-layout.sidebar-collapsed .sidebar-label { display: none; }
+        .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout { justify-content: center; padding-right: 6px; padding-left: 6px; text-align: center; }
+        .gallery-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0; }
+        .gallery-status { flex: 1; min-width: 180px; color: #475569; font-size: 14px; }
+        .gallery-card { position: relative; }
+        .gallery-card img { display: block; }
+        .gallery-checkbox { display: flex; align-items: center; gap: 7px; color: #334155; font-size: 12px; }
+        .gallery-checkbox input { display: inline-block; width: 16px; height: 16px; margin: 0; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
-        .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
         h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: 10px; font-size: 24px; }
-        .btn-logout, .btn-password { border: 1px solid; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; }
-        .btn-logout { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
-        .btn-password { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-        .btn-logout:hover { background: #ef4444; color: white; }
-        .btn-password:hover { background: #2563eb; color: white; }
         .btn-back { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
         .btn-back:hover { background: #e2e8f0; }
         .password-change-card { max-width: 440px; margin: 36px auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
-        @media (max-width: 620px) {
-            .header-bar { align-items: flex-start; flex-direction: column; }
-            .header-actions { width: 100%; }
-            .header-actions button { flex: 1; }
+        @media (max-width: 760px) {
+            .admin-sidebar { position: fixed; left: 0; transform: translateX(-100%); width: min(280px, 82vw); }
+            .admin-layout.sidebar-open .admin-sidebar { transform: translateX(0); }
+            .admin-layout.sidebar-collapsed .admin-sidebar { width: min(280px, 82vw); }
+            .admin-layout.sidebar-collapsed .sidebar-brand, .admin-layout.sidebar-collapsed .sidebar-label { display: inline; }
+            .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout { justify-content: flex-start; padding: 11px 12px; text-align: left; }
+            .sidebar-backdrop { position: fixed; inset: 0; z-index: 19; background: rgba(15, 23, 42, 0.45); }
+            .admin-layout.sidebar-open .sidebar-backdrop { display: block; }
+            .app-main { padding: 16px; }
+            .mobile-menu-toggle { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; background: #1e293b; }
         }
-        
         .upload-card { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; background: #f8fafc; cursor: pointer; margin-bottom: 25px; transition: all 0.2s; }
         .upload-card:hover { border-color: #2563eb; background: #eff6ff; }
         input[type="file"] { display: none; }
@@ -38,7 +60,6 @@
         .card-actions { display: flex; gap: 6px; }
         .btn-small { flex: 1; padding: 6px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
         .btn-small:hover { opacity: 0.85; }
-        .btn-send { background: #10b981; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .empty-msg { color: #94a3b8; text-align: center; grid-column: 1 / -1; padding: 40px; font-style: italic; }
 
@@ -80,14 +101,29 @@
         </div>
     </div>
 
-    <!-- 2. Yönetim Paneli Ekranı (Giriş Yapılınca Gösterilir) -->
+    <div id="adminLayout" class="admin-layout" style="display: none;">
+        <aside id="adminSidebar" class="admin-sidebar" aria-label="Yönetim menüsü">
+            <div class="sidebar-heading">
+                <span class="sidebar-brand">IdleBoard</span>
+                <button class="sidebar-toggle" type="button" aria-label="Menüyü daralt" title="Menüyü daralt" onclick="toggleSidebar()">‹</button>
+            </div>
+            <nav class="sidebar-nav">
+                <button id="dashboardNav" class="sidebar-link active" type="button" onclick="showDashboard()"><span class="sidebar-icon">⌂</span><span class="sidebar-label">Genel Bakış</span></button>
+                <button id="galleryNav" class="sidebar-link" type="button" onclick="showGallery()"><span class="sidebar-icon">▧</span><span class="sidebar-label">Galeri Paneli</span></button>
+                <button id="passwordNav" class="sidebar-link" type="button" onclick="showPasswordChange()"><span class="sidebar-icon">🔑</span><span class="sidebar-label">Parola Değiştir</span></button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="sidebar-logout" type="button" onclick="logout()"><span class="sidebar-icon">↪</span><span class="sidebar-label">Çıkış Yap</span></button>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+        <main class="app-main">
+            <button class="mobile-menu-toggle" type="button" onclick="toggleSidebar()">☰ Menü</button>
+
+    <!-- Yönetim paneli -->
     <div id="dashboardSection" class="container" style="display: none;">
         <div class="header-bar">
-            <h1>🖥️ IdleBoard Görsel Yönetim Paneli</h1>
-            <div class="header-actions">
-                <button class="btn-password" onclick="showPasswordChange()">🔑 Parolayı Değiştir</button>
-                <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
-            </div>
+            <h1>🖥️ IdleBoard Yönetim Paneli</h1>
         </div>
         
         <!-- Dosya Yükleme Alanı -->
@@ -96,9 +132,6 @@
             <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(event)">
             <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Resim Seç & Yükle</button>
         </div>
-
-        <h2 style="color: #334155; margin-bottom: 5px;">🖼️ Sunucudaki Galeri</h2>
-        <div class="grid" id="imageGrid"></div>
 
         <div class="kiosk-settings-card" style="margin-top: 25px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
             <h3 style="margin-top: 0; color: #1e293b;">⏱️ Slayt Geçiş Ayarı</h3>
@@ -109,14 +142,24 @@
         </div>
     </div>
 
+    <div id="gallerySection" class="container" style="display: none;">
+        <div class="header-bar">
+            <h1>🖼️ Galeri Paneli</h1>
+        </div>
+        <p class="setup-note">İşaretlediğiniz görseller istemcilere gönderilir. Yeni yüklenen görselleri göndermek için ayrıca seçip kaydedin.</p>
+        <div class="gallery-toolbar">
+            <button class="btn" type="button" onclick="setAllGalleryImages(true)">Tümünü Seç</button>
+            <button class="btn-back" type="button" onclick="setAllGalleryImages(false)">Seçimi Temizle</button>
+            <span id="galleryStatus" class="gallery-status" role="status" aria-live="polite"></span>
+            <button id="saveGallerySelectionButton" class="btn" type="button" onclick="saveGallerySelection()">Seçimi Kaydet</button>
+        </div>
+        <div class="grid" id="imageGrid"></div>
+    </div>
+
     <!-- Yönetici parolası için ayrı ekran -->
     <div id="passwordChangeSection" class="container" style="display: none;">
         <div class="header-bar">
             <h1>🔑 Yönetici Parolasını Değiştir</h1>
-            <div class="header-actions">
-                <button class="btn-back" onclick="showDashboard()">← Panele Dön</button>
-                <button class="btn-logout" onclick="logout()">🔒 Çıkış Yap</button>
-            </div>
         </div>
         <div class="password-change-card">
             <p class="setup-note">Güvenliğiniz için mevcut parolanızı doğrulayın ve en az 6 karakterli yeni bir parola belirleyin.</p>
@@ -127,11 +170,16 @@
             <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
         </div>
     </div>
+        </main>
+    </div>
 
     <script>
         const TOKEN_KEY = 'idleboard_admin_token';
         let sseSource = null;
         let debounceTimer = null;
+        let galleryImages = [];
+        let savedSelection = new Set();
+        let galleryDirty = false;
 
         function getAuthHeaders() {
             const token = localStorage.getItem(TOKEN_KEY);
@@ -257,6 +305,7 @@
         function showLogin() {
             document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('adminLayout').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'none';
             document.getElementById('passwordInput').focus();
@@ -265,6 +314,7 @@
         function showSetup() {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'flex';
+            document.getElementById('adminLayout').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'none';
             document.getElementById('newPasswordInput').focus();
@@ -273,19 +323,62 @@
         function showDashboard() {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'block';
+            document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'none';
-            loadImages();
+            setActiveNavigation('dashboardNav');
+            closeMobileSidebar();
             loadSlideInterval();
             connectLiveUpdates();
+        }
+
+        function showGallery() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('adminLayout').style.display = 'flex';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('gallerySection').style.display = 'block';
+            document.getElementById('passwordChangeSection').style.display = 'none';
+            setActiveNavigation('galleryNav');
+            closeMobileSidebar();
+            loadGallery(true);
         }
 
         function showPasswordChange() {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'block';
+            setActiveNavigation('passwordNav');
+            closeMobileSidebar();
             document.getElementById('currentPasswordInput').focus();
+        }
+
+        function setActiveNavigation(activeId) {
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.toggle('active', link.id === activeId);
+            });
+        }
+
+        function toggleSidebar() {
+            const layout = document.getElementById('adminLayout');
+            if (window.matchMedia('(max-width: 760px)').matches) {
+                layout.classList.toggle('sidebar-open');
+                return;
+            }
+
+            const collapsed = layout.classList.toggle('sidebar-collapsed');
+            const button = document.querySelector('.sidebar-toggle');
+            button.innerText = collapsed ? '›' : '‹';
+            button.title = collapsed ? 'Menüyü genişlet' : 'Menüyü daralt';
+            button.setAttribute('aria-label', button.title);
+        }
+
+        function closeMobileSidebar() {
+            document.getElementById('adminLayout').classList.remove('sidebar-open');
         }
 
         async function changePassword() {
@@ -344,40 +437,128 @@
             return false;
         }
 
-        // Sunucudaki resimleri çek ve önizlemeleriyle ekrana bas
-        async function loadImages() {
+        async function loadGallery(preserveChanges = false) {
+            const previousSelection = galleryDirty && preserveChanges
+                ? getSelectedGalleryImages()
+                : null;
+
             try {
-                const res = await fetch('/api/images', { headers: getAuthHeaders() });
+                const res = await fetch('/api/gallery', { headers: getAuthHeaders() });
                 if (handleApiError(res)) return;
 
-                const images = await res.json();
-                const grid = document.getElementById('imageGrid');
-                grid.innerHTML = '';
+                const data = await res.json();
+                galleryImages = data.images;
+                savedSelection = new Set(data.selectedImages);
+                const currentSelection = previousSelection
+                    ? new Set([...previousSelection].filter(fileName => galleryImages.includes(fileName)))
+                    : savedSelection;
+                galleryDirty = Boolean(previousSelection);
+                renderGallery(currentSelection);
+                updateGallerySelectionStatus();
+            } catch (err) {
+                console.error('Resim galerisi yüklenemedi:', err);
+                document.getElementById('galleryStatus').innerText = 'Galeri yüklenemedi.';
+            }
+        }
 
-                if (images.length === 0) {
-                    grid.innerHTML = '<div class="empty-msg">Henüz hiç resim yüklenmedi. Yukarıdaki alandan ilk resminizi ekleyebilirsiniz.</div>';
+        function renderGallery(selectedImages) {
+            const grid = document.getElementById('imageGrid');
+            grid.innerHTML = '';
+
+            if (galleryImages.length === 0) {
+                grid.innerHTML = '<div class="empty-msg">Henüz hiç resim yüklenmedi. Genel Bakış bölümünden görsel ekleyebilirsiniz.</div>';
+                return;
+            }
+
+            galleryImages.forEach(fileName => {
+                const card = document.createElement('div');
+                card.className = 'card gallery-card';
+                const image = document.createElement('img');
+                image.src = `/images/${encodeURIComponent(fileName)}?t=${Date.now()}`;
+                image.alt = fileName;
+                image.loading = 'lazy';
+
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+                const label = document.createElement('label');
+                label.className = 'gallery-checkbox';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = fileName;
+                checkbox.checked = selectedImages.has(fileName);
+                checkbox.addEventListener('change', updateGallerySelectionStatus);
+                label.append(checkbox, document.createTextNode(' İstemcilere gönder'));
+
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.title = fileName;
+                name.textContent = fileName;
+
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn-small btn-delete';
+                deleteButton.textContent = 'Sil';
+                deleteButton.addEventListener('click', () => deleteImage(fileName));
+                actions.appendChild(deleteButton);
+                cardBody.append(label, name, actions);
+                card.append(image, cardBody);
+                grid.appendChild(card);
+            });
+        }
+
+        function getSelectedGalleryImages() {
+            return [...document.querySelectorAll('#imageGrid input[type="checkbox"]:checked')]
+                .map(checkbox => checkbox.value);
+        }
+
+        function updateGallerySelectionStatus() {
+            const selectedImages = getSelectedGalleryImages();
+            const selectedSet = new Set(selectedImages);
+            galleryDirty = selectedSet.size !== savedSelection.size
+                || [...selectedSet].some(fileName => !savedSelection.has(fileName));
+            const status = document.getElementById('galleryStatus');
+            status.innerText = `${selectedImages.length} / ${galleryImages.length} görsel seçili`
+                + (galleryDirty ? ' · Kaydedilmemiş değişiklikler' : '');
+            document.getElementById('saveGallerySelectionButton').disabled = !galleryDirty;
+        }
+
+        function setAllGalleryImages(checked) {
+            document.querySelectorAll('#imageGrid input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+            updateGallerySelectionStatus();
+        }
+
+        async function saveGallerySelection() {
+            const status = document.getElementById('galleryStatus');
+            const selectedImages = getSelectedGalleryImages();
+            status.innerText = 'Seçim kaydediliyor...';
+
+            try {
+                const res = await fetch('/api/gallery/selection', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ selectedImages })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    status.innerText = data.error || 'Seçim kaydedilemedi.';
                     return;
                 }
 
-                images.forEach(img => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    const imgUrl = `/images/${encodeURIComponent(img)}?t=${Date.now()}`;
-
-                    card.innerHTML = `
-                        <img src="${imgUrl}" alt="${img}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x130?text=Resim+Yuklenemedi'">
-                        <div class="card-body">
-                            <div class="file-name" title="${img}">${img}</div>
-                            <div class="card-actions">
-                                <button class="btn-small btn-send" onclick="broadcast('${img}')">Ekrana Gönder</button>
-                                <button class="btn-small btn-delete" onclick="deleteImage('${img}')">Sil</button>
-                            </div>
-                        </div>
-                    `;
-                    grid.appendChild(card);
-                });
+                savedSelection = new Set(data.selectedImages);
+                galleryDirty = false;
+                renderGallery(savedSelection);
+                status.innerText = `${savedSelection.size} / ${galleryImages.length} görsel seçili · Seçim kaydedildi`;
+                document.getElementById('saveGallerySelectionButton').disabled = true;
             } catch (err) {
-                console.error("Resim galerisi yüklenemedi:", err);
+                status.innerText = 'Sunucuya bağlanılamadı.';
             }
         }
 
@@ -400,7 +581,7 @@
                 const result = await res.json();
                 if (result.success) {
                     event.target.value = '';
-                    await loadImages();
+                    await loadGallery(true);
                 } else {
                     alert(result.error || 'Resim yüklenirken bir hata oluştu.');
                 }
@@ -409,17 +590,9 @@
             }
         }
 
-        // Seçilen Resmi Anında Kiosk Ekranına Gönder
-        async function broadcast(name) {
-            const res = await fetch(`/api/broadcast/${encodeURIComponent(name)}`, {
-                method: 'POST',
-                headers: getAuthHeaders()
-            });
-            handleApiError(res);
-        }
-
         // Resim Silme
         async function deleteImage(name) {
+            if (galleryDirty && !confirm('Kaydedilmemiş seçim değişiklikleri silinsin mi?')) return;
             if (!confirm(`"${name}" görselini silmek istediğinize emin misiniz?`)) return;
             
             const res = await fetch(`/api/images/${encodeURIComponent(name)}`, {
@@ -428,7 +601,11 @@
             });
             if (handleApiError(res)) return;
             if (res.ok) {
-                await loadImages();
+                galleryDirty = false;
+                await loadGallery();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Görsel silinemedi.');
             }
         }
 
@@ -489,7 +666,11 @@
                     const data = JSON.parse(event.data);
                     if (data.tip === 'gallery_update') {
                         clearTimeout(debounceTimer);
-                        debounceTimer = setTimeout(loadImages, 200);
+                        debounceTimer = setTimeout(() => {
+                            if (document.getElementById('gallerySection').style.display === 'block') {
+                                loadGallery(true);
+                            }
+                        }, 200);
                     } else if (data.tip === 'config' && data.slideInterval) {
                         document.getElementById('slideInterval').value = data.slideInterval;
                     }

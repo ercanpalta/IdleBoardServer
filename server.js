@@ -14,6 +14,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const IMAGES_DIR = path.join(__dirname, 'images');
+const SELECTED_IMAGES_FILE = path.join(__dirname, 'selected-images.json');
 if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
@@ -102,6 +103,7 @@ const upload = multer({ storage });
 // Aktif SSE İstemcileri
 let clients = [];
 let currentImageIndex = 0;
+let selectedImageFiles = new Set();
 
 const MIN_INTERVAL_SEC = 1;
 const MAX_INTERVAL_SEC = 300;
@@ -129,6 +131,30 @@ function listImageFiles(files) {
     return (files || []).filter(f => isSupportedImage(f)).sort();
 }
 
+function loadSelectedImages() {
+    const imageFiles = listImageFiles(fs.readdirSync(IMAGES_DIR));
+    if (!fs.existsSync(SELECTED_IMAGES_FILE)) {
+        saveSelectedImages(imageFiles);
+        return;
+    }
+
+    const stored = JSON.parse(fs.readFileSync(SELECTED_IMAGES_FILE, 'utf8'));
+    if (!Array.isArray(stored) || stored.some(fileName => typeof fileName !== 'string')) {
+        throw new Error('Galeri seçim yapılandırması geçersiz.');
+    }
+    const availableImages = new Set(imageFiles);
+    selectedImageFiles = new Set(stored.filter(fileName => availableImages.has(fileName)));
+}
+
+function saveSelectedImages(imageFiles) {
+    const temporaryFile = `${SELECTED_IMAGES_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(temporaryFile, JSON.stringify(imageFiles, null, 2), { mode: 0o600 });
+    fs.renameSync(temporaryFile, SELECTED_IMAGES_FILE);
+    selectedImageFiles = new Set(imageFiles);
+}
+
+loadSelectedImages();
+
 function slideshowTick() {
     if (clients.length === 0 || slideshowTickInFlight) return;
 
@@ -137,7 +163,7 @@ function slideshowTick() {
         slideshowTickInFlight = false;
         if (err || !files) return;
 
-        const imageFiles = listImageFiles(files);
+        const imageFiles = listImageFiles(files).filter(fileName => selectedImageFiles.has(fileName));
         if (imageFiles.length === 0) return;
 
         if (currentImageIndex >= imageFiles.length) {
@@ -205,7 +231,7 @@ app.get('/events', (req, res) => {
 
 // Belirtilen Resmi Tüm Bağlı İstemcilere Gönderen Fonksiyon
 function broadcastImage(fileName) {
-    if (clients.length === 0) return;
+    if (clients.length === 0 || !selectedImageFiles.has(fileName)) return;
 
     const filePath = path.join(IMAGES_DIR, fileName);
     if (!fs.existsSync(filePath)) return;
@@ -252,8 +278,8 @@ watcher
             fileName
         });
 
-        // Eğer son 1.5 saniye içinde aynı dosya web upload üzerinden basılmadıysa, hemen yayına al
-        if (lastBroadcast.fileName !== fileName || (Date.now() - lastBroadcast.time > 1500)) {
+        if (selectedImageFiles.has(fileName)
+            && (lastBroadcast.fileName !== fileName || (Date.now() - lastBroadcast.time > 1500))) {
             broadcastImage(fileName);
             restartSlideshowTimer();
         }
@@ -262,6 +288,13 @@ watcher
         if (!isSupportedImage(filePath)) return;
         const fileName = path.basename(filePath);
         console.log(`[🗑️ Watcher] Klasörden görsel silindi: ${fileName}`);
+        if (selectedImageFiles.has(fileName)) {
+            try {
+                saveSelectedImages([...selectedImageFiles].filter(selected => selected !== fileName));
+            } catch (error) {
+                console.error('[⚠️ Galeri seçimi kaydedilemedi]:', error);
+            }
+        }
 
         // Web paneli galerisini anında güncellemesi için bilgilendir
         broadcastToAll({
@@ -387,21 +420,66 @@ app.get('/api/images', requireAuth, (req, res) => {
     });
 });
 
+app.get('/api/gallery', requireAuth, (req, res) => {
+    fs.readdir(IMAGES_DIR, (err, files) => {
+        if (err) return res.status(500).json({ error: 'Galeri okunamadı.' });
+        const images = listImageFiles(files);
+        res.json({
+            images,
+            selectedImages: images.filter(fileName => selectedImageFiles.has(fileName))
+        });
+    });
+});
+
+app.put('/api/gallery/selection', requireAuth, (req, res) => {
+    const requestedImages = req.body && req.body.selectedImages;
+    if (!Array.isArray(requestedImages)
+        || requestedImages.some(fileName => typeof fileName !== 'string'
+            || path.basename(fileName) !== fileName
+            || !isSupportedImage(fileName))) {
+        return res.status(400).json({ success: false, error: 'Görsel seçimi geçersiz.' });
+    }
+
+    fs.readdir(IMAGES_DIR, (err, files) => {
+        if (err) return res.status(500).json({ error: 'Galeri okunamadı.' });
+        const availableImages = new Set(listImageFiles(files));
+        if (requestedImages.some(fileName => !availableImages.has(fileName))) {
+            return res.status(400).json({ success: false, error: 'Seçilen görsellerden bazıları artık mevcut değil.' });
+        }
+
+        const selection = [...new Set(requestedImages)];
+        try {
+            saveSelectedImages(selection);
+        } catch (error) {
+            console.error('[⚠️ Galeri seçimi kaydedilemedi]:', error);
+            return res.status(500).json({ success: false, error: 'Galeri seçimi kaydedilemedi.' });
+        }
+        currentImageIndex = 0;
+        restartSlideshowTimer();
+        if (selection.length > 0) {
+            slideshowTick();
+        }
+        res.json({ success: true, selectedImages: selection });
+    });
+});
+
 // 2. Yeni Resim Yükle
 app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi" });
-    
-    // Yüklenen resmi anında ekrana bas
-    broadcastImage(req.file.filename);
-    restartSlideshowTimer();
     res.json({ success: true, fileName: req.file.filename });
 });
 
 // 3. Resim Sil
 app.delete('/api/images/:name', requireAuth, (req, res) => {
+    if (path.basename(req.params.name) !== req.params.name || !isSupportedImage(req.params.name)) {
+        return res.status(400).json({ error: 'Görsel adı geçersiz.' });
+    }
     const filePath = path.join(IMAGES_DIR, req.params.name);
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
+        if (selectedImageFiles.has(req.params.name)) {
+            saveSelectedImages([...selectedImageFiles].filter(fileName => fileName !== req.params.name));
+        }
         return res.json({ success: true });
     }
     res.status(404).json({ error: "Dosya bulunamadı" });
@@ -409,6 +487,9 @@ app.delete('/api/images/:name', requireAuth, (req, res) => {
 
 // 4. Web Panelinden Manuel Tetikleme (Seçilen Resmi Anında Ekrana Bas)
 app.post('/api/broadcast/:name', requireAuth, (req, res) => {
+    if (!selectedImageFiles.has(req.params.name)) {
+        return res.status(400).json({ success: false, error: 'Yalnızca seçili görseller yayınlanabilir.' });
+    }
     broadcastImage(req.params.name);
     restartSlideshowTimer();
     res.json({ success: true });
