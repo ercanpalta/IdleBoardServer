@@ -21,11 +21,60 @@ if (!fs.existsSync(IMAGES_DIR)) {
 app.use('/images', express.static(IMAGES_DIR));
 
 // Kimlik Doğrulama (Auth) Yapılandırması
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const PASSWORD_FILE = path.join(__dirname, 'admin-password.json');
+const MIN_PASSWORD_LENGTH = 6;
 const activeTokens = new Set();
 
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
+}
+
+function readPasswordHash() {
+    if (process.env.ADMIN_PASSWORD) {
+        return { type: 'plain', value: process.env.ADMIN_PASSWORD };
+    }
+
+    if (!fs.existsSync(PASSWORD_FILE)) {
+        return null;
+    }
+
+    try {
+        const stored = JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
+        if (stored.algorithm !== 'scrypt' || !stored.salt || !stored.hash) {
+            throw new Error('Geçersiz parola yapılandırması.');
+        }
+        return { type: 'scrypt', salt: stored.salt, hash: stored.hash };
+    } catch (error) {
+        throw new Error(`Parola yapılandırması okunamadı: ${error.message}`);
+    }
+}
+
+function isPasswordConfigured() {
+    return Boolean(readPasswordHash());
+}
+
+function verifyPassword(password) {
+    const stored = readPasswordHash();
+    if (!stored) return false;
+    if (stored.type === 'plain') {
+        const passwordBuffer = Buffer.from(password);
+        const storedBuffer = Buffer.from(stored.value);
+        return passwordBuffer.length === storedBuffer.length
+            && crypto.timingSafeEqual(passwordBuffer, storedBuffer);
+    }
+
+    const hash = crypto.scryptSync(password, Buffer.from(stored.salt, 'hex'), 64);
+    return crypto.timingSafeEqual(hash, Buffer.from(stored.hash, 'hex'));
+}
+
+function savePassword(password) {
+    const salt = crypto.randomBytes(16);
+    const hash = crypto.scryptSync(password, salt, 64);
+    fs.writeFileSync(PASSWORD_FILE, JSON.stringify({
+        algorithm: 'scrypt',
+        salt: salt.toString('hex'),
+        hash: hash.toString('hex')
+    }, null, 2), { mode: 0o600 });
 }
 
 function requireAuth(req, res, next) {
@@ -240,9 +289,35 @@ watcher
 restartSlideshowTimer();
 
 // Kimlik Doğrulama (Auth) API'leri
+app.get('/api/auth/status', (req, res) => {
+    res.json({ passwordConfigured: isPasswordConfigured() });
+});
+
+app.post('/api/auth/setup', (req, res) => {
+    const { password, passwordConfirmation } = req.body || {};
+    if (isPasswordConfigured()) {
+        return res.status(409).json({ success: false, error: 'Yönetici parolası zaten belirlenmiş.' });
+    }
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({
+            success: false,
+            error: `Parola en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`
+        });
+    }
+    if (password !== passwordConfirmation) {
+        return res.status(400).json({ success: false, error: 'Parola tekrarı eşleşmiyor.' });
+    }
+
+    savePassword(password);
+    res.json({ success: true });
+});
+
 app.post('/api/login', (req, res) => {
     const { password } = req.body || {};
-    if (!password || password !== ADMIN_PASSWORD) {
+    if (!isPasswordConfigured()) {
+        return res.status(428).json({ success: false, error: 'Önce yönetici parolasını belirleyin.' });
+    }
+    if (typeof password !== 'string' || !verifyPassword(password)) {
         return res.status(401).json({ success: false, error: 'Hatalı parola!' });
     }
 

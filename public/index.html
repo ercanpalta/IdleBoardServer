@@ -41,6 +41,7 @@
         .login-error { color: #ef4444; font-size: 13px; margin-top: 12px; min-height: 18px; font-weight: 500; }
         .login-hint { color: #94a3b8; font-size: 12px; margin-top: 18px; }
         .login-hint code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #334155; }
+        .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 20px; }
     </style>
 </head>
 <body>
@@ -54,6 +55,19 @@
             <button class="btn btn-login" onclick="login()">Giriş Yap</button>
             <div id="loginError" class="login-error"></div>
             <div class="login-hint">Varsayılan parola: <code>admin123</code></div>
+        </div>
+    </div>
+
+    <!-- 2. İlk Kurulumda Yönetici Parolası Belirleme Ekranı -->
+    <div id="setupSection" class="login-wrap" style="display: none;">
+        <div class="login-card">
+            <div style="font-size: 42px; margin-bottom: 12px;">🔐</div>
+            <h2>Yönetici Parolası Belirleyin</h2>
+            <p class="setup-note">Yönetim panelini korumak için en az 6 karakterden oluşan bir parola oluşturun.</p>
+            <input type="password" id="newPasswordInput" class="login-input" placeholder="Yeni parola..." autocomplete="new-password">
+            <input type="password" id="passwordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı..." autocomplete="new-password" onkeydown="if(event.key==='Enter') setupPassword()">
+            <button class="btn btn-login" onclick="setupPassword()">Parolayı Belirle</button>
+            <div id="setupError" class="login-error"></div>
         </div>
     </div>
 
@@ -94,13 +108,20 @@
         }
 
         async function checkAuth() {
-            const token = localStorage.getItem(TOKEN_KEY);
-            if (!token) {
-                showLogin();
-                return;
-            }
-
             try {
+                const statusRes = await fetch('/api/auth/status');
+                const status = await statusRes.json();
+                if (!status.passwordConfigured) {
+                    showSetup();
+                    return;
+                }
+
+                const token = localStorage.getItem(TOKEN_KEY);
+                if (!token) {
+                    showLogin();
+                    return;
+                }
+
                 const res = await fetch('/api/auth/check', {
                     headers: getAuthHeaders()
                 });
@@ -114,12 +135,53 @@
             }
         }
 
+        async function setupPassword() {
+            const passwordInput = document.getElementById('newPasswordInput');
+            const confirmationInput = document.getElementById('passwordConfirmationInput');
+            const errDiv = document.getElementById('setupError');
+            errDiv.innerText = '';
+
+            const password = passwordInput.value;
+            const passwordConfirmation = confirmationInput.value;
+            if (password.length < 6) {
+                errDiv.innerText = 'Parola en az 6 karakter olmalıdır.';
+                return;
+            }
+            if (password !== passwordConfirmation) {
+                errDiv.innerText = 'Parola tekrarı eşleşmiyor.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password, passwordConfirmation })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    errDiv.innerText = data.error || 'Parola belirlenemedi.';
+                    return;
+                }
+
+                passwordInput.value = '';
+                confirmationInput.value = '';
+                showLogin();
+                const loginError = document.getElementById('loginError');
+                loginError.innerText = 'Parolanız oluşturuldu. Giriş yapabilirsiniz.';
+                loginError.style.color = '#16a34a';
+            } catch (err) {
+                errDiv.innerText = 'Sunucuya bağlanılamadı.';
+            }
+        }
+
         async function login() {
             const passInput = document.getElementById('passwordInput');
             const errDiv = document.getElementById('loginError');
             errDiv.innerText = '';
+            errDiv.style.color = '#ef4444';
 
-            const password = passInput.value.trim();
+            const password = passInput.value;
             if (!password) {
                 errDiv.innerText = 'Lütfen parola girin.';
                 return;
@@ -163,12 +225,21 @@
 
         function showLogin() {
             document.getElementById('loginSection').style.display = 'flex';
+            document.getElementById('setupSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('passwordInput').focus();
         }
 
+        function showSetup() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'flex';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('newPasswordInput').focus();
+        }
+
         function showDashboard() {
             document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'block';
             loadImages();
             loadSlideInterval();
