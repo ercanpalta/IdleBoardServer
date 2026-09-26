@@ -11,3 +11,4 @@ images/*
 .env
 *.log
 admin-password.json
+selected-images.json*
