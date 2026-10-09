@@ -136,8 +136,6 @@
         .btn-playback.playing:hover { background: #dc2626; box-shadow: 0 4px 16px rgba(220,38,38,0.3); }
         .btn-playback.paused { background: #10b981; color: white; }
         .btn-playback.paused:hover { background: #059669; box-shadow: 0 4px 16px rgba(16,185,129,0.3); }
-        .stream-alert-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 13px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #475569; }
-        .stream-alert-box.paused { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
         .stream-current-preview { display: flex; align-items: center; gap: 20px; padding: 16px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
         .stream-current-img { width: 130px; height: 85px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; background: #e2e8f0; flex-shrink: 0; }
         .stream-current-info { flex: 1; min-width: 0; }
@@ -303,11 +301,6 @@
                 </button>
             </div>
 
-            <div id="streamNoticeBox" class="stream-alert-box">
-                <span style="font-size: 18px;">💡</span>
-                <span id="streamNoticeText">Yayını durdurduğunuzda tüm bağlı istemciler simge durumuna (sistem tepsisine) küçülür ve siz başlatana kadar beklemeye geçer.</span>
-            </div>
-
             <div id="streamActivePreview" class="stream-current-preview">
                 <img id="streamCurrentImg" class="stream-current-img" src="" alt="Yayındaki Görsel" style="display: none;">
                 <div id="streamPlaceholderThumb" style="width: 130px; height: 85px; display: grid; place-items: center; background: #e2e8f0; border-radius: 6px; color: #94a3b8; font-size: 24px;">🖼️</div>
@@ -325,9 +318,6 @@
                 <h2>🖼️ Yayındaki Görseller (<span id="streamSelectedCount">0</span>)</h2>
                 <span class="panel-kicker">Slayt Döngüsündeki İçerikler</span>
             </div>
-            <p class="setup-note" style="margin-top: 0; margin-bottom: 15px;">
-                Aşağıdaki görseller sırasıyla istemci ekranlarında slayt olarak yayınlanmaktadır. Bir görseli yayından çıkarmak için <strong>"Yayından Kaldır"</strong> butonunu kullanabilirsiniz.
-            </p>
             <div class="grid" id="streamGrid"></div>
         </article>
     </div>
@@ -967,11 +957,9 @@
                 const data = await res.json();
                 currentStreamData = data;
 
-                // 1. Durum rozeti ve bilgilendirme
+                // 1. Durum rozeti ve butonlar
                 const liveDot = document.getElementById('streamLiveDot');
                 const liveText = document.getElementById('streamLiveText');
-                const noticeBox = document.getElementById('streamNoticeBox');
-                const noticeText = document.getElementById('streamNoticeText');
                 const btnToggle = document.getElementById('btnStreamToggle');
                 const btnPrev = document.getElementById('btnStreamPrev');
                 const btnNext = document.getElementById('btnStreamNext');
@@ -980,8 +968,6 @@
                 if (data.isPaused) {
                     liveDot.className = 'live-dot offline';
                     liveText.innerText = 'Yayın Durduruldu (Tepside)';
-                    noticeBox.className = 'stream-alert-box paused';
-                    noticeText.innerHTML = '<strong>⏸ Yayın Durduruldu:</strong> Bağlı tüm istemciler sistem tepsisine gizlendi ve beklemeye alındı. Slaytı devam ettirmek için "Yayını Başlat" butonuna tıklayın.';
                     btnToggle.className = 'btn-playback paused';
                     btnToggle.innerHTML = '▶ Yayını Başlat';
                     controlKicker.innerText = 'Yayın Beklemede';
@@ -989,8 +975,6 @@
                     const hasClients = data.connectedClients > 0;
                     liveDot.className = hasClients ? 'live-dot' : 'live-dot offline';
                     liveText.innerText = hasClients ? `Yayın Aktif (${data.connectedClients} istemci)` : 'Yayın Aktif (İstemci bekleniyor)';
-                    noticeBox.className = 'stream-alert-box';
-                    noticeText.innerHTML = '<strong>💡 Bilgi:</strong> "Yayını Durdur" butonuna bastığınızda tüm istemciler sistem tepsisinde beklemeye alınır.';
                     btnToggle.className = 'btn-playback playing';
                     btnToggle.innerHTML = '⏸ Yayını Durdur';
                     controlKicker.innerText = 'Canlı Yönetim';
