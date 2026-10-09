@@ -12,3 +12,4 @@ images/*
 *.log
 admin-password.json
 selected-images.json*
+thumbnails/

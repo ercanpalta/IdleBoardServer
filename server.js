@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const chokidar = require('chokidar');
+const sharp = require('sharp');
 
 const app = express();
 app.use(cors());
@@ -14,12 +15,47 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const IMAGES_DIR = path.join(__dirname, 'images');
+const THUMBNAILS_DIR = path.join(__dirname, 'thumbnails');
 const SELECTED_IMAGES_FILE = path.join(__dirname, 'selected-images.json');
 if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
+if (!fs.existsSync(THUMBNAILS_DIR)) {
+    fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+}
 
 app.use('/images', express.static(IMAGES_DIR));
+
+// Küçük Önizleme (Thumbnail) Servisi
+app.get('/thumbnails/:name', async (req, res) => {
+    const fileName = req.params.name;
+    if (path.basename(fileName) !== fileName || !isSupportedImage(fileName)) {
+        return res.status(400).send('Geçersiz dosya');
+    }
+
+    const thumbPath = path.join(THUMBNAILS_DIR, fileName);
+    const origPath = path.join(IMAGES_DIR, fileName);
+
+    if (fs.existsSync(thumbPath)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(thumbPath);
+    }
+
+    if (!fs.existsSync(origPath)) {
+        return res.status(404).send('Görsel bulunamadı');
+    }
+
+    try {
+        await generateThumbnail(fileName);
+        if (fs.existsSync(thumbPath)) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            return res.sendFile(thumbPath);
+        }
+    } catch (err) {
+        console.error(`[!] Thumbnail servisi hatası (${fileName}):`, err.message);
+    }
+    res.sendFile(origPath);
+});
 
 // Kimlik Doğrulama (Auth) Yapılandırması
 const PASSWORD_FILE = path.join(__dirname, 'admin-password.json');
@@ -146,6 +182,44 @@ function listImageFiles(files) {
     return (files || []).filter(f => isSupportedImage(f)).sort();
 }
 
+async function generateThumbnail(fileName) {
+    const origPath = path.join(IMAGES_DIR, fileName);
+    const thumbPath = path.join(THUMBNAILS_DIR, fileName);
+
+    if (!fs.existsSync(origPath)) return false;
+
+    try {
+        const ext = path.extname(fileName).toLowerCase();
+        let pipeline = sharp(origPath).resize(500, null, { withoutEnlargement: true });
+        if (ext === '.png') {
+            pipeline = pipeline.png({ quality: 80, compressionLevel: 8 });
+        } else if (ext === '.webp') {
+            pipeline = pipeline.webp({ quality: 80 });
+        } else {
+            pipeline = pipeline.jpeg({ quality: 80, progressive: true });
+        }
+        await pipeline.toFile(thumbPath);
+        return true;
+    } catch (err) {
+        console.error(`[!] Thumbnail oluşturulamadı (${fileName}):`, err.message);
+        return false;
+    }
+}
+
+async function ensureThumbnails() {
+    try {
+        const files = listImageFiles(fs.readdirSync(IMAGES_DIR));
+        for (const fileName of files) {
+            const thumbPath = path.join(THUMBNAILS_DIR, fileName);
+            if (!fs.existsSync(thumbPath)) {
+                await generateThumbnail(fileName);
+            }
+        }
+    } catch (err) {
+        console.error('[!] ensureThumbnails hatası:', err.message);
+    }
+}
+
 function getActiveSelectedImages() {
     const imageFiles = listImageFiles(fs.readdirSync(IMAGES_DIR));
     return imageFiles.filter(fileName => selectedImageFiles.has(fileName));
@@ -201,6 +275,7 @@ function saveSelectedImages(imageFiles) {
 }
 
 loadSelectedImages();
+ensureThumbnails();
 
 function slideshowTick() {
     if (isPlaybackPaused || clients.length === 0 || slideshowTickInFlight) return;
@@ -336,6 +411,7 @@ watcher
         if (!isSupportedImage(filePath)) return;
         const fileName = path.basename(filePath);
         console.log(`[📁 Watcher] Klasöre yeni görsel eklendi: ${fileName}`);
+        generateThumbnail(fileName).catch(() => {});
 
         // Web paneli galerisini anında güncellemesi için bilgilendir
         broadcastToAll({
@@ -355,6 +431,11 @@ watcher
         if (!isSupportedImage(filePath)) return;
         const fileName = path.basename(filePath);
         console.log(`[🗑️ Watcher] Klasörden görsel silindi: ${fileName}`);
+        const thumbPath = path.join(THUMBNAILS_DIR, fileName);
+        if (fs.existsSync(thumbPath)) {
+            try { fs.unlinkSync(thumbPath); } catch (e) {}
+        }
+
         if (selectedImageFiles.has(fileName)) {
             try {
                 saveSelectedImages([...selectedImageFiles].filter(selected => selected !== fileName));
@@ -561,6 +642,7 @@ app.put('/api/gallery/selection', requireAuth, (req, res) => {
 // 2. Yeni Resim Yükle
 app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi" });
+    generateThumbnail(req.file.filename).catch(() => {});
     res.json({ success: true, fileName: req.file.filename });
 });
 
@@ -572,6 +654,10 @@ app.delete('/api/images/:name', requireAuth, (req, res) => {
     const filePath = path.join(IMAGES_DIR, req.params.name);
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
+        const thumbPath = path.join(THUMBNAILS_DIR, req.params.name);
+        if (fs.existsSync(thumbPath)) {
+            try { fs.unlinkSync(thumbPath); } catch (e) {}
+        }
         if (selectedImageFiles.has(req.params.name)) {
             saveSelectedImages([...selectedImageFiles].filter(fileName => fileName !== req.params.name));
         }

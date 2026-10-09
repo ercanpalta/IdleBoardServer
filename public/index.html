@@ -681,7 +681,7 @@
                 if (stats.latestImage) {
                     preview.innerHTML = '';
                     const image = document.createElement('img');
-                    image.src = `/images/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
+                    image.src = `/thumbnails/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
                     image.alt = stats.latestImage;
                     preview.appendChild(image);
                     const timeStr = stats.latestBroadcastAt ? new Date(stats.latestBroadcastAt).toLocaleTimeString('tr-TR') : '';
@@ -799,7 +799,7 @@
                 const card = document.createElement('div');
                 card.className = 'card gallery-card';
                 const image = document.createElement('img');
-                image.src = `/images/${encodeURIComponent(fileName)}`;
+                image.src = `/thumbnails/${encodeURIComponent(fileName)}`;
                 image.alt = fileName;
                 image.loading = 'lazy';
 
@@ -1037,7 +1037,7 @@
                     streamPlaceholder.style.display = 'none';
                     if (streamCurrentImg.dataset.filename !== data.currentImage) {
                         streamCurrentImg.dataset.filename = data.currentImage;
-                        streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                        streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
                     }
                     streamCurrentImg.alt = data.currentImage;
                     streamActiveBadge.style.display = 'inline-block';
@@ -1111,7 +1111,7 @@
                 }
 
                 const img = document.createElement('img');
-                img.src = `/images/${encodeURIComponent(fileName)}`;
+                img.src = `/thumbnails/${encodeURIComponent(fileName)}`;
                 img.alt = fileName;
                 img.loading = 'lazy';
 
