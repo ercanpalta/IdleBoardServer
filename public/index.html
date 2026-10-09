@@ -798,7 +798,7 @@
                 const card = document.createElement('div');
                 card.className = 'card gallery-card';
                 const image = document.createElement('img');
-                image.src = `/images/${encodeURIComponent(fileName)}?t=${Date.now()}`;
+                image.src = `/images/${encodeURIComponent(fileName)}`;
                 image.alt = fileName;
                 image.loading = 'lazy';
 
@@ -1031,7 +1031,10 @@
                 if (data.currentImage) {
                     streamCurrentImg.style.display = 'block';
                     streamPlaceholder.style.display = 'none';
-                    streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}?t=${Date.now()}`;
+                    if (streamCurrentImg.dataset.filename !== data.currentImage) {
+                        streamCurrentImg.dataset.filename = data.currentImage;
+                        streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                    }
                     streamCurrentImg.alt = data.currentImage;
                     streamActiveBadge.style.display = 'inline-block';
                     streamCurrentName.innerText = data.currentImage;
@@ -1060,8 +1063,25 @@
             }
         }
 
+        let lastRenderedStreamImages = null;
+
         function renderStreamGrid(selectedImages, activeImage) {
             const grid = document.getElementById('streamGrid');
+            if (!grid) return;
+
+            const hasValidCards = grid.children.length > 0 && !grid.querySelector('.empty-msg');
+            const listUnchanged = hasValidCards &&
+                Array.isArray(lastRenderedStreamImages) &&
+                lastRenderedStreamImages.length === selectedImages.length &&
+                lastRenderedStreamImages.every((val, idx) => val === selectedImages[idx]);
+
+            // Görsel listesi değişmediyse tüm kartları ve görselleri baştan yükleme (gereksiz kaynak tüketimini önle)
+            if (listUnchanged) {
+                updateStreamActiveCard(activeImage);
+                return;
+            }
+
+            lastRenderedStreamImages = [...selectedImages];
             grid.innerHTML = '';
 
             if (!selectedImages || selectedImages.length === 0) {
@@ -1079,26 +1099,26 @@
             selectedImages.forEach(fileName => {
                 const isCurrent = fileName === activeImage;
                 const card = document.createElement('div');
-                card.className = 'card stream-card';
+                card.className = isCurrent ? 'card stream-card is-active' : 'card stream-card';
+                card.dataset.filename = fileName;
                 if (isCurrent) {
                     card.style.borderColor = '#2563eb';
                     card.style.boxShadow = '0 0 0 2px rgba(37,99,235,0.25)';
                 }
 
                 const img = document.createElement('img');
-                img.src = `/images/${encodeURIComponent(fileName)}?t=${Date.now()}`;
+                img.src = `/images/${encodeURIComponent(fileName)}`;
                 img.alt = fileName;
                 img.loading = 'lazy';
 
                 const body = document.createElement('div');
                 body.className = 'card-body';
 
-                if (isCurrent) {
-                    const badge = document.createElement('div');
-                    badge.className = 'badge-active';
-                    badge.innerText = '🔴 Şu Anda Yayında';
-                    body.appendChild(badge);
-                }
+                const badge = document.createElement('div');
+                badge.className = 'badge-active stream-active-badge';
+                badge.innerText = '🔴 Şu Anda Yayında';
+                badge.style.display = isCurrent ? 'inline-block' : 'none';
+                body.appendChild(badge);
 
                 const name = document.createElement('div');
                 name.className = 'file-name';
@@ -1129,6 +1149,22 @@
 
                 card.append(img, body);
                 grid.appendChild(card);
+            });
+        }
+
+        function updateStreamActiveCard(activeImage) {
+            const grid = document.getElementById('streamGrid');
+            if (!grid) return;
+            const cards = grid.querySelectorAll('.stream-card');
+            cards.forEach(card => {
+                const isCurrent = card.dataset.filename === activeImage;
+                card.classList.toggle('is-active', isCurrent);
+                card.style.borderColor = isCurrent ? '#2563eb' : '';
+                card.style.boxShadow = isCurrent ? '0 0 0 2px rgba(37,99,235,0.25)' : '';
+                const badge = card.querySelector('.stream-active-badge');
+                if (badge) {
+                    badge.style.display = isCurrent ? 'inline-block' : 'none';
+                }
             });
         }
 
