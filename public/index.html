@@ -260,7 +260,7 @@
             <button class="btn" type="button" onclick="setAllGalleryImages(true)">Tümünü Seç</button>
             <button class="btn-back" type="button" onclick="setAllGalleryImages(false)">Seçimi Temizle</button>
             <span id="galleryStatus" class="gallery-status" role="status" aria-live="polite"></span>
-            <button id="saveGallerySelectionButton" class="btn" type="button" onclick="saveGallerySelection()">Seçimi Kaydet</button>
+            <button id="saveGallerySelectionButton" class="btn" type="button" onclick="saveGallerySelection()" hidden>Seçimi Kaydet</button>
         </div>
         <div class="grid" id="imageGrid"></div>
     </div>
@@ -696,7 +696,9 @@
             const status = document.getElementById('galleryStatus');
             status.innerText = `${selectedImages.length} / ${galleryImages.length} görsel seçili`
                 + (galleryDirty ? ' · Kaydedilmemiş değişiklikler' : '');
-            document.getElementById('saveGallerySelectionButton').disabled = !galleryDirty;
+            const saveButton = document.getElementById('saveGallerySelectionButton');
+            saveButton.hidden = !galleryDirty;
+            saveButton.disabled = !galleryDirty;
         }
 
         function setAllGalleryImages(checked) {
@@ -732,7 +734,9 @@
                 galleryDirty = false;
                 renderGallery(savedSelection);
                 status.innerText = `${savedSelection.size} / ${galleryImages.length} görsel seçili · Seçim kaydedildi`;
-                document.getElementById('saveGallerySelectionButton').disabled = true;
+                const saveButton = document.getElementById('saveGallerySelectionButton');
+                saveButton.hidden = true;
+                saveButton.disabled = true;
             } catch (err) {
                 status.innerText = 'Sunucuya bağlanılamadı.';
             }
