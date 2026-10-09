@@ -125,6 +125,29 @@
         .btn-login { width: 100%; padding: 12px; font-size: 15px; }
         .login-error { color: #ef4444; font-size: 13px; margin-top: 12px; min-height: 18px; font-weight: 500; }
         .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 20px; }
+
+        /* Yayın Akışı (Stream View) Stilleri */
+        .stream-control-bar { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 10px 0 20px; }
+        .btn-stream-nav { background: #1e293b; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-stream-nav:hover { background: #334155; }
+        .btn-stream-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-playback { min-width: 175px; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+        .btn-playback.playing { background: #ef4444; color: white; }
+        .btn-playback.playing:hover { background: #dc2626; box-shadow: 0 4px 16px rgba(220,38,38,0.3); }
+        .btn-playback.paused { background: #10b981; color: white; }
+        .btn-playback.paused:hover { background: #059669; box-shadow: 0 4px 16px rgba(16,185,129,0.3); }
+        .stream-alert-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 13px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #475569; }
+        .stream-alert-box.paused { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+        .stream-current-preview { display: flex; align-items: center; gap: 20px; padding: 16px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+        .stream-current-img { width: 130px; height: 85px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; background: #e2e8f0; flex-shrink: 0; }
+        .stream-current-info { flex: 1; min-width: 0; }
+        .stream-current-title { font-weight: 700; font-size: 15px; color: #0f172a; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stream-current-meta { font-size: 12px; color: #64748b; }
+        .badge-active { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #dc2626; color: white; margin-bottom: 6px; }
+        .btn-remove-stream { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .btn-remove-stream:hover { background: #ef4444; color: white; border-color: #ef4444; }
+        .btn-broadcast-stream { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .btn-broadcast-stream:hover { background: #2563eb; color: white; border-color: #2563eb; }
     </style>
 </head>
 <body>
@@ -161,6 +184,7 @@
             </div>
             <nav class="sidebar-nav">
                 <button id="dashboardNav" class="sidebar-link active" type="button" onclick="showDashboard()"><span class="sidebar-icon">⌂</span><span class="sidebar-label">Genel Bakış</span></button>
+                <button id="streamNav" class="sidebar-link" type="button" onclick="showStream()"><span class="sidebar-icon">📡</span><span class="sidebar-label">Yayın Akışı</span></button>
                 <button id="galleryNav" class="sidebar-link" type="button" onclick="showGallery()"><span class="sidebar-icon">▧</span><span class="sidebar-label">Galeri Paneli</span></button>
                 <button id="passwordNav" class="sidebar-link" type="button" onclick="showPasswordChange()"><span class="sidebar-icon">🔑</span><span class="sidebar-label">Parola Değiştir</span></button>
             </nav>
@@ -244,6 +268,68 @@
                 <div id="dashboardUpdatedAt" class="dashboard-updated">İstatistikler yükleniyor...</div>
             </article>
         </section>
+    </div>
+
+    <!-- Yayın Akışı Paneli -->
+    <div id="streamSection" class="container dashboard-view" style="display: none;">
+        <section class="dashboard-hero">
+            <div>
+                <p class="dashboard-eyebrow">IdleBoard Canlı Yayın Yönetimi</p>
+                <h1>Yayın Akışı</h1>
+                <p>İstemcilerde gösterilen canlı yayını kontrol edin, görseller arasında geçiş yapın ve yayındaki içerikleri yönetin.</p>
+            </div>
+            <div class="dashboard-live">
+                <span id="streamLiveDot" class="live-dot"></span>
+                <span id="streamLiveText">Yayın durumu yükleniyor...</span>
+            </div>
+        </section>
+
+        <!-- Kontrol Masası -->
+        <article class="dashboard-panel" style="margin-bottom: 20px;">
+            <div class="panel-heading">
+                <h2>🎮 Yayın Kontrol Paneli</h2>
+                <span id="streamControlKicker" class="panel-kicker">Canlı Yönetim</span>
+            </div>
+
+            <div class="stream-control-bar">
+                <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim">
+                    ◀ Önceki Resim
+                </button>
+                <button id="btnStreamToggle" class="btn-playback playing" type="button" onclick="togglePlayback()">
+                    ⏸ Yayını Durdur
+                </button>
+                <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim">
+                    Sonraki Resim ▶
+                </button>
+            </div>
+
+            <div id="streamNoticeBox" class="stream-alert-box">
+                <span style="font-size: 18px;">💡</span>
+                <span id="streamNoticeText">Yayını durdurduğunuzda tüm bağlı istemciler simge durumuna (sistem tepsisine) küçülür ve siz başlatana kadar beklemeye geçer.</span>
+            </div>
+
+            <div id="streamActivePreview" class="stream-current-preview">
+                <img id="streamCurrentImg" class="stream-current-img" src="" alt="Yayındaki Görsel" style="display: none;">
+                <div id="streamPlaceholderThumb" style="width: 130px; height: 85px; display: grid; place-items: center; background: #e2e8f0; border-radius: 6px; color: #94a3b8; font-size: 24px;">🖼️</div>
+                <div class="stream-current-info">
+                    <span id="streamActiveBadge" class="badge-active" style="display: none;">🔴 Şu Anda Ekranda</span>
+                    <div id="streamCurrentName" class="stream-current-title">Görsel bekleniyor...</div>
+                    <div id="streamCurrentMeta" class="stream-current-meta">Toplam yayındaki görsel sayısı ve durum burada listelenir.</div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Yayındaki Görseller -->
+        <article class="dashboard-panel">
+            <div class="panel-heading">
+                <h2>🖼️ Yayındaki Görseller (<span id="streamSelectedCount">0</span>)</h2>
+                <span class="panel-kicker">Slayt Döngüsündeki İçerikler</span>
+            </div>
+            <p class="setup-note" style="margin-top: 0; margin-bottom: 15px;">
+                Aşağıdaki görseller sırasıyla istemci ekranlarında slayt olarak yayınlanmaktadır. Bir görseli yayından çıkarmak için <strong>"Yayından Kaldır"</strong> butonunu kullanabilirsiniz.
+            </p>
+            <div class="grid" id="streamGrid"></div>
+        </article>
     </div>
 
     <div id="gallerySection" class="container" style="display: none;">
@@ -419,6 +505,8 @@
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('streamSection').style.display = 'none';
+            document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'none';
             document.getElementById('passwordInput').focus();
         }
@@ -428,6 +516,8 @@
             document.getElementById('setupSection').style.display = 'flex';
             document.getElementById('adminLayout').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('streamSection').style.display = 'none';
+            document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'none';
             document.getElementById('newPasswordInput').focus();
         }
@@ -437,6 +527,7 @@
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'block';
+            document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'none';
             setActiveNavigation('dashboardNav');
@@ -444,8 +535,32 @@
             loadSlideInterval();
             loadDashboardStats();
             clearInterval(dashboardRefreshTimer);
-            dashboardRefreshTimer = setInterval(loadDashboardStats, 10000);
+            dashboardRefreshTimer = setInterval(refreshActiveView, 10000);
             connectLiveUpdates();
+        }
+
+        function showStream() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('adminLayout').style.display = 'flex';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('streamSection').style.display = 'block';
+            document.getElementById('gallerySection').style.display = 'none';
+            document.getElementById('passwordChangeSection').style.display = 'none';
+            setActiveNavigation('streamNav');
+            closeMobileSidebar();
+            loadStreamStatus();
+            clearInterval(dashboardRefreshTimer);
+            dashboardRefreshTimer = setInterval(refreshActiveView, 10000);
+            connectLiveUpdates();
+        }
+
+        function refreshActiveView() {
+            if (document.getElementById('dashboardSection').style.display === 'block') {
+                loadDashboardStats();
+            } else if (document.getElementById('streamSection').style.display === 'block') {
+                loadStreamStatus();
+            }
         }
 
         function showGallery() {
@@ -453,6 +568,7 @@
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'block';
             document.getElementById('passwordChangeSection').style.display = 'none';
             setActiveNavigation('galleryNav');
@@ -465,6 +581,7 @@
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('passwordChangeSection').style.display = 'block';
             setActiveNavigation('passwordNav');
@@ -527,9 +644,13 @@
                 document.querySelector('.selection-track').setAttribute('aria-valuenow', String(ratio));
 
                 const live = stats.connectedClients > 0;
-                document.getElementById('dashboardLiveDot').classList.toggle('offline', !live);
-                document.getElementById('dashboardLiveText').innerText =
-                    live ? `${stats.connectedClients} istemci yayında` : 'İstemci bekleniyor';
+                document.getElementById('dashboardLiveDot').classList.toggle('offline', !live || stats.isPaused);
+                if (stats.isPaused) {
+                    document.getElementById('dashboardLiveText').innerText = 'Yayın durduruldu (Tepside)';
+                } else {
+                    document.getElementById('dashboardLiveText').innerText =
+                        live ? `${stats.connectedClients} istemci yayında` : 'İstemci bekleniyor';
+                }
 
                 const preview = document.getElementById('latestImagePreview');
                 const imageName = document.getElementById('latestImageName');
@@ -834,6 +955,253 @@
             }
         }
 
+        // Yayın Akışı (Stream) Fonksiyonları
+        let currentStreamData = null;
+
+        async function loadStreamStatus() {
+            try {
+                const res = await fetch('/api/stream/status', { headers: getAuthHeaders() });
+                if (handleApiError(res)) return;
+                if (!res.ok) throw new Error('Yayın durumu alınamadı.');
+
+                const data = await res.json();
+                currentStreamData = data;
+
+                // 1. Durum rozeti ve bilgilendirme
+                const liveDot = document.getElementById('streamLiveDot');
+                const liveText = document.getElementById('streamLiveText');
+                const noticeBox = document.getElementById('streamNoticeBox');
+                const noticeText = document.getElementById('streamNoticeText');
+                const btnToggle = document.getElementById('btnStreamToggle');
+                const btnPrev = document.getElementById('btnStreamPrev');
+                const btnNext = document.getElementById('btnStreamNext');
+                const controlKicker = document.getElementById('streamControlKicker');
+
+                if (data.isPaused) {
+                    liveDot.className = 'live-dot offline';
+                    liveText.innerText = 'Yayın Durduruldu (Tepside)';
+                    noticeBox.className = 'stream-alert-box paused';
+                    noticeText.innerHTML = '<strong>⏸ Yayın Durduruldu:</strong> Bağlı tüm istemciler sistem tepsisine gizlendi ve beklemeye alındı. Slaytı devam ettirmek için "Yayını Başlat" butonuna tıklayın.';
+                    btnToggle.className = 'btn-playback paused';
+                    btnToggle.innerHTML = '▶ Yayını Başlat';
+                    controlKicker.innerText = 'Yayın Beklemede';
+                } else {
+                    const hasClients = data.connectedClients > 0;
+                    liveDot.className = hasClients ? 'live-dot' : 'live-dot offline';
+                    liveText.innerText = hasClients ? `Yayın Aktif (${data.connectedClients} istemci)` : 'Yayın Aktif (İstemci bekleniyor)';
+                    noticeBox.className = 'stream-alert-box';
+                    noticeText.innerHTML = '<strong>💡 Bilgi:</strong> "Yayını Durdur" butonuna bastığınızda tüm istemciler sistem tepsisinde beklemeye alınır.';
+                    btnToggle.className = 'btn-playback playing';
+                    btnToggle.innerHTML = '⏸ Yayını Durdur';
+                    controlKicker.innerText = 'Canlı Yönetim';
+                }
+
+                const hasImages = Array.isArray(data.selectedImages) && data.selectedImages.length > 0;
+                btnPrev.disabled = !hasImages;
+                btnNext.disabled = !hasImages;
+
+                // 2. Aktif görsel önizlemesi
+                const streamCurrentImg = document.getElementById('streamCurrentImg');
+                const streamPlaceholder = document.getElementById('streamPlaceholderThumb');
+                const streamActiveBadge = document.getElementById('streamActiveBadge');
+                const streamCurrentName = document.getElementById('streamCurrentName');
+                const streamCurrentMeta = document.getElementById('streamCurrentMeta');
+
+                if (data.currentImage) {
+                    streamCurrentImg.style.display = 'block';
+                    streamPlaceholder.style.display = 'none';
+                    streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}?t=${Date.now()}`;
+                    streamCurrentImg.alt = data.currentImage;
+                    streamActiveBadge.style.display = 'inline-block';
+                    streamCurrentName.innerText = data.currentImage;
+
+                    const currentIndex = data.selectedImages.indexOf(data.currentImage);
+                    const indexStr = currentIndex !== -1 ? ` (${currentIndex + 1} / ${data.selectedImages.length})` : '';
+                    streamCurrentMeta.innerText = `Geçiş süresi: ${data.slideInterval} saniye · Toplam yayındaki görsel: ${data.totalSelected}${indexStr}`;
+                } else {
+                    streamCurrentImg.style.display = 'none';
+                    streamPlaceholder.style.display = 'grid';
+                    streamActiveBadge.style.display = 'none';
+                    streamCurrentName.innerText = hasImages ? 'Görsel bekleniyor...' : 'Yayında görsel yok';
+                    streamCurrentMeta.innerText = hasImages
+                        ? `Toplam ${data.totalSelected} görsel yayında.`
+                        : 'Galeri panelinden yayına görsel ekleyebilirsiniz.';
+                }
+
+                document.getElementById('streamSelectedCount').innerText = data.totalSelected || 0;
+
+                // 3. Yayındaki görseller tablosu
+                renderStreamGrid(data.selectedImages || [], data.currentImage);
+            } catch (err) {
+                console.error('Yayın durumu yüklenemedi:', err);
+            }
+        }
+
+        function renderStreamGrid(selectedImages, activeImage) {
+            const grid = document.getElementById('streamGrid');
+            grid.innerHTML = '';
+
+            if (!selectedImages || selectedImages.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-msg" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 10px;">📭</div>
+                        <p style="margin: 0 0 12px; font-weight: 600; color: #475569;">Yayına alınmış görsel bulunmamaktadır.</p>
+                        <p style="margin: 0 0 18px; color: #94a3b8; font-size: 13px;">Görselleri slayt yayınına dahil etmek için Galeri Paneli'ni kullanabilirsiniz.</p>
+                        <button class="btn" type="button" onclick="showGallery()">Galeri Paneline Git</button>
+                    </div>
+                `;
+                return;
+            }
+
+            selectedImages.forEach(fileName => {
+                const isCurrent = fileName === activeImage;
+                const card = document.createElement('div');
+                card.className = 'card stream-card';
+                if (isCurrent) {
+                    card.style.borderColor = '#2563eb';
+                    card.style.boxShadow = '0 0 0 2px rgba(37,99,235,0.25)';
+                }
+
+                const img = document.createElement('img');
+                img.src = `/images/${encodeURIComponent(fileName)}?t=${Date.now()}`;
+                img.alt = fileName;
+                img.loading = 'lazy';
+
+                const body = document.createElement('div');
+                body.className = 'card-body';
+
+                if (isCurrent) {
+                    const badge = document.createElement('div');
+                    badge.className = 'badge-active';
+                    badge.innerText = '🔴 Şu Anda Yayında';
+                    body.appendChild(badge);
+                }
+
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.title = fileName;
+                name.textContent = fileName;
+                body.appendChild(name);
+
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+                actions.style.flexWrap = 'wrap';
+
+                const broadcastBtn = document.createElement('button');
+                broadcastBtn.className = 'btn-small btn-broadcast-stream';
+                broadcastBtn.type = 'button';
+                broadcastBtn.title = 'Bu görseli hemen tüm ekranlara yansıt';
+                broadcastBtn.textContent = '📺 Ekrana Gönder';
+                broadcastBtn.addEventListener('click', () => broadcastDirect(fileName));
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-small btn-remove-stream';
+                removeBtn.type = 'button';
+                removeBtn.title = 'Görseli yayın döngüsünden çıkar';
+                removeBtn.textContent = '🚫 Yayından Kaldır';
+                removeBtn.addEventListener('click', () => removeFromStream(fileName));
+
+                actions.append(broadcastBtn, removeBtn);
+                body.appendChild(actions);
+
+                card.append(img, body);
+                grid.appendChild(card);
+            });
+        }
+
+        async function togglePlayback() {
+            if (!currentStreamData) return;
+            const endpoint = currentStreamData.isPaused ? '/api/stream/resume' : '/api/stream/pause';
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+                const result = await res.json();
+                if (result.success) {
+                    await loadStreamStatus();
+                } else {
+                    alert(result.error || 'İşlem gerçekleştirilemedi.');
+                }
+            } catch (err) {
+                console.error('Yayın durdurma/başlatma hatası:', err);
+            }
+        }
+
+        async function streamNext() {
+            try {
+                const res = await fetch('/api/stream/next', {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+                const result = await res.json();
+                if (result.success) {
+                    await loadStreamStatus();
+                } else {
+                    alert(result.error || 'Sonraki görsele geçilemedi.');
+                }
+            } catch (err) {
+                console.error('Sonraki resme geçiş hatası:', err);
+            }
+        }
+
+        async function streamPrev() {
+            try {
+                const res = await fetch('/api/stream/prev', {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+                const result = await res.json();
+                if (result.success) {
+                    await loadStreamStatus();
+                } else {
+                    alert(result.error || 'Önceki görsele geçilemedi.');
+                }
+            } catch (err) {
+                console.error('Önceki resme geçiş hatası:', err);
+            }
+        }
+
+        async function broadcastDirect(fileName) {
+            try {
+                const res = await fetch(`/api/broadcast/${encodeURIComponent(fileName)}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+                const result = await res.json();
+                if (result.success) {
+                    await loadStreamStatus();
+                } else {
+                    alert(result.error || 'Görsel yayına gönderilemedi.');
+                }
+            } catch (err) {
+                console.error('Görsel yayına gönderme hatası:', err);
+            }
+        }
+
+        async function removeFromStream(fileName) {
+            if (!confirm(`"${fileName}" görselini yayın akışından kaldırmak istediğinize emin misiniz?`)) return;
+            try {
+                const res = await fetch(`/api/stream/remove/${encodeURIComponent(fileName)}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+                const result = await res.json();
+                if (result.success) {
+                    await loadStreamStatus();
+                } else {
+                    alert(result.error || 'Görsel yayından kaldırılamadı.');
+                }
+            } catch (err) {
+                console.error('Yayından kaldırma hatası:', err);
+            }
+        }
+
         // Canlı SSE Senkronizasyonu (Chokidar Watcher & Ayar Değişiklikleri)
         function connectLiveUpdates() {
             if (sseSource) {
@@ -852,12 +1220,26 @@
                             if (document.getElementById('gallerySection').style.display === 'block') {
                                 loadGallery(true);
                             }
+                            if (document.getElementById('streamSection').style.display === 'block') {
+                                loadStreamStatus();
+                            }
                         }, 200);
+                    } else if (data.tip === 'stream_status') {
+                        loadDashboardStats();
+                        if (document.getElementById('streamSection').style.display === 'block') {
+                            loadStreamStatus();
+                        }
                     } else if (data.tip === 'config' && data.slideInterval) {
                         document.getElementById('slideInterval').value = data.slideInterval;
                         loadDashboardStats();
+                        if (document.getElementById('streamSection').style.display === 'block') {
+                            loadStreamStatus();
+                        }
                     } else if (data.tip === 'client_count' || data.tip === 'dashboard_update' || data.tip === 'image') {
                         loadDashboardStats();
+                        if (document.getElementById('streamSection').style.display === 'block') {
+                            loadStreamStatus();
+                        }
                     }
                 } catch (e) {
                     console.error('SSE mesaj ayrıştırma hatası:', e);

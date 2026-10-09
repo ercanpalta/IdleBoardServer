@@ -112,6 +112,7 @@ let slideIntervalSec = 5;
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
+let isPlaybackPaused = false;
 
 function getSlideIntervalSec() {
     return slideIntervalSec;
@@ -145,6 +146,38 @@ function listImageFiles(files) {
     return (files || []).filter(f => isSupportedImage(f)).sort();
 }
 
+function getActiveSelectedImages() {
+    const imageFiles = listImageFiles(fs.readdirSync(IMAGES_DIR));
+    return imageFiles.filter(fileName => selectedImageFiles.has(fileName));
+}
+
+function advanceSlide(step) {
+    const selectedList = getActiveSelectedImages();
+    if (selectedList.length === 0) return null;
+
+    let targetIndex = 0;
+    if (lastBroadcast.fileName) {
+        const currentIdx = selectedList.indexOf(lastBroadcast.fileName);
+        if (currentIdx !== -1) {
+            targetIndex = (currentIdx + step + selectedList.length) % selectedList.length;
+        } else {
+            targetIndex = 0;
+        }
+    } else {
+        targetIndex = step > 0 ? 0 : selectedList.length - 1;
+    }
+
+    currentImageIndex = targetIndex;
+    const selectedFile = selectedList[currentImageIndex];
+    broadcastImage(selectedFile);
+    currentImageIndex = (currentImageIndex + 1) % selectedList.length;
+
+    if (!isPlaybackPaused) {
+        restartSlideshowTimer();
+    }
+    return selectedFile;
+}
+
 function loadSelectedImages() {
     const imageFiles = listImageFiles(fs.readdirSync(IMAGES_DIR));
     if (!fs.existsSync(SELECTED_IMAGES_FILE)) {
@@ -170,7 +203,7 @@ function saveSelectedImages(imageFiles) {
 loadSelectedImages();
 
 function slideshowTick() {
-    if (clients.length === 0 || slideshowTickInFlight) return;
+    if (isPlaybackPaused || clients.length === 0 || slideshowTickInFlight) return;
 
     slideshowTickInFlight = true;
     fs.readdir(IMAGES_DIR, (err, files) => {
@@ -195,6 +228,7 @@ function restartSlideshowTimer() {
         clearInterval(slideshowTimer);
         slideshowTimer = null;
     }
+    if (isPlaybackPaused) return;
     slideshowTimer = setInterval(slideshowTick, slideIntervalSec * 1000);
 }
 
@@ -233,11 +267,16 @@ app.get('/events', (req, res) => {
     res.write(`data: ${JSON.stringify({
         tip: 'init',
         mesaj: 'Bağlantı Başarılı',
-        slideInterval: getSlideIntervalSec()
+        slideInterval: getSlideIntervalSec(),
+        isPaused: isPlaybackPaused
     })}\n\n`);
 
-    // İlk istemci bağlandığında hemen ilk görseli yayınla (beklemeyi önle)
-    if (clients.length === 1) {
+    if (isPlaybackPaused && !isAdmin) {
+        res.write(`data: ${JSON.stringify({
+            tip: 'stream_control',
+            action: 'stop'
+        })}\n\n`);
+    } else if (!isPlaybackPaused && clients.filter(c => !c.isAdmin).length === 1) {
         slideshowTick();
     }
 
@@ -252,10 +291,17 @@ app.get('/events', (req, res) => {
 
 // Belirtilen Resmi Tüm Bağlı İstemcilere Gönderen Fonksiyon
 function broadcastImage(fileName) {
-    if (clients.length === 0 || !selectedImageFiles.has(fileName)) return;
+    if (!selectedImageFiles.has(fileName)) return;
+
+    lastBroadcast = { fileName, time: Date.now() };
 
     const filePath = path.join(IMAGES_DIR, fileName);
     if (!fs.existsSync(filePath)) return;
+
+    if (clients.length === 0) {
+        broadcastDashboardUpdate();
+        return;
+    }
 
     fs.readFile(filePath, (err, data) => {
         if (err) return;
@@ -269,7 +315,6 @@ function broadcastImage(fileName) {
             resimData: base64Image
         };
 
-        lastBroadcast = { fileName, time: Date.now() };
         broadcastToAll(payload);
         broadcastDashboardUpdate();
     });
@@ -474,7 +519,8 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             slideInterval: getSlideIntervalSec(),
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
-            uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000)
+            uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
+            isPaused: isPlaybackPaused
         });
     });
 });
@@ -542,6 +588,134 @@ app.post('/api/broadcast/:name', requireAuth, (req, res) => {
     broadcastImage(req.params.name);
     restartSlideshowTimer();
     res.json({ success: true });
+});
+
+// 5. Yayın Akışı Kontrol API'leri
+app.get('/api/stream/status', requireAuth, (req, res) => {
+    fs.readdir(IMAGES_DIR, (err, files) => {
+        if (err) return res.status(500).json({ error: 'Galeri okunamadı.' });
+        const images = listImageFiles(files);
+        const availableImages = new Set(images);
+        const selectedList = images.filter(fileName => selectedImageFiles.has(fileName));
+        const activeImage = lastBroadcast.fileName && availableImages.has(lastBroadcast.fileName)
+            ? lastBroadcast.fileName
+            : (selectedList.length > 0 ? selectedList[0] : null);
+
+        res.json({
+            isPaused: isPlaybackPaused,
+            currentImage: activeImage,
+            totalSelected: selectedList.length,
+            selectedImages: selectedList,
+            slideInterval: getSlideIntervalSec(),
+            connectedClients: getConnectedClientCount()
+        });
+    });
+});
+
+app.post('/api/stream/pause', requireAuth, (req, res) => {
+    isPlaybackPaused = true;
+    if (slideshowTimer) {
+        clearInterval(slideshowTimer);
+        slideshowTimer = null;
+    }
+    broadcastToAll({
+        tip: 'stream_control',
+        action: 'stop'
+    });
+    broadcastToAdmins({
+        tip: 'stream_status',
+        isPaused: true,
+        currentImage: lastBroadcast.fileName
+    });
+    broadcastDashboardUpdate();
+    console.log('[⏸️ Yayın] Yayın durduruldu, istemciler sistem tepsisine alındı.');
+    res.json({ success: true, isPaused: true });
+});
+
+app.post('/api/stream/resume', requireAuth, (req, res) => {
+    isPlaybackPaused = false;
+    restartSlideshowTimer();
+    broadcastToAll({
+        tip: 'stream_control',
+        action: 'start'
+    });
+    broadcastToAdmins({
+        tip: 'stream_status',
+        isPaused: false,
+        currentImage: lastBroadcast.fileName
+    });
+    broadcastDashboardUpdate();
+    slideshowTick();
+    console.log('[▶️ Yayın] Yayın yeniden başlatıldı.');
+    res.json({ success: true, isPaused: false });
+});
+
+app.post('/api/stream/next', requireAuth, (req, res) => {
+    const nextFile = advanceSlide(1);
+    if (!nextFile) {
+        return res.status(400).json({ success: false, error: 'Yayında gösterilecek görsel bulunamadı.' });
+    }
+    broadcastToAdmins({
+        tip: 'stream_status',
+        currentImage: nextFile,
+        isPaused: isPlaybackPaused
+    });
+    res.json({ success: true, currentImage: nextFile });
+});
+
+app.post('/api/stream/prev', requireAuth, (req, res) => {
+    const prevFile = advanceSlide(-1);
+    if (!prevFile) {
+        return res.status(400).json({ success: false, error: 'Yayında gösterilecek görsel bulunamadı.' });
+    }
+    broadcastToAdmins({
+        tip: 'stream_status',
+        currentImage: prevFile,
+        isPaused: isPlaybackPaused
+    });
+    res.json({ success: true, currentImage: prevFile });
+});
+
+app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
+    const fileName = req.params.name;
+    if (path.basename(fileName) !== fileName || !isSupportedImage(fileName)) {
+        return res.status(400).json({ success: false, error: 'Görsel adı geçersiz.' });
+    }
+    if (!selectedImageFiles.has(fileName)) {
+        return res.status(400).json({ success: false, error: 'Görsel yayında değil.' });
+    }
+
+    const updated = [...selectedImageFiles].filter(f => f !== fileName);
+    try {
+        saveSelectedImages(updated);
+    } catch (error) {
+        console.error('[⚠️ Galeri seçimi kaydedilemedi]:', error);
+        return res.status(500).json({ success: false, error: 'Galeri seçimi kaydedilemedi.' });
+    }
+
+    if (lastBroadcast.fileName === fileName) {
+        if (updated.length > 0) {
+            advanceSlide(1);
+        } else {
+            lastBroadcast = { fileName: null, time: 0 };
+        }
+    }
+
+    broadcastToAll({
+        tip: 'gallery_update',
+        action: 'selection_change',
+        selectedImages: updated
+    });
+    broadcastToAdmins({
+        tip: 'stream_status',
+        selectedImages: updated,
+        currentImage: lastBroadcast.fileName,
+        isPaused: isPlaybackPaused
+    });
+    broadcastDashboardUpdate();
+
+    console.log(`[🚫 Yayın] Görsel yayından kaldırıldı: ${fileName}`);
+    res.json({ success: true, selectedImages: updated });
 });
 
 app.get('/api/settings', requireAuth, (req, res) => {
