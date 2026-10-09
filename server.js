@@ -272,7 +272,6 @@ function broadcastImage(fileName) {
         lastBroadcast = { fileName, time: Date.now() };
         broadcastToAll(payload);
         broadcastDashboardUpdate();
-        console.log(`[>] Slayt Yayını Yapıldı: ${fileName} (${clients.length} İstemci)`);
     });
 }
 
