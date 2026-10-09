@@ -246,13 +246,13 @@
             <article class="dashboard-panel">
                 <div class="panel-heading">
                     <h2>Son yayınlanan görsel</h2>
-                    <span id="dashboardLastBroadcast" class="panel-kicker">Henüz yayın yok</span>
+                    <button class="btn" style="padding: 6px 12px; font-size: 12px; line-height: 1.4; white-space: nowrap;" type="button" onclick="showStream()">Yayın akışını yönet</button>
+                    <span id="dashboardLastBroadcast" style="display: none;"></span>
                 </div>
                 <div id="latestImagePreview" class="latest-image-wrap">
                     <div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>
                 </div>
                 <div id="latestImageName" class="latest-image-name">Henüz görsel yayınlanmadı</div>
-                <button class="btn" style="margin-top: 16px;" type="button" onclick="showStream()">Yayın akışını yönet</button>
             </article>
 
             <article class="dashboard-panel">
@@ -683,16 +683,19 @@
                     image.src = `/images/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
                     image.alt = stats.latestImage;
                     preview.appendChild(image);
+                    const timeStr = stats.latestBroadcastAt ? new Date(stats.latestBroadcastAt).toLocaleTimeString('tr-TR') : '';
                     imageName.innerText = stats.latestImage;
-                    imageName.title = stats.latestImage;
-                    broadcastTime.innerText = stats.latestBroadcastAt
-                        ? new Date(stats.latestBroadcastAt).toLocaleTimeString('tr-TR')
-                        : 'Son yayın';
+                    imageName.title = timeStr ? `${stats.latestImage} (Yayın saati: ${timeStr})` : stats.latestImage;
+                    if (broadcastTime) {
+                        broadcastTime.innerText = timeStr || 'Son yayın';
+                    }
                 } else {
                     preview.innerHTML = '<div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>';
                     imageName.innerText = 'Henüz görsel yayınlanmadı';
                     imageName.title = '';
-                    broadcastTime.innerText = 'Henüz yayın yok';
+                    if (broadcastTime) {
+                        broadcastTime.innerText = 'Henüz yayın yok';
+                    }
                 }
                 document.getElementById('dashboardUpdatedAt').innerText =
                     `Sunucu çalışma süresi: ${formatUptime(stats.uptimeSeconds)} · Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`;
