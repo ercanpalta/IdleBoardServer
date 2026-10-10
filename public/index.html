@@ -63,6 +63,7 @@
         .empty-state h3, .empty-state p { margin: 0; }
         .empty-state h3 { color: #334155; font-size: 16px; }
         .empty-state p { max-width: 440px; font-size: 13px; line-height: 1.5; }
+        .upload-status { display: block; min-height: 18px; margin-top: var(--space-2); color: #475569; font-size: 13px; }
         .dashboard-view { max-width: 1240px; padding: 0; background: transparent; box-shadow: none; }
         .dashboard-hero { position: relative; display: flex; justify-content: space-between; align-items: center; gap: var(--space-6); min-height: 180px; box-sizing: border-box; margin-bottom: var(--space-6); padding: var(--space-8); overflow: hidden; border-radius: 14px; background: #0f172a; color: white; }
         .dashboard-hero::before, .dashboard-hero::after { display: none; }
@@ -421,9 +422,10 @@
         </div>
         <p class="setup-note">İşaretlediğiniz görseller istemcilere gönderilir. Yeni yüklenen görselleri göndermek için ayrıca seçip kaydedin.</p>
         <div class="upload-card" onclick="document.getElementById('fileInput').click()">
-            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Galeriye resim yüklemek için tıklayın veya dosya seçin</p>
-            <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(event)">
-            <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Resim Seç & Yükle</button>
+            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Bir veya birden fazla görsel seçip yükleyin</p>
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple onchange="uploadImage(event)" onclick="event.stopPropagation()">
+            <button id="uploadButton" class="btn" type="button" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Görsel Seç & Yükle</button>
+            <span id="uploadStatus" class="upload-status" role="status" aria-live="polite"></span>
         </div>
         <div class="gallery-toolbar">
             <button class="btn" type="button" onclick="setAllGalleryImages(true)">Tümünü Seç</button>
@@ -459,6 +461,7 @@
         let savedSelection = new Set();
         let galleryDirty = false;
         let dashboardRefreshTimer = null;
+        let uploadStatusTimer = null;
 
         function getAuthHeaders() {
             const token = localStorage.getItem(TOKEN_KEY);
@@ -987,29 +990,61 @@
 
         // Resim Yükleme İşlemi
         async function uploadImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const files = Array.from(event.target.files || []);
+            event.target.value = '';
+            if (files.length === 0) return;
 
-            const formData = new FormData();
-            formData.append('image', file);
-
+            const uploadButton = document.getElementById('uploadButton');
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('uploadStatus');
+            const failedFiles = [];
+            let uploadedCount = 0;
+            clearTimeout(uploadStatusTimer);
+            status.innerText = '';
+            uploadButton.disabled = true;
+            fileInput.disabled = true;
             try {
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: formData
-                });
-                if (handleApiError(res)) return;
+                for (const [index, file] of files.entries()) {
+                    status.innerText = `${index + 1} / ${files.length} yükleniyor: ${file.name}`;
+                    const formData = new FormData();
+                    formData.append('image', file);
 
-                const result = await res.json();
-                if (result.success) {
-                    event.target.value = '';
-                    await loadGallery(true);
-                } else {
-                    alert(result.error || 'Resim yüklenirken bir hata oluştu.');
+                    try {
+                        const res = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: getAuthHeaders(),
+                            body: formData
+                        });
+                        if (handleApiError(res)) return;
+
+                        const result = await res.json();
+                        if (!res.ok || !result.success) {
+                            failedFiles.push(file.name);
+                        } else {
+                            uploadedCount++;
+                        }
+                    } catch (err) {
+                        console.error(`Görsel yüklenemedi (${file.name}):`, err);
+                        failedFiles.push(file.name);
+                    }
+                }
+
+                await loadGallery(true);
+                status.innerText = failedFiles.length
+                    ? `${uploadedCount} / ${files.length} görsel yüklendi. Yüklenemeyenler: ${failedFiles.join(', ')}`
+                    : `${uploadedCount} görsel başarıyla yüklendi.`;
+                if (failedFiles.length === 0) {
+                    uploadStatusTimer = setTimeout(() => {
+                        status.innerText = '';
+                        uploadStatusTimer = null;
+                    }, 5000);
                 }
             } catch (err) {
-                alert('Sunucuyla iletişim kurulurken hata oluştu.');
+                console.error('Galeri yüklemesi tamamlanamadı:', err);
+                status.innerText = `${uploadedCount} görsel yüklendi, galeri yenilenemedi.`;
+            } finally {
+                uploadButton.disabled = false;
+                fileInput.disabled = false;
             }
         }
 

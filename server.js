@@ -126,6 +126,12 @@ function requireAuth(req, res, next) {
 }
 
 // Multer Dosya Yükleme Ayarları
+const supportedImageTypes = {
+    '.jpg': { mimeType: 'image/jpeg', format: 'jpeg' },
+    '.jpeg': { mimeType: 'image/jpeg', format: 'jpeg' },
+    '.png': { mimeType: 'image/png', format: 'png' },
+    '.webp': { mimeType: 'image/webp', format: 'webp' }
+};
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, IMAGES_DIR),
     filename: (req, file, cb) => {
@@ -134,7 +140,13 @@ const storage = multer.diskStorage({
         cb(null, `img-${uniqueSuffix}${ext}`);
     }
 });
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        const type = supportedImageTypes[path.extname(file.originalname).toLowerCase()];
+        cb(null, Boolean(type && file.mimetype === type.mimeType));
+    }
+});
 
 // Aktif SSE İstemcileri
 let clients = [];
@@ -658,8 +670,27 @@ app.put('/api/gallery/selection', requireAuth, (req, res) => {
 });
 
 // 2. Yeni Resim Yükle
-app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi" });
+app.post('/api/upload', requireAuth, upload.single('image'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({
+            error: 'Yalnızca JPG, JPEG, PNG ve WebP görseller yüklenebilir.'
+        });
+    }
+
+    const expectedType = supportedImageTypes[path.extname(req.file.originalname).toLowerCase()];
+    let metadata;
+    try {
+        metadata = await sharp(req.file.path).metadata();
+    } catch (error) {
+        await fs.promises.unlink(req.file.path);
+        return res.status(400).json({ error: 'Dosya geçerli bir görsel değil.' });
+    }
+
+    if (!expectedType || metadata.format !== expectedType.format) {
+        await fs.promises.unlink(req.file.path);
+        return res.status(400).json({ error: 'Dosya uzantısı ile görsel içeriği eşleşmiyor.' });
+    }
+
     generateThumbnail(req.file.filename).catch(() => {});
     res.json({ success: true, fileName: req.file.filename });
 });
