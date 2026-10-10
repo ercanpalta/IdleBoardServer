@@ -17,9 +17,16 @@
         .sidebar-link:hover, .sidebar-link.active { background: #1e40af; color: white; }
         .sidebar-icon { width: 20px; text-align: center; }
         .sidebar-footer { margin-top: auto; }
-        .sidebar-logout { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #7f1d1d; border-radius: 7px; background: #450a0a; color: #fecaca; text-align: left; cursor: pointer; font: inherit; }
+        .sidebar-logout { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #7f1d1d; border-radius: 7px; background: #450a0a; color: #fecaca; text-align: left; cursor: pointer; font: inherit; }
         .app-main { flex: 1; min-width: 0; padding: 24px; }
         .mobile-menu-toggle, .sidebar-backdrop { display: none; }
+        .icon { display: inline-block; width: 1em; height: 1em; flex: 0 0 auto; vertical-align: -0.15em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .auth-icon { display: block; width: 40px; height: 40px; margin: 0 auto 12px; color: #2563eb; }
+        .sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; }
+        .sidebar-icon .icon { width: 20px; height: 20px; }
+        .sidebar-toggle { display: grid; width: 36px; height: 36px; place-items: center; padding: 8px; }
+        .sidebar-toggle .icon { width: 18px; height: 18px; }
+        .mobile-menu-toggle .icon { width: 18px; height: 18px; }
         .admin-layout.sidebar-collapsed .admin-sidebar { width: 72px; }
         .admin-layout.sidebar-collapsed .sidebar-heading { justify-content: center; padding-right: 0; padding-left: 0; }
         .admin-layout.sidebar-collapsed .sidebar-brand, .admin-layout.sidebar-collapsed .sidebar-label { display: none; }
@@ -47,7 +54,8 @@
         .metric-card.selected { --metric-tint: #fef3c7; --metric-color: #d97706; }
         .metric-card.interval { --metric-tint: #ede9fe; --metric-color: #7c3aed; }
         .metric-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 13px; font-weight: 600; }
-        .metric-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 11px; background: var(--metric-tint); color: var(--metric-color); font-size: 18px; }
+        .metric-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 11px; background: var(--metric-tint); color: var(--metric-color); }
+        .metric-icon .icon { width: 20px; height: 20px; }
         .metric-value { position: relative; z-index: 1; margin-top: 13px; color: #0f172a; font-size: 34px; font-weight: 750; letter-spacing: -0.04em; line-height: 1; }
         .metric-caption { position: relative; z-index: 1; margin-top: 8px; color: #94a3b8; font-size: 12px; }
         .dashboard-lower { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(270px, 0.75fr); gap: 16px; }
@@ -151,7 +159,8 @@
         .btn-playback.playing:hover { background: #dc2626; box-shadow: 0 4px 16px rgba(220,38,38,0.3); }
         .btn-playback.paused { background: #10b981; color: white; }
         .btn-playback.paused:hover { background: #059669; box-shadow: 0 4px 16px rgba(16,185,129,0.3); }
-        .badge-active { display: inline-block; padding: 4px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #dc2626; color: white; }
+        .badge-active { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #dc2626; color: white; }
+        .status-dot { display: inline-block; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: currentColor; }
         .btn-remove-stream { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; padding: 6px 10px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; min-height: 32px; line-height: 1; }
         .btn-remove-stream:hover { background: #ef4444; color: white; border-color: #ef4444; }
         .btn-broadcast-stream { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 10px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; min-height: 32px; line-height: 1; }
@@ -164,10 +173,31 @@
     </style>
 </head>
 <body>
+    <svg aria-hidden="true" focusable="false" style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 1 1 8 0v3"></path><path d="M12 14v3"></path></symbol>
+        <symbol id="icon-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></symbol>
+        <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol>
+        <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"></path><path d="M5 9v12h14V9"></path><path d="M9 21v-7h6v7"></path></symbol>
+        <symbol id="icon-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"></circle><path d="M8.5 8.5a5 5 0 0 0 0 7"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M5.5 5.5a9 9 0 0 0 0 13"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></symbol>
+        <symbol id="icon-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9" r="1.5"></circle><path d="m21 15-5-5L5 20"></path></symbol>
+        <symbol id="icon-key" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"></circle><path d="m11 11 9 9"></path><path d="m16 16 2-2"></path><path d="m18 18 2-2"></path></symbol>
+        <symbol id="icon-logout" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"></path></symbol>
+        <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></symbol>
+        <symbol id="icon-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20v-1a6 6 0 0 1 12 0v1"></path><path d="M16 5.5a3 3 0 0 1 0 5.8"></path><path d="M18 14a5 5 0 0 1 3 4.6v1"></path></symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></symbol>
+        <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></symbol>
+        <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"></path></symbol>
+        <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 5h3v14H8z" fill="currentColor" stroke="none"></path><path d="M15 5h3v14h-3z" fill="currentColor" stroke="none"></path></symbol>
+        <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path></symbol>
+        <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></symbol>
+        <symbol id="icon-inbox" viewBox="0 0 24 24"><path d="M4 4h16l2 11v5H2v-5z"></path><path d="M2 15h6l2 3h4l2-3h6"></path></symbol>
+        <symbol id="icon-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></symbol>
+        <symbol id="icon-minus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></symbol>
+    </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
         <div class="login-card">
-            <div style="font-size: 42px; margin-bottom: 12px;">🔒</div>
+            <svg class="icon auth-icon"><use href="#icon-lock"></use></svg>
             <h2>Yönetici Girişi</h2>
             <p>IdleBoard ayarlarını yönetmek için lütfen parolanızı girin.</p>
             <input type="password" id="passwordInput" class="login-input" placeholder="Yönetici parolası..." autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
@@ -179,7 +209,7 @@
     <!-- 2. İlk Kurulumda Yönetici Parolası Belirleme Ekranı -->
     <div id="setupSection" class="login-wrap" style="display: none;">
         <div class="login-card">
-            <div style="font-size: 42px; margin-bottom: 12px;">🔐</div>
+            <svg class="icon auth-icon"><use href="#icon-lock"></use></svg>
             <h2>Yönetici Parolası Belirleyin</h2>
             <p class="setup-note">Yönetim panelini korumak için en az 6 karakterden oluşan bir parola oluşturun.</p>
             <input type="password" id="newPasswordInput" class="login-input" placeholder="Yeni parola..." autocomplete="new-password">
@@ -193,21 +223,21 @@
         <aside id="adminSidebar" class="admin-sidebar" aria-label="Yönetim menüsü">
             <div class="sidebar-heading">
                 <span class="sidebar-brand">IdleBoard</span>
-                <button class="sidebar-toggle" type="button" aria-label="Menüyü daralt" title="Menüyü daralt" onclick="toggleSidebar()">‹</button>
+                <button class="sidebar-toggle" type="button" aria-label="Menüyü daralt" title="Menüyü daralt" onclick="toggleSidebar()"><svg class="icon"><use href="#icon-chevron-left"></use></svg></button>
             </div>
             <nav class="sidebar-nav">
-                <button id="dashboardNav" class="sidebar-link active" type="button" onclick="showDashboard()"><span class="sidebar-icon">⌂</span><span class="sidebar-label">Genel Bakış</span></button>
-                <button id="streamNav" class="sidebar-link" type="button" onclick="showStream()"><span class="sidebar-icon">📡</span><span class="sidebar-label">Yayın Akışı</span></button>
-                <button id="galleryNav" class="sidebar-link" type="button" onclick="showGallery()"><span class="sidebar-icon">▧</span><span class="sidebar-label">Galeri Paneli</span></button>
-                <button id="passwordNav" class="sidebar-link" type="button" onclick="showPasswordChange()"><span class="sidebar-icon">🔑</span><span class="sidebar-label">Parola Değiştir</span></button>
+                <button id="dashboardNav" class="sidebar-link active" type="button" onclick="showDashboard()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-home"></use></svg></span><span class="sidebar-label">Genel Bakış</span></button>
+                <button id="streamNav" class="sidebar-link" type="button" onclick="showStream()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-radio"></use></svg></span><span class="sidebar-label">Yayın Akışı</span></button>
+                <button id="galleryNav" class="sidebar-link" type="button" onclick="showGallery()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-image"></use></svg></span><span class="sidebar-label">Galeri Paneli</span></button>
+                <button id="passwordNav" class="sidebar-link" type="button" onclick="showPasswordChange()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-key"></use></svg></span><span class="sidebar-label">Parola Değiştir</span></button>
             </nav>
             <div class="sidebar-footer">
-                <button class="sidebar-logout" type="button" onclick="logout()"><span class="sidebar-icon">↪</span><span class="sidebar-label">Çıkış Yap</span></button>
+                <button class="sidebar-logout" type="button" onclick="logout()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-logout"></use></svg></span><span class="sidebar-label">Çıkış Yap</span></button>
             </div>
         </aside>
         <div class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
         <main class="app-main">
-            <button class="mobile-menu-toggle" type="button" onclick="toggleSidebar()">☰ Menü</button>
+            <button class="mobile-menu-toggle" type="button" onclick="toggleSidebar()"><svg class="icon"><use href="#icon-menu"></use></svg> Menü</button>
 
     <!-- Yönetim paneli -->
     <div id="dashboardSection" class="container dashboard-view" style="display: none;">
@@ -222,22 +252,22 @@
 
         <section class="dashboard-metrics" aria-label="Sistem istatistikleri">
             <article class="metric-card clients">
-                <div class="metric-top"><span>Bağlı istemciler</span><span class="metric-icon">⌁</span></div>
+                <div class="metric-top"><span>Bağlı istemciler</span><span class="metric-icon"><svg class="icon"><use href="#icon-users"></use></svg></span></div>
                 <div id="connectedClientCount" class="metric-value">—</div>
                 <div class="metric-caption">Şu anda yayın akışına bağlı ekranlar</div>
             </article>
             <article class="metric-card images">
-                <div class="metric-top"><span>Galerideki görseller</span><span class="metric-icon">▧</span></div>
+                <div class="metric-top"><span>Galerideki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-image"></use></svg></span></div>
                 <div id="dashboardImageCount" class="metric-value">—</div>
                 <div class="metric-caption">Sunucuda yüklü toplam görsel</div>
             </article>
             <article class="metric-card selected">
-                <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon">◉</span></div>
+                <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-check"></use></svg></span></div>
                 <div id="dashboardSelectedCount" class="metric-value">—</div>
                 <div class="metric-caption">Slayt döngüsüne dahil edilen görseller</div>
             </article>
             <article class="metric-card interval">
-                <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon">◷</span></div>
+                <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span></div>
                 <div class="metric-value"><span id="dashboardInterval">—</span><span style="font-size: 16px; letter-spacing: 0;"> sn</span></div>
                 <div class="metric-caption">Her görsel arasındaki süre</div>
             </article>
@@ -270,7 +300,7 @@
                 </div>
                 <button class="btn" style="margin-top: 16px;" type="button" onclick="showGallery()">Galeriyi yönet</button>
                 <div class="dashboard-settings">
-                    <h3>⏱️ Slayt geçiş ayarı</h3>
+                    <h3><svg class="icon"><use href="#icon-clock"></use></svg> Slayt geçiş ayarı</h3>
                     <div class="settings-row">
                         <label for="slideInterval">Geçiş süresi</label>
                         <input type="number" id="slideInterval" value="5" min="1" max="300">
@@ -301,7 +331,7 @@
         <!-- Kontrol Masası -->
         <article class="dashboard-panel" style="margin-bottom: 20px;">
             <div class="panel-heading">
-                <h2>🎮 Yayın Kontrol Paneli</h2>
+                <h2>Yayın Kontrol Paneli</h2>
                 <span id="streamControlKicker" class="panel-kicker">Canlı Yönetim</span>
             </div>
 
@@ -311,10 +341,10 @@
                     <div class="stream-large-img-wrap">
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
-                            <span style="font-size: 42px; margin-bottom: 6px;">🖼️</span>
+                            <svg class="icon" style="width: 42px; height: 42px; margin-bottom: 6px;"><use href="#icon-image"></use></svg>
                             <span>Görsel bekleniyor...</span>
                         </div>
-                        <span id="streamActiveBadge" class="badge-active stream-overlay-badge" style="display: none;">🔴 Şu Anda Ekranda</span>
+                        <span id="streamActiveBadge" class="badge-active stream-overlay-badge" style="display: none;"><span class="status-dot"></span> Şu Anda Ekranda</span>
                     </div>
                 </div>
 
@@ -327,13 +357,13 @@
                         </div>
                         <div class="stream-control-bar">
                             <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim">
-                                ◀ Önceki Resim
+                                <svg class="icon"><use href="#icon-chevron-left"></use></svg> Önceki Resim
                             </button>
                             <button id="btnStreamToggle" class="btn-playback playing" type="button" onclick="togglePlayback()">
-                                ⏸ Yayını Durdur
+                                <svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur
                             </button>
                             <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim">
-                                Sonraki Resim ▶
+                                Sonraki Resim <svg class="icon"><use href="#icon-chevron-right"></use></svg>
                             </button>
                         </div>
                         <div class="stream-preview-details">
@@ -348,7 +378,7 @@
         <!-- Yayındaki Görseller -->
         <article class="dashboard-panel">
             <div class="panel-heading">
-                <h2>🖼️ Yayındaki Görseller (<span id="streamSelectedCount">0</span>)</h2>
+                <h2><svg class="icon"><use href="#icon-image"></use></svg> Yayındaki Görseller (<span id="streamSelectedCount">0</span>)</h2>
                 <span class="panel-kicker">Slayt Döngüsündeki İçerikler</span>
             </div>
             <div class="grid" id="streamGrid"></div>
@@ -357,11 +387,11 @@
 
     <div id="gallerySection" class="container" style="display: none;">
         <div class="header-bar">
-            <h1>🖼️ Galeri Paneli</h1>
+            <h1><svg class="icon"><use href="#icon-image"></use></svg> Galeri Paneli</h1>
         </div>
         <p class="setup-note">İşaretlediğiniz görseller istemcilere gönderilir. Yeni yüklenen görselleri göndermek için ayrıca seçip kaydedin.</p>
         <div class="upload-card" onclick="document.getElementById('fileInput').click()">
-            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;">📁 Galeriye resim yüklemek için tıklayın veya dosya seçin</p>
+            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Galeriye resim yüklemek için tıklayın veya dosya seçin</p>
             <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(event)">
             <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Resim Seç & Yükle</button>
         </div>
@@ -377,7 +407,7 @@
     <!-- Yönetici parolası için ayrı ekran -->
     <div id="passwordChangeSection" class="container" style="display: none;">
         <div class="header-bar">
-            <h1>🔑 Yönetici Parolasını Değiştir</h1>
+            <h1><svg class="icon"><use href="#icon-key"></use></svg> Yönetici Parolasını Değiştir</h1>
         </div>
         <div class="password-change-card">
             <p class="setup-note">Güvenliğiniz için mevcut parolanızı doğrulayın ve en az 6 karakterli yeni bir parola belirleyin.</p>
@@ -627,7 +657,7 @@
 
             const collapsed = layout.classList.toggle('sidebar-collapsed');
             const button = document.querySelector('.sidebar-toggle');
-            button.innerText = collapsed ? '›' : '‹';
+            button.querySelector('use').setAttribute('href', collapsed ? '#icon-chevron-right' : '#icon-chevron-left');
             button.title = collapsed ? 'Menüyü genişlet' : 'Menüyü daralt';
             button.setAttribute('aria-label', button.title);
         }
@@ -826,7 +856,7 @@
                 deleteButton.type = 'button';
                 deleteButton.title = 'Sil';
                 deleteButton.setAttribute('aria-label', 'Sil');
-                deleteButton.textContent = '🗑️';
+                deleteButton.innerHTML = '<svg class="icon"><use href="#icon-trash"></use></svg>';
                 deleteButton.addEventListener('click', () => deleteImage(fileName));
                 actions.appendChild(deleteButton);
                 cardBody.append(label, name, actions);
@@ -1010,14 +1040,14 @@
                     liveDot.className = 'live-dot offline';
                     liveText.innerText = 'Yayın Durduruldu (Tepside)';
                     btnToggle.className = 'btn-playback paused';
-                    btnToggle.innerHTML = '▶ Yayını Başlat';
+                    btnToggle.innerHTML = '<svg class="icon"><use href="#icon-play"></use></svg> Yayını Başlat';
                     controlKicker.innerText = 'Yayın Beklemede';
                 } else {
                     const hasClients = data.connectedClients > 0;
                     liveDot.className = hasClients ? 'live-dot' : 'live-dot offline';
                     liveText.innerText = hasClients ? `Yayın Aktif (${data.connectedClients} istemci)` : 'Yayın Aktif (İstemci bekleniyor)';
                     btnToggle.className = 'btn-playback playing';
-                    btnToggle.innerHTML = '⏸ Yayını Durdur';
+                    btnToggle.innerHTML = '<svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur';
                     controlKicker.innerText = 'Canlı Yönetim';
                 }
 
@@ -1091,7 +1121,7 @@
             if (!selectedImages || selectedImages.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-msg" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
-                        <div style="font-size: 36px; margin-bottom: 10px;">📭</div>
+                        <svg class="icon" style="width: 36px; height: 36px; margin-bottom: 10px;"><use href="#icon-inbox"></use></svg>
                         <p style="margin: 0 0 12px; font-weight: 600; color: #475569;">Yayına alınmış görsel bulunmamaktadır.</p>
                         <p style="margin: 0 0 18px; color: #94a3b8; font-size: 13px;">Görselleri slayt yayınına dahil etmek için Galeri Paneli'ni kullanabilirsiniz.</p>
                         <button class="btn" type="button" onclick="showGallery()">Galeri Paneline Git</button>
@@ -1120,7 +1150,7 @@
 
                 const badge = document.createElement('div');
                 badge.className = 'badge-active stream-active-badge';
-                badge.innerText = '🔴 Şu Anda Yayında';
+                badge.innerHTML = '<span class="status-dot"></span> Şu Anda Yayında';
                 badge.style.display = isCurrent ? 'inline-block' : 'none';
                 body.appendChild(badge);
 
@@ -1139,7 +1169,7 @@
                 broadcastBtn.type = 'button';
                 broadcastBtn.title = 'Ekrana Gönder';
                 broadcastBtn.setAttribute('aria-label', 'Ekrana Gönder');
-                broadcastBtn.textContent = '📺';
+                broadcastBtn.innerHTML = '<svg class="icon"><use href="#icon-monitor"></use></svg>';
                 broadcastBtn.addEventListener('click', () => broadcastDirect(fileName));
 
                 const removeBtn = document.createElement('button');
@@ -1147,7 +1177,7 @@
                 removeBtn.type = 'button';
                 removeBtn.title = 'Yayından Kaldır';
                 removeBtn.setAttribute('aria-label', 'Yayından Kaldır');
-                removeBtn.textContent = '🚫';
+                removeBtn.innerHTML = '<svg class="icon"><use href="#icon-minus-circle"></use></svg>';
                 removeBtn.addEventListener('click', () => removeFromStream(fileName));
 
                 actions.append(broadcastBtn, removeBtn);

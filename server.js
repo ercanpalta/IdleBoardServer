@@ -36,13 +36,13 @@ app.get('/thumbnails/:name', async (req, res) => {
     const thumbPath = path.join(THUMBNAILS_DIR, fileName);
     const origPath = path.join(IMAGES_DIR, fileName);
 
+    if (!fs.existsSync(origPath)) {
+        return res.status(404).send('Görsel bulunamadı');
+    }
+
     if (fs.existsSync(thumbPath)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.sendFile(thumbPath);
-    }
-
-    if (!fs.existsSync(origPath)) {
-        return res.status(404).send('Görsel bulunamadı');
     }
 
     try {
@@ -160,6 +160,12 @@ function getConnectedClientCount() {
 
 function broadcastDashboardUpdate() {
     broadcastToAdmins({ tip: 'dashboard_update' });
+}
+
+function clearCurrentBroadcast() {
+    lastBroadcast = { fileName: null, time: 0 };
+    broadcastToAll({ tip: 'stream_control', action: 'clear' });
+    broadcastDashboardUpdate();
 }
 
 function broadcastToAdmins(payload) {
@@ -354,6 +360,12 @@ app.get('/events', (req, res) => {
     } else if (!isPlaybackPaused && clients.filter(c => !c.isAdmin).length === 1) {
         slideshowTick();
     }
+    if (!isAdmin && getActiveSelectedImages().length === 0) {
+        res.write(`data: ${JSON.stringify({
+            tip: 'stream_control',
+            action: 'clear'
+        })}\n\n`);
+    }
 
     req.on('close', () => {
         clients = clients.filter(c => c.id !== clientId);
@@ -368,20 +380,20 @@ app.get('/events', (req, res) => {
 function broadcastImage(fileName) {
     if (!selectedImageFiles.has(fileName)) return;
 
-    lastBroadcast = { fileName, time: Date.now() };
-
     const filePath = path.join(IMAGES_DIR, fileName);
     if (!fs.existsSync(filePath)) return;
 
     if (clients.length === 0) {
+        lastBroadcast = { fileName, time: Date.now() };
         broadcastDashboardUpdate();
         return;
     }
 
     fs.readFile(filePath, (err, data) => {
-        if (err) return;
+        if (err || !selectedImageFiles.has(fileName)) return;
 
         const base64Image = data.toString('base64');
+        lastBroadcast = { fileName, time: Date.now() };
         const payload = {
             tip: 'image',
             dosyaAdi: fileName,
@@ -453,7 +465,11 @@ watcher
         if (lastBroadcast.fileName === fileName) {
             lastBroadcast = { fileName: null, time: 0 };
         }
-        broadcastDashboardUpdate();
+        if (selectedImageFiles.size === 0) {
+            clearCurrentBroadcast();
+        } else {
+            broadcastDashboardUpdate();
+        }
 
         // Slayt indeksini güvenli sınıra çek
         fs.readdir(IMAGES_DIR, (err, files) => {
@@ -631,9 +647,11 @@ app.put('/api/gallery/selection', requireAuth, (req, res) => {
         }
         currentImageIndex = 0;
         restartSlideshowTimer();
-        broadcastDashboardUpdate();
         if (selection.length > 0) {
+            broadcastDashboardUpdate();
             slideshowTick();
+        } else {
+            clearCurrentBroadcast();
         }
         res.json({ success: true, selectedImages: selection });
     });
@@ -779,12 +797,10 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
         return res.status(500).json({ success: false, error: 'Galeri seçimi kaydedilemedi.' });
     }
 
-    if (lastBroadcast.fileName === fileName) {
-        if (updated.length > 0) {
-            advanceSlide(1);
-        } else {
-            lastBroadcast = { fileName: null, time: 0 };
-        }
+    if (updated.length === 0) {
+        clearCurrentBroadcast();
+    } else if (lastBroadcast.fileName === fileName) {
+        advanceSlide(1);
     }
 
     broadcastToAll({
