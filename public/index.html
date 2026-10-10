@@ -136,6 +136,13 @@
             .gallery-card .card-body { position: absolute; inset: 0; display: block; padding: var(--space-2); pointer-events: none; }
             .gallery-card .file-name { display: none; }
             .gallery-card .card-actions { position: absolute; right: var(--space-2); bottom: var(--space-2); pointer-events: auto; }
+            #streamGrid.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #streamGrid .stream-card { position: relative; display: block; aspect-ratio: 16 / 9; }
+            #streamGrid .stream-card > img { width: 100%; height: 100%; }
+            #streamGrid .stream-card .card-body { position: absolute; inset: 0; display: block; padding: var(--space-2); pointer-events: none; }
+            #streamGrid .stream-card .file-name { display: none; }
+            #streamGrid .stream-card .stream-active-badge { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; }
+            #streamGrid .stream-card .card-actions { position: absolute; right: var(--space-2); bottom: var(--space-2); flex-wrap: nowrap !important; pointer-events: auto; }
             .upload-card { padding: var(--space-4); }
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
             .dashboard-panel { padding: var(--space-4); }
@@ -184,6 +191,7 @@
         }
         @media (max-width: 449px) {
             #imageGrid.grid { grid-template-columns: minmax(0, 1fr); }
+            #streamGrid.grid { grid-template-columns: minmax(0, 1fr); }
         }
         @media (max-width: 360px) {
             .dashboard-metrics { grid-template-columns: minmax(0, 1fr); }
