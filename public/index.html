@@ -115,15 +115,37 @@
         button:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.45); outline-offset: 2px; }
         .password-change-card { max-width: 440px; margin: var(--space-8) auto; padding: var(--space-6); border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
         @media (max-width: 760px) {
-            .admin-sidebar { position: fixed; left: 0; transform: translateX(-100%); width: min(280px, 82vw); }
+            .admin-sidebar { position: fixed; left: 0; transform: translateX(-100%); width: min(300px, 86vw); height: 100vh; height: 100dvh; transition: transform 0.2s ease; }
             .admin-layout.sidebar-open .admin-sidebar { transform: translateX(0); }
-            .admin-layout.sidebar-collapsed .admin-sidebar { width: min(280px, 82vw); }
+            .admin-layout.sidebar-open .mobile-menu-toggle { display: none; }
+            .admin-layout.sidebar-collapsed .admin-sidebar { width: min(300px, 86vw); }
             .admin-layout.sidebar-collapsed .sidebar-brand, .admin-layout.sidebar-collapsed .sidebar-label { display: inline; }
             .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout { justify-content: flex-start; padding: var(--space-3); text-align: left; }
             .sidebar-backdrop { position: fixed; inset: 0; z-index: 19; background: rgba(15, 23, 42, 0.45); }
             .admin-layout.sidebar-open .sidebar-backdrop { display: block; }
-            .app-main { padding: var(--space-4); }
-            .mobile-menu-toggle { margin-bottom: var(--space-3); background: #1e293b; }
+            .app-main { width: 100%; box-sizing: border-box; padding: var(--space-4); }
+            .mobile-menu-toggle { position: relative; z-index: 21; display: inline-flex; margin-bottom: var(--space-3); background: #1e293b; }
+            .container { width: 100%; box-sizing: border-box; padding: var(--space-4); border-radius: 10px; }
+            .dashboard-view { max-width: none; }
+            .gallery-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .gallery-toolbar > button { width: 100%; white-space: normal; }
+            .gallery-status { grid-column: 1 / -1; min-width: 0; }
+            .upload-card { padding: var(--space-4); }
+            .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+            .dashboard-panel { padding: var(--space-4); }
+            .panel-heading { align-items: flex-start; flex-wrap: wrap; }
+            .panel-heading h2 { min-width: 0; }
+            .panel-kicker { margin-left: auto; }
+            .stream-control-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+            .stream-control-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stream-control-bar #btnStreamPrev { order: 1; }
+            .stream-control-bar #btnStreamNext { order: 2; }
+            .stream-control-bar #btnStreamToggle { order: 3; grid-column: 1 / -1; width: 100%; }
+            .stream-control-bar .btn-stream-nav { width: 100%; padding-right: var(--space-2); padding-left: var(--space-2); font-size: 12px; }
+            .stream-actions-card { gap: var(--space-3); }
+            .password-change-card { margin-top: var(--space-6); padding: var(--space-4); }
+            .header-bar { align-items: flex-start; }
+            .header-bar h1 { min-width: 0; font-size: 21px; }
         }
         @media (max-width: 1040px) {
             .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -137,6 +159,31 @@
             .metric-card { min-height: 132px; padding: var(--space-3); }
             .metric-value { font-size: 29px; }
             .dashboard-panel { padding: var(--space-4); }
+            .dashboard-hero { padding: var(--space-4); }
+            .dashboard-live { max-width: 100%; white-space: normal; }
+            .metric-top { align-items: flex-start; gap: var(--space-1); font-size: 12px; }
+            .metric-icon { width: 32px; height: 32px; flex: 0 0 32px; }
+            .metric-icon .icon { width: 16px; height: 16px; }
+            .metric-caption { font-size: 11px; }
+            .panel-heading { gap: var(--space-2); }
+            .panel-heading h2 { font-size: 15px; }
+            .panel-heading > .btn { width: 100%; }
+            .settings-row { display: grid; grid-template-columns: auto minmax(64px, 1fr) auto; }
+            .settings-row .btn { grid-column: 1 / -1; width: 100%; }
+            .stream-control-bar { grid-template-columns: minmax(0, 1fr); }
+            .stream-control-bar #btnStreamPrev { order: 1; }
+            .stream-control-bar #btnStreamNext { order: 2; }
+            .stream-control-bar #btnStreamToggle { order: 3; grid-column: 1; }
+            .empty-state { padding: var(--space-6) var(--space-3); }
+        }
+        @media (max-width: 360px) {
+            .dashboard-metrics { grid-template-columns: minmax(0, 1fr); }
+            .dashboard-hero h1 { font-size: 25px; }
+            .grid { grid-template-columns: minmax(0, 1fr); }
+            .gallery-toolbar { grid-template-columns: minmax(0, 1fr); }
+            .gallery-status { grid-column: 1; }
+            .settings-row { grid-template-columns: minmax(0, 1fr) auto; }
+            .settings-row label { grid-column: 1 / -1; }
         }
         .upload-card { border: 2px dashed #cbd5e1; padding: var(--space-6); text-align: center; border-radius: 10px; background: #f8fafc; cursor: pointer; margin-bottom: var(--space-6); transition: border-color 0.2s ease; }
         .upload-card:hover { border-color: #2563eb; background: #eff6ff; }
