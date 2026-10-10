@@ -57,6 +57,12 @@
         .btn-toggle-visibility.is-visible { background: #eff6ff; color: var(--color-primary-hover); border-color: #bfdbfe; }
         .btn-toggle-visibility:hover { background: #e2e8f0; }
         .btn-toggle-visibility.is-visible:hover { background: #dbeafe; }
+        .empty-state { display: grid; justify-items: center; gap: var(--space-3); grid-column: 1 / -1; padding: var(--space-8) var(--space-6); border: 1px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; color: #64748b; text-align: center; }
+        .empty-state-icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 50%; background: #eaf1fb; color: #64748b; }
+        .empty-state-icon .icon { width: 26px; height: 26px; }
+        .empty-state h3, .empty-state p { margin: 0; }
+        .empty-state h3 { color: #334155; font-size: 16px; }
+        .empty-state p { max-width: 440px; font-size: 13px; line-height: 1.5; }
         .dashboard-view { max-width: 1240px; padding: 0; background: transparent; box-shadow: none; }
         .dashboard-hero { position: relative; display: flex; justify-content: space-between; align-items: center; gap: var(--space-6); min-height: 180px; box-sizing: border-box; margin-bottom: var(--space-6); padding: var(--space-8); overflow: hidden; border-radius: 14px; background: #0f172a; color: white; }
         .dashboard-hero::before, .dashboard-hero::after { display: none; }
@@ -845,7 +851,16 @@
             grid.innerHTML = '';
 
             if (galleryImages.length === 0) {
-                grid.innerHTML = '<div class="empty-msg">Henüz resim yüklenmedi. Yukarıdaki alandan galeriye ilk resminizi yükleyebilirsiniz.</div>';
+                grid.innerHTML = `
+                    <div class="empty-msg empty-state">
+                        <span class="empty-state-icon" aria-hidden="true"><svg class="icon"><use href="#icon-image"></use></svg></span>
+                        <h3>Galeriniz henüz boş</h3>
+                        <p>Yayın akışında kullanmak için ilk görselinizi ekleyin. Desteklenen görselleri seçip yükleyebilirsiniz.</p>
+                        <button class="btn" type="button" onclick="document.getElementById('fileInput').click()">
+                            <svg class="icon" aria-hidden="true"><use href="#icon-upload"></use></svg> İlk görseli yükle
+                        </button>
+                    </div>
+                `;
                 return;
             }
 
@@ -1166,11 +1181,13 @@
 
             if (!selectedImages || selectedImages.length === 0) {
                 grid.innerHTML = `
-                    <div class="empty-msg" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
-                        <svg class="icon" style="width: 36px; height: 36px; margin-bottom: 10px;"><use href="#icon-inbox"></use></svg>
-                        <p style="margin: 0 0 12px; font-weight: 600; color: #475569;">Yayına alınmış görsel bulunmamaktadır.</p>
-                        <p style="margin: 0 0 18px; color: #94a3b8; font-size: 13px;">Görselleri slayt yayınına dahil etmek için Galeri Paneli'ni kullanabilirsiniz.</p>
-                        <button class="btn" type="button" onclick="showGallery()">Galeri Paneline Git</button>
+                    <div class="empty-msg empty-state">
+                        <span class="empty-state-icon" aria-hidden="true"><svg class="icon"><use href="#icon-radio"></use></svg></span>
+                        <h3>Yayında görsel yok</h3>
+                        <p>İstemcilerde gösterilecek görselleri Galeri Paneli'nden seçip kaydedin.</p>
+                        <button class="btn" type="button" onclick="showGallery()">
+                            <svg class="icon" aria-hidden="true"><use href="#icon-image"></use></svg> Galeriye git
+                        </button>
                     </div>
                 `;
                 return;
