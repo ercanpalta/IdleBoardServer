@@ -130,6 +130,12 @@
             .gallery-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .gallery-toolbar > button { width: 100%; white-space: normal; }
             .gallery-status { grid-column: 1 / -1; min-width: 0; }
+            #imageGrid.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #imageGrid .gallery-card { display: block; aspect-ratio: 16 / 9; }
+            #imageGrid .gallery-card img { width: 100%; height: 100%; aspect-ratio: auto; }
+            .gallery-card .card-body { position: absolute; inset: 0; display: block; padding: var(--space-2); pointer-events: none; }
+            .gallery-card .file-name { display: none; }
+            .gallery-card .card-actions { position: absolute; right: var(--space-2); bottom: var(--space-2); pointer-events: auto; }
             .upload-card { padding: var(--space-4); }
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
             .dashboard-panel { padding: var(--space-4); }
@@ -175,6 +181,9 @@
             .stream-control-bar #btnStreamNext { order: 2; }
             .stream-control-bar #btnStreamToggle { order: 3; grid-column: 1; }
             .empty-state { padding: var(--space-6) var(--space-3); }
+        }
+        @media (max-width: 449px) {
+            #imageGrid.grid { grid-template-columns: minmax(0, 1fr); }
         }
         @media (max-width: 360px) {
             .dashboard-metrics { grid-template-columns: minmax(0, 1fr); }
