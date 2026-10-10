@@ -51,6 +51,9 @@
         .gallery-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-4) 0; }
         .gallery-status { flex: 1; min-width: 180px; color: #475569; font-size: 14px; }
         .gallery-card { position: relative; }
+        .gallery-card.is-selected { border-color: var(--color-primary); }
+        .gallery-card.is-selected::before { position: absolute; top: var(--space-2); right: var(--space-2); z-index: 1; width: 26px; height: 26px; border-radius: 50%; background: var(--color-primary); content: ''; pointer-events: none; }
+        .gallery-card.is-selected::after { position: absolute; top: 15px; right: 17px; z-index: 2; width: 9px; height: 5px; border-bottom: 2px solid white; border-left: 2px solid white; content: ''; transform: rotate(-45deg); pointer-events: none; }
         .gallery-card img { display: block; }
         .gallery-checkbox { display: flex; align-items: center; gap: var(--space-2); color: #334155; font-size: 12px; }
         .gallery-checkbox input { display: inline-block; width: 16px; height: 16px; margin: 0; }
@@ -135,6 +138,7 @@
         .card { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: white; display: flex; flex-direction: column; transition: none; min-width: 0; box-shadow: none; }
         .card:hover { transform: none; box-shadow: none; }
         .card img { width: 100%; height: 130px; object-fit: cover; background: #e2e8f0; }
+        .gallery-card img { height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
         .card-body { padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); flex: 1; justify-content: space-between; min-width: 0; }
         .file-name { font-size: 12px; font-weight: 600; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; box-sizing: border-box; }
         .card-actions { display: flex; gap: var(--space-2); }
@@ -859,7 +863,11 @@
                 checkbox.type = 'checkbox';
                 checkbox.value = fileName;
                 checkbox.checked = selectedImages.has(fileName);
-                checkbox.addEventListener('change', updateGallerySelectionStatus);
+                card.classList.toggle('is-selected', checkbox.checked);
+                checkbox.addEventListener('change', () => {
+                    card.classList.toggle('is-selected', checkbox.checked);
+                    updateGallerySelectionStatus();
+                });
                 label.append(checkbox, document.createTextNode(' İstemcilere gönder'));
 
                 const name = document.createElement('div');
