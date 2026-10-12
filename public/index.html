@@ -222,25 +222,29 @@
         .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 var(--space-6); }
 
         /* Yayın Akışı (Stream View) Stilleri */
-        .stream-control-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--space-6); align-items: center; }
-        .stream-preview-column { display: flex; flex-direction: column; min-width: 0; }
-        .stream-large-img-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; box-shadow: none; }
+        .stream-control-layout { display: grid; grid-template-columns: minmax(0, 680px) minmax(200px, 1fr); gap: var(--space-4); align-items: start; }
+        .stream-preview-column { display: flex; flex-direction: column; width: 100%; max-width: 680px; min-width: 0; margin: 0; }
+        .stream-large-img-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; box-sizing: border-box; border-radius: 12px; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; box-shadow: none; }
         .stream-large-img { width: 100%; height: 100%; object-fit: contain; background: #0b1120; }
-        .stream-large-placeholder { display: grid; place-items: center; place-content: center; gap: var(--space-2); width: 100%; height: 100%; color: #94a3b8; font-size: 14px; text-align: center; }
-        .stream-overlay-badge { position: absolute; top: 12px; left: 12px; z-index: 2; margin: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
-        .stream-card { position: relative; }
-        .stream-card .stream-active-badge { position: absolute; top: var(--space-3); left: var(--space-3); z-index: 2; margin: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
-        .stream-preview-details { width: 100%; margin-top: var(--space-4); text-align: center; min-width: 0; }
-        .stream-current-title { font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; box-sizing: border-box; }
-        .stream-current-meta { font-size: 12px; color: #64748b; margin-top: var(--space-1); }
-        .stream-current-meta span:first-child:not(:empty) + span::before { content: ' · '; }
+        .stream-large-placeholder { display: grid; place-items: center; place-content: center; width: 100%; height: 100%; color: #94a3b8; }
+        .stream-info-list { display: grid; align-content: start; gap: var(--space-3); min-width: 0; }
+        .stream-info-heading { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); }
+        .stream-info-heading h3 { margin: 0; color: #0f172a; font-size: 15px; }
+        .stream-info-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #eaf1fb; color: #2563eb; }
+        .stream-info-list .metric-card { min-height: 104px; padding: var(--space-3); }
+        .stream-info-list .metric-card::after { right: -18px; bottom: -32px; width: 82px; height: 82px; }
+        .stream-info-list .metric-top { gap: var(--space-1); font-size: 11px; }
+        .stream-info-list .metric-icon { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; }
+        .stream-info-list .metric-icon .icon { width: 16px; height: 16px; }
+        .stream-info-list .metric-value { margin-top: var(--space-2); font-size: 24px; }
+        .stream-info-list .metric-caption { margin-top: 6px; font-size: 10px; line-height: 1.35; }
 
-        .stream-actions-column { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--space-3) var(--space-2); border: none; background: transparent; text-align: center; box-sizing: border-box; }
-        .stream-actions-card { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
-        .stream-actions-title { margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; }
-        .stream-actions-sub { margin: 0; font-size: 13px; color: #64748b; }
-        .stream-control-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: var(--space-2); width: 100%; margin: 0; }
-        .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { width: 100%; min-width: 0; padding-right: var(--space-2); padding-left: var(--space-2); gap: 0; font-size: 0; }
+        .stream-panel-heading-copy { display: grid; gap: var(--space-1); }
+        .stream-panel-description { margin: 0; color: #64748b; font-size: 13px; line-height: 1.4; }
+        .stream-control-bar { position: absolute; right: 0; bottom: 0; left: 0; z-index: 3; display: flex; justify-content: center; align-items: center; box-sizing: border-box; width: 100%; margin: 0; padding: var(--space-2); border-top: 1px solid rgba(255,255,255,0.2); border-radius: 0 0 12px 12px; background: rgba(15,23,42,0.2); box-shadow: 0 -4px 16px rgba(0,0,0,0.12); backdrop-filter: blur(12px) saturate(160%); }
+        .stream-control-buttons { display: grid; grid-template-columns: repeat(3, 36px); flex: 0 0 auto; gap: 6px; }
+        .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { width: 36px; height: 36px; min-width: 0; min-height: 36px; padding: 0; gap: 0; font-size: 0; }
+        .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { border: 1px solid rgba(255,255,255,0.38); border-radius: 50%; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.18); backdrop-filter: blur(12px) saturate(160%); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-stream-nav { background: var(--color-neutral); color: white; border: 1px solid var(--color-neutral); cursor: pointer; transition: background 0.2s; box-shadow: none; }
         .btn-stream-nav:hover { background: var(--color-neutral-hover); border-color: var(--color-neutral-hover); }
         .btn-stream-nav:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -249,19 +253,23 @@
         .btn-playback.playing:hover { background: var(--color-danger); border-color: var(--color-danger); }
         .btn-playback.paused { background: #10b981; color: white; border-color: #10b981; }
         .btn-playback.paused:hover { background: #059669; border-color: #059669; }
+        .stream-control-bar .btn-stream-nav { background: rgba(255,255,255,0.16); }
+        .stream-control-bar .btn-stream-nav:hover:not(:disabled) { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.58); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 14px rgba(0,0,0,0.24); transform: translateY(-1px); }
+        .stream-control-bar .btn-stream-nav:disabled { opacity: 0.4; }
+        .stream-control-bar .btn-playback.playing { background: rgba(239,68,68,0.68); border-color: rgba(252,165,165,0.7); }
+        .stream-control-bar .btn-playback.playing:hover { background: rgba(220,38,38,0.82); border-color: rgba(254,202,202,0.82); transform: translateY(-1px); }
+        .stream-control-bar .btn-playback.paused { background: rgba(16,185,129,0.68); border-color: rgba(110,231,183,0.72); }
+        .stream-control-bar .btn-playback.paused:hover { background: rgba(5,150,105,0.82); border-color: rgba(167,243,208,0.82); transform: translateY(-1px); }
         .badge-active { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #dc2626; color: white; }
+        .stream-overlay-badge { position: absolute; top: 12px; left: 12px; z-index: 2; }
+        .stream-overlay-badge.is-paused { background: #fef3c7; color: #92400e; }
         .status-dot { display: inline-block; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: currentColor; }
         .btn-broadcast-stream { background: #eff6ff; color: var(--color-primary-hover); border-color: #bfdbfe; }
         .btn-broadcast-stream:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 
-        @media (max-width: 820px) {
+        @media (max-width: 1150px) {
             .stream-control-layout { grid-template-columns: 1fr; gap: 20px; }
-            .stream-actions-column { padding: 10px 0; }
-        }
-        @media (max-width: 760px) {
-            .stream-actions-sub { display: none; }
-            .stream-current-meta span { display: block; }
-            .stream-current-meta span:first-child:not(:empty) + span::before { content: none; }
+            .stream-preview-column { margin: 0 auto; }
         }
     </style>
 </head>
@@ -426,7 +434,10 @@
         <!-- Kontrol Masası -->
         <article class="dashboard-panel" style="margin-bottom: 20px;">
             <div class="panel-heading">
-                <h2>Yayın Kontrol Paneli</h2>
+                <div class="stream-panel-heading-copy">
+                    <h2>Yayın Kontrol Paneli</h2>
+                    <p class="stream-panel-description">Yayını durdurabilir veya resimler arasında geçiş yapabilirsiniz.</p>
+                </div>
                 <span id="streamControlKicker" class="panel-kicker">Canlı Yönetim</span>
             </div>
 
@@ -436,37 +447,40 @@
                     <div class="stream-large-img-wrap">
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
-                            <svg class="icon" style="width: 42px; height: 42px; margin-bottom: 6px;"><use href="#icon-image"></use></svg>
-                            <span>Görsel bekleniyor...</span>
+                            <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
                         </div>
-                        <span id="streamActiveBadge" class="badge-active stream-overlay-badge" style="display: none;"><span class="status-dot"></span> Şu Anda Ekranda</span>
-                    </div>
-                </div>
-
-                <!-- Sağ: Butonlar ve Altında Görsel Bilgileri -->
-                <div class="stream-actions-column">
-                    <div class="stream-actions-card">
-                        <div>
-                            <h3 class="stream-actions-title">Akış & Slayt Kontrolü</h3>
-                            <p class="stream-actions-sub">Yayını durdurabilir veya resimler arasında geçiş yapabilirsiniz.</p>
-                        </div>
+                        <span id="streamActiveBadge" class="badge-active stream-overlay-badge" style="display: none;"><span class="status-dot"></span><span id="streamActiveBadgeText">Yayında</span></span>
                         <div class="stream-control-bar">
-                            <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim">
-                                <svg class="icon"><use href="#icon-chevron-left"></use></svg> Önceki Resim
-                            </button>
-                            <button id="btnStreamToggle" class="btn-playback playing" type="button" onclick="togglePlayback()">
-                                <svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur
-                            </button>
-                            <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim">
-                                Sonraki Resim <svg class="icon"><use href="#icon-chevron-right"></use></svg>
-                            </button>
-                        </div>
-                        <div class="stream-preview-details">
-                            <div id="streamCurrentName" class="stream-current-title">Görsel bekleniyor...</div>
-                            <div id="streamCurrentMeta" class="stream-current-meta"><span id="streamSlideInterval"></span><span id="streamTotalSelected">Toplam yayındaki görsel sayısı ve durum burada listelenir.</span></div>
+                            <div class="stream-control-buttons">
+                                <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim">
+                                    <svg class="icon"><use href="#icon-chevron-left"></use></svg> Önceki Resim
+                                </button>
+                                <button id="btnStreamToggle" class="btn-playback playing" type="button" onclick="togglePlayback()">
+                                    <svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur
+                                </button>
+                                <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim">
+                                    Sonraki Resim <svg class="icon"><use href="#icon-chevron-right"></use></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <aside class="stream-info-list" aria-label="Yayın bilgileri">
+                    <div class="stream-info-heading">
+                        <span class="stream-info-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span>
+                        <h3>Yayın Bilgileri</h3>
+                    </div>
+                    <article class="metric-card interval">
+                        <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span></div>
+                        <div class="metric-value"><span id="streamSlideInterval">--</span><span style="font-size: 11px; letter-spacing: 0;"> sn</span></div>
+                        <div class="metric-caption">Her görsel arasındaki süre</div>
+                    </article>
+                    <article class="metric-card selected">
+                        <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-image"></use></svg></span></div>
+                        <div id="streamTotalSelected" class="metric-value">--</div>
+                        <div id="streamInfoStatus" class="metric-caption"></div>
+                    </article>
+                </aside>
             </div>
         </article>
 
@@ -1219,9 +1233,10 @@
                 const streamCurrentImg = document.getElementById('streamCurrentImg');
                 const streamPlaceholder = document.getElementById('streamPlaceholderThumb');
                 const streamActiveBadge = document.getElementById('streamActiveBadge');
-                const streamCurrentName = document.getElementById('streamCurrentName');
+                const streamActiveBadgeText = document.getElementById('streamActiveBadgeText');
                 const streamSlideInterval = document.getElementById('streamSlideInterval');
                 const streamTotalSelected = document.getElementById('streamTotalSelected');
+                const streamInfoStatus = document.getElementById('streamInfoStatus');
 
                 if (data.currentImage) {
                     streamCurrentImg.style.display = 'block';
@@ -1231,23 +1246,24 @@
                         streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
                     }
                     streamCurrentImg.alt = data.currentImage;
-                    streamActiveBadge.style.display = 'inline-block';
-                    streamCurrentName.innerText = data.currentImage;
-                    streamCurrentName.title = data.currentImage;
-
+                    streamActiveBadge.style.display = 'inline-flex';
+                    streamActiveBadge.classList.toggle('is-paused', data.isPaused);
+                    streamActiveBadgeText.innerText = data.isPaused ? 'Yayın duraklatıldı' : 'Yayında';
                     const currentIndex = data.selectedImages.indexOf(data.currentImage);
-                    const indexStr = currentIndex !== -1 ? ` (${currentIndex + 1} / ${data.selectedImages.length})` : '';
-                    streamSlideInterval.innerText = `Geçiş süresi: ${data.slideInterval} saniye`;
-                    streamTotalSelected.innerText = `Toplam yayındaki görsel: ${data.totalSelected}${indexStr}`;
+                    streamSlideInterval.innerText = data.slideInterval;
+                    streamTotalSelected.innerText = `${data.totalSelected}`;
+                    streamInfoStatus.innerText = currentIndex !== -1
+                        ? `${data.isPaused ? 'Yayın duraklatıldı. ' : ''}Şu anda ${currentIndex + 1} / ${data.selectedImages.length} görsel gösteriliyor.`
+                        : 'Şu anda gösterilen görsel yayın listesinde değil.';
                 } else {
                     streamCurrentImg.style.display = 'none';
                     streamPlaceholder.style.display = 'grid';
                     streamActiveBadge.style.display = 'none';
-                    streamCurrentName.innerText = hasImages ? 'Görsel bekleniyor...' : 'Yayında görsel yok';
-                    streamCurrentName.title = '';
-                    streamSlideInterval.innerText = '';
-                    streamTotalSelected.innerText = hasImages
-                        ? `Toplam ${data.totalSelected} görsel yayında.`
+                    streamActiveBadge.classList.remove('is-paused');
+                    streamSlideInterval.innerText = data.slideInterval;
+                    streamTotalSelected.innerText = `${data.totalSelected || 0}`;
+                    streamInfoStatus.innerText = hasImages
+                        ? 'Görseller yayın döngüsünde.'
                         : 'Galeri panelinden yayına görsel ekleyebilirsiniz.';
                 }
 
