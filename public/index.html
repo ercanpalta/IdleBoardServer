@@ -143,7 +143,6 @@
             #streamGrid .stream-card > img { width: 100%; height: 100%; }
             #streamGrid .stream-card .card-body { position: absolute; inset: 0; display: block; padding: var(--space-2); pointer-events: none; }
             #streamGrid .stream-card .file-name { display: none; }
-            #streamGrid .stream-card .stream-active-badge { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; }
             #streamGrid .stream-card .card-actions { position: absolute; right: var(--space-2); bottom: var(--space-2); flex-wrap: nowrap !important; pointer-events: auto; }
             .upload-card { padding: var(--space-4); }
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
@@ -224,12 +223,14 @@
         .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 var(--space-6); }
 
         /* Yayın Akışı (Stream View) Stilleri */
-        .stream-control-layout { display: grid; grid-template-columns: minmax(0, 680px) minmax(200px, 1fr); gap: var(--space-4); align-items: start; }
-        .stream-preview-column { display: flex; flex-direction: column; width: 100%; max-width: 680px; min-width: 0; margin: 0; }
+        .stream-control-layout { display: grid; grid-template-columns: minmax(0, 560px) minmax(200px, 1fr); gap: var(--space-4); align-items: start; }
+        .stream-preview-column { display: flex; flex-direction: column; width: 100%; max-width: 560px; min-width: 0; margin: 0; }
         .stream-large-img-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; box-sizing: border-box; border-radius: 12px; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; box-shadow: none; }
         .stream-large-img { width: 100%; height: 100%; object-fit: contain; background: #0b1120; }
         .stream-large-placeholder { display: grid; place-items: center; place-content: center; width: 100%; height: 100%; color: #94a3b8; }
         .stream-info-list { display: grid; align-content: start; gap: var(--space-3); min-width: 0; }
+        .stream-card { position: relative; }
+        .stream-card .stream-active-badge { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; }
         .stream-info-heading { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); }
         .stream-info-heading h3 { margin: 0; color: #0f172a; font-size: 15px; }
         .stream-info-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #eaf1fb; color: var(--color-primary); }
