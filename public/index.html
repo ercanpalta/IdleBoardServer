@@ -631,6 +631,15 @@
                 <span id="infoBarStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
             </section>
             <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-play"></use></svg> Geçiş efekti</h2>
+                <p>Görseller değişirken uygulanacak animasyon efektini belirleyin.</p>
+                <div class="theme-options" role="radiogroup" aria-label="Geçiş efekti">
+                    <label class="theme-option"><input type="radio" name="transitionEffect" value="fade" onchange="updateTransitionEffect(this.value)"><span>Yumuşak geçiş (Fade)</span></label>
+                    <label class="theme-option"><input type="radio" name="transitionEffect" value="none" onchange="updateTransitionEffect(this.value)"><span>Anında geçiş</span></label>
+                </div>
+                <span id="transitionEffectStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+            </section>
+            <section class="dashboard-panel settings-card">
                 <h2><svg class="icon"><use href="#icon-eye"></use></svg> Görünüm</h2>
                 <p>Yönetim paneli için açık veya koyu temayı seçin. Tercihiniz bu tarayıcıda saklanır.</p>
                 <div class="theme-options" role="radiogroup" aria-label="Tema seçimi">
@@ -1311,8 +1320,42 @@
                         r.checked = (r.value === String(data.showInfoBar));
                     }
                 }
+                if (data.transitionEffect) {
+                    const radios = document.getElementsByName('transitionEffect');
+                    for (const r of radios) {
+                        r.checked = (r.value === data.transitionEffect);
+                    }
+                }
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
+            }
+        }
+
+        async function updateTransitionEffect(val) {
+            const status = document.getElementById('transitionEffectStatus');
+            try {
+                const res = await fetch('/api/settings/transition-effect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ transitionEffect: val })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Geçiş efekti güncellendi';
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
             }
         }
 
@@ -1767,6 +1810,12 @@
                             const radios = document.getElementsByName('showInfoBar');
                             for (const r of radios) {
                                 r.checked = (r.value === String(data.showInfoBar));
+                            }
+                        }
+                        if (data.transitionEffect) {
+                            const radios = document.getElementsByName('transitionEffect');
+                            for (const r of radios) {
+                                r.checked = (r.value === data.transitionEffect);
                             }
                         }
                         loadDashboardStats();

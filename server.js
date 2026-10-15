@@ -168,6 +168,9 @@ let imageFitMode = 'uniform';
 
 let showInfoBar = true;
 
+const VALID_TRANSITION_EFFECTS = new Set(['fade', 'none']);
+let transitionEffect = 'fade';
+
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
@@ -189,6 +192,10 @@ function getShowInfoBar() {
     return showInfoBar;
 }
 
+function getTransitionEffect() {
+    return transitionEffect;
+}
+
 function loadServerSettings() {
     if (!fs.existsSync(SETTINGS_FILE)) return;
     try {
@@ -206,6 +213,9 @@ function loadServerSettings() {
             if (typeof stored.showInfoBar === 'boolean') {
                 showInfoBar = stored.showInfoBar;
             }
+            if (typeof stored.transitionEffect === 'string' && VALID_TRANSITION_EFFECTS.has(stored.transitionEffect)) {
+                transitionEffect = stored.transitionEffect;
+            }
         }
     } catch (err) {
         console.error('[!] Ayar dosyası okunamadı:', err.message);
@@ -219,7 +229,8 @@ function saveServerSettings() {
             slideInterval: slideIntervalSec,
             kioskIdleTimeout: kioskIdleTimeoutSec,
             imageFit: imageFitMode,
-            showInfoBar: showInfoBar
+            showInfoBar: showInfoBar,
+            transitionEffect: transitionEffect
         }, null, 2), { mode: 0o600 });
         fs.renameSync(temporaryFile, SETTINGS_FILE);
     } catch (err) {
@@ -415,7 +426,7 @@ function setKioskIdleTimeoutSec(seconds) {
         kioskIdleTimeout: kioskIdleTimeoutSec
     });
     broadcastDashboardUpdate();
-    console.log(`[i] Kiosk açılma süresi güncellendi: ${kioskIdleTimeoutSec}sn`);
+    console.log(`[i] Bekleme süresi güncellendi: ${kioskIdleTimeoutSec}sn`);
     return true;
 }
 
@@ -449,6 +460,21 @@ function setShowInfoBar(visible) {
     return true;
 }
 
+function setTransitionEffect(effect) {
+    if (typeof effect !== 'string' || !VALID_TRANSITION_EFFECTS.has(effect)) {
+        return false;
+    }
+    transitionEffect = effect;
+    saveServerSettings();
+    broadcastToAll({
+        tip: 'config',
+        transitionEffect: transitionEffect
+    });
+    broadcastDashboardUpdate();
+    console.log(`[i] Geçiş efekti güncellendi: ${transitionEffect}`);
+    return true;
+}
+
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -473,6 +499,7 @@ app.get('/events', (req, res) => {
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
         imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
+        transitionEffect: getTransitionEffect(),
         isPaused: isPlaybackPaused
     })}\n\n`);
 
@@ -526,6 +553,7 @@ function broadcastImage(fileName) {
             kioskIdleTimeout: getKioskIdleTimeoutSec(),
             imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
+            transitionEffect: getTransitionEffect(),
             resimData: base64Image
         };
 
@@ -744,6 +772,7 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             kioskIdleTimeout: getKioskIdleTimeoutSec(),
             imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
+            transitionEffect: getTransitionEffect(),
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
             uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
@@ -974,7 +1003,8 @@ app.get('/api/settings', requireAuth, (req, res) => {
         interval: getSlideIntervalSec(),
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
         imageFit: getImageFitMode(),
-        showInfoBar: getShowInfoBar()
+        showInfoBar: getShowInfoBar(),
+        transitionEffect: getTransitionEffect()
     });
 });
 
@@ -992,7 +1022,7 @@ app.post('/api/settings/kiosk-idle', requireAuth, (req, res) => {
     if (!setKioskIdleTimeoutSec(req.body && req.body.kioskIdleTimeout)) {
         return res.status(400).json({
             success: false,
-            error: `Kiosk süresi ${MIN_IDLE_TIMEOUT_SEC}-${MAX_IDLE_TIMEOUT_SEC} saniye arasında olmalıdır`
+            error: `Bekleme süresi ${MIN_IDLE_TIMEOUT_SEC}-${MAX_IDLE_TIMEOUT_SEC} saniye arasında olmalıdır`
         });
     }
     res.json({ success: true, kioskIdleTimeout: getKioskIdleTimeoutSec() });
@@ -1021,9 +1051,19 @@ app.post('/api/settings/info-bar', requireAuth, (req, res) => {
     res.json({ success: true, showInfoBar: getShowInfoBar() });
 });
 
+app.post('/api/settings/transition-effect', requireAuth, (req, res) => {
+    if (!setTransitionEffect(req.body && req.body.transitionEffect)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Geçersiz geçiş efekti. Seçenekler: fade, none'
+        });
+    }
+    res.json({ success: true, transitionEffect: getTransitionEffect() });
+});
+
 app.listen(3000, () => {
     console.log('================================================');
-    console.log('🚀 Kiosk Yönetim Paneli: http://localhost:3000');
+    console.log('🚀 Yönetim Paneli:       http://localhost:3000');
     console.log('📡 SSE Stream Adresi:   http://localhost:3000/events');
     console.log('👀 Chokidar Watcher:     Aktif (images/ izleniyor)');
     console.log('🔒 Parola Koruması:      Aktif');
