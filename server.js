@@ -163,6 +163,9 @@ const MIN_IDLE_TIMEOUT_SEC = 1;
 const MAX_IDLE_TIMEOUT_SEC = 86400; // 24 saat
 let kioskIdleTimeoutSec = 5;
 
+const VALID_IMAGE_FITS = new Set(['uniform', 'uniformToFill', 'fill']);
+let imageFitMode = 'uniform';
+
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
@@ -176,6 +179,10 @@ function getKioskIdleTimeoutSec() {
     return kioskIdleTimeoutSec;
 }
 
+function getImageFitMode() {
+    return imageFitMode;
+}
+
 function loadServerSettings() {
     if (!fs.existsSync(SETTINGS_FILE)) return;
     try {
@@ -186,6 +193,9 @@ function loadServerSettings() {
             }
             if (Number.isFinite(stored.kioskIdleTimeout) && stored.kioskIdleTimeout >= MIN_IDLE_TIMEOUT_SEC && stored.kioskIdleTimeout <= MAX_IDLE_TIMEOUT_SEC) {
                 kioskIdleTimeoutSec = Math.round(stored.kioskIdleTimeout);
+            }
+            if (typeof stored.imageFit === 'string' && VALID_IMAGE_FITS.has(stored.imageFit)) {
+                imageFitMode = stored.imageFit;
             }
         }
     } catch (err) {
@@ -198,7 +208,8 @@ function saveServerSettings() {
         const temporaryFile = `${SETTINGS_FILE}.${process.pid}.tmp`;
         fs.writeFileSync(temporaryFile, JSON.stringify({
             slideInterval: slideIntervalSec,
-            kioskIdleTimeout: kioskIdleTimeoutSec
+            kioskIdleTimeout: kioskIdleTimeoutSec,
+            imageFit: imageFitMode
         }, null, 2), { mode: 0o600 });
         fs.renameSync(temporaryFile, SETTINGS_FILE);
     } catch (err) {
@@ -398,6 +409,21 @@ function setKioskIdleTimeoutSec(seconds) {
     return true;
 }
 
+function setImageFitMode(mode) {
+    if (typeof mode !== 'string' || !VALID_IMAGE_FITS.has(mode)) {
+        return false;
+    }
+    imageFitMode = mode;
+    saveServerSettings();
+    broadcastToAll({
+        tip: 'config',
+        imageFit: imageFitMode
+    });
+    broadcastDashboardUpdate();
+    console.log(`[i] Görsel yerleşim modu güncellendi: ${imageFitMode}`);
+    return true;
+}
+
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -420,6 +446,7 @@ app.get('/events', (req, res) => {
         mesaj: 'Bağlantı Başarılı',
         slideInterval: getSlideIntervalSec(),
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
+        imageFit: getImageFitMode(),
         isPaused: isPlaybackPaused
     })}\n\n`);
 
@@ -471,6 +498,7 @@ function broadcastImage(fileName) {
             zaman: new Date().toLocaleTimeString(),
             slideInterval: getSlideIntervalSec(),
             kioskIdleTimeout: getKioskIdleTimeoutSec(),
+            imageFit: getImageFitMode(),
             resimData: base64Image
         };
 
@@ -687,6 +715,7 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             selectedImageCount: selectedImages.length,
             slideInterval: getSlideIntervalSec(),
             kioskIdleTimeout: getKioskIdleTimeoutSec(),
+            imageFit: getImageFitMode(),
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
             uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
@@ -915,7 +944,8 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
 app.get('/api/settings', requireAuth, (req, res) => {
     res.json({
         interval: getSlideIntervalSec(),
-        kioskIdleTimeout: getKioskIdleTimeoutSec()
+        kioskIdleTimeout: getKioskIdleTimeoutSec(),
+        imageFit: getImageFitMode()
     });
 });
 
@@ -937,6 +967,16 @@ app.post('/api/settings/kiosk-idle', requireAuth, (req, res) => {
         });
     }
     res.json({ success: true, kioskIdleTimeout: getKioskIdleTimeoutSec() });
+});
+
+app.post('/api/settings/image-fit', requireAuth, (req, res) => {
+    if (!setImageFitMode(req.body && req.body.imageFit)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Geçersiz yerleşim modu. Seçenekler: uniform, uniformToFill, fill'
+        });
+    }
+    res.json({ success: true, imageFit: getImageFitMode() });
 });
 
 app.listen(3000, () => {

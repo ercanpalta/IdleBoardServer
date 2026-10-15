@@ -612,7 +612,17 @@
                 <span id="kioskIdleStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
             </section>
             <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-image"></use></svg> Görünüm</h2>
+                <h2><svg class="icon"><use href="#icon-image"></use></svg> Görsel yerleşimi</h2>
+                <p>Görsellerin ekranda nasıl ölçekleneceğini belirleyin.</p>
+                <div class="theme-options" role="radiogroup" aria-label="Görsel yerleşimi">
+                    <label class="theme-option"><input type="radio" name="imageFit" value="uniform" onchange="updateImageFit(this.value)"><span>Orantılı sığdır (Kenarlar siyah)</span></label>
+                    <label class="theme-option"><input type="radio" name="imageFit" value="uniformToFill" onchange="updateImageFit(this.value)"><span>Ekranı kapla (Kırp)</span></label>
+                    <label class="theme-option"><input type="radio" name="imageFit" value="fill" onchange="updateImageFit(this.value)"><span>Ekranı doldur (Esnet)</span></label>
+                </div>
+                <span id="imageFitStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+            </section>
+            <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-eye"></use></svg> Görünüm</h2>
                 <p>Yönetim paneli için açık veya koyu temayı seçin. Tercihiniz bu tarayıcıda saklanır.</p>
                 <div class="theme-options" role="radiogroup" aria-label="Tema seçimi">
                     <label class="theme-option"><input type="radio" name="adminTheme" value="light" onchange="setTheme(this.value)"><span>Açık tema</span></label>
@@ -1280,8 +1290,42 @@
                     const kioskInput = document.getElementById('kioskIdleTimeout');
                     if (kioskInput) kioskInput.value = data.kioskIdleTimeout;
                 }
+                if (data.imageFit) {
+                    const radios = document.getElementsByName('imageFit');
+                    for (const r of radios) {
+                        r.checked = (r.value === data.imageFit);
+                    }
+                }
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
+            }
+        }
+
+        async function updateImageFit(val) {
+            const status = document.getElementById('imageFitStatus');
+            try {
+                const res = await fetch('/api/settings/image-fit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ imageFit: val })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Yerleşim modu güncellendi';
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
             }
         }
 
@@ -1661,8 +1705,21 @@
                         if (document.getElementById('streamSection').style.display === 'block') {
                             loadStreamStatus();
                         }
-                    } else if (data.tip === 'config' && data.slideInterval) {
-                        document.getElementById('slideInterval').value = data.slideInterval;
+                    } else if (data.tip === 'config') {
+                        if (data.slideInterval) {
+                            const slideInput = document.getElementById('slideInterval');
+                            if (slideInput) slideInput.value = data.slideInterval;
+                        }
+                        if (data.kioskIdleTimeout) {
+                            const kioskInput = document.getElementById('kioskIdleTimeout');
+                            if (kioskInput) kioskInput.value = data.kioskIdleTimeout;
+                        }
+                        if (data.imageFit) {
+                            const radios = document.getElementsByName('imageFit');
+                            for (const r of radios) {
+                                r.checked = (r.value === data.imageFit);
+                            }
+                        }
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {
                             loadStreamStatus();
