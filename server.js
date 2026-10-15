@@ -17,6 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const IMAGES_DIR = path.join(__dirname, 'images');
 const THUMBNAILS_DIR = path.join(__dirname, 'thumbnails');
 const SELECTED_IMAGES_FILE = path.join(__dirname, 'selected-images.json');
+const SETTINGS_FILE = path.join(__dirname, 'server-settings.json');
 if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
@@ -157,6 +158,11 @@ const serverStartedAt = Date.now();
 const MIN_INTERVAL_SEC = 1;
 const MAX_INTERVAL_SEC = 300;
 let slideIntervalSec = 5;
+
+const MIN_IDLE_TIMEOUT_SEC = 1;
+const MAX_IDLE_TIMEOUT_SEC = 86400; // 24 saat
+let kioskIdleTimeoutSec = 5;
+
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
@@ -164,6 +170,40 @@ let isPlaybackPaused = false;
 
 function getSlideIntervalSec() {
     return slideIntervalSec;
+}
+
+function getKioskIdleTimeoutSec() {
+    return kioskIdleTimeoutSec;
+}
+
+function loadServerSettings() {
+    if (!fs.existsSync(SETTINGS_FILE)) return;
+    try {
+        const stored = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+        if (typeof stored === 'object' && stored !== null) {
+            if (Number.isFinite(stored.slideInterval) && stored.slideInterval >= MIN_INTERVAL_SEC && stored.slideInterval <= MAX_INTERVAL_SEC) {
+                slideIntervalSec = Math.round(stored.slideInterval);
+            }
+            if (Number.isFinite(stored.kioskIdleTimeout) && stored.kioskIdleTimeout >= MIN_IDLE_TIMEOUT_SEC && stored.kioskIdleTimeout <= MAX_IDLE_TIMEOUT_SEC) {
+                kioskIdleTimeoutSec = Math.round(stored.kioskIdleTimeout);
+            }
+        }
+    } catch (err) {
+        console.error('[!] Ayar dosyası okunamadı:', err.message);
+    }
+}
+
+function saveServerSettings() {
+    try {
+        const temporaryFile = `${SETTINGS_FILE}.${process.pid}.tmp`;
+        fs.writeFileSync(temporaryFile, JSON.stringify({
+            slideInterval: slideIntervalSec,
+            kioskIdleTimeout: kioskIdleTimeoutSec
+        }, null, 2), { mode: 0o600 });
+        fs.renameSync(temporaryFile, SETTINGS_FILE);
+    } catch (err) {
+        console.error('[!] Ayarlar kaydedilemedi:', err.message);
+    }
 }
 
 function getConnectedClientCount() {
@@ -293,6 +333,7 @@ function saveSelectedImages(imageFiles) {
 }
 
 loadSelectedImages();
+loadServerSettings();
 ensureThumbnails();
 
 function slideshowTick() {
@@ -331,12 +372,29 @@ function setSlideIntervalSec(seconds) {
         return false;
     }
     slideIntervalSec = Math.round(value);
+    saveServerSettings();
     restartSlideshowTimer();
     broadcastToAll({
         tip: 'config',
         slideInterval: slideIntervalSec
     });
     console.log(`[i] Slayt süresi güncellendi: ${slideIntervalSec}sn`);
+    return true;
+}
+
+function setKioskIdleTimeoutSec(seconds) {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value < MIN_IDLE_TIMEOUT_SEC || value > MAX_IDLE_TIMEOUT_SEC) {
+        return false;
+    }
+    kioskIdleTimeoutSec = Math.round(value);
+    saveServerSettings();
+    broadcastToAll({
+        tip: 'config',
+        kioskIdleTimeout: kioskIdleTimeoutSec
+    });
+    broadcastDashboardUpdate();
+    console.log(`[i] Kiosk açılma süresi güncellendi: ${kioskIdleTimeoutSec}sn`);
     return true;
 }
 
@@ -361,6 +419,7 @@ app.get('/events', (req, res) => {
         tip: 'init',
         mesaj: 'Bağlantı Başarılı',
         slideInterval: getSlideIntervalSec(),
+        kioskIdleTimeout: getKioskIdleTimeoutSec(),
         isPaused: isPlaybackPaused
     })}\n\n`);
 
@@ -411,6 +470,7 @@ function broadcastImage(fileName) {
             dosyaAdi: fileName,
             zaman: new Date().toLocaleTimeString(),
             slideInterval: getSlideIntervalSec(),
+            kioskIdleTimeout: getKioskIdleTimeoutSec(),
             resimData: base64Image
         };
 
@@ -626,6 +686,7 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             imageCount: images.length,
             selectedImageCount: selectedImages.length,
             slideInterval: getSlideIntervalSec(),
+            kioskIdleTimeout: getKioskIdleTimeoutSec(),
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
             uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
@@ -852,7 +913,10 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
 });
 
 app.get('/api/settings', requireAuth, (req, res) => {
-    res.json({ interval: getSlideIntervalSec() });
+    res.json({
+        interval: getSlideIntervalSec(),
+        kioskIdleTimeout: getKioskIdleTimeoutSec()
+    });
 });
 
 app.post('/api/settings/interval', requireAuth, (req, res) => {
@@ -863,6 +927,16 @@ app.post('/api/settings/interval', requireAuth, (req, res) => {
         });
     }
     res.json({ success: true, interval: getSlideIntervalSec() });
+});
+
+app.post('/api/settings/kiosk-idle', requireAuth, (req, res) => {
+    if (!setKioskIdleTimeoutSec(req.body && req.body.kioskIdleTimeout)) {
+        return res.status(400).json({
+            success: false,
+            error: `Kiosk süresi ${MIN_IDLE_TIMEOUT_SEC}-${MAX_IDLE_TIMEOUT_SEC} saniye arasında olmalıdır`
+        });
+    }
+    res.json({ success: true, kioskIdleTimeout: getKioskIdleTimeoutSec() });
 });
 
 app.listen(3000, () => {

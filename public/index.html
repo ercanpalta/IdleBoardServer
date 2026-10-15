@@ -601,6 +601,17 @@
                 <span id="intervalStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
             </section>
             <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-monitor"></use></svg> Kiosk ekran koruyucu</h2>
+                <p>İstemci bilgisayarlarda işlem yapılmadığında kiosk ekranının kaç saniye sonra açılacağını belirleyin.</p>
+                <div class="settings-row">
+                    <label for="kioskIdleTimeout">Açılma süresi</label>
+                    <input type="number" id="kioskIdleTimeout" value="5" min="1" max="86400">
+                    <span>saniye</span>
+                    <button id="btnSaveKioskIdle" class="btn" type="button" onclick="updateKioskIdleTimeout()">Kaydet</button>
+                </div>
+                <span id="kioskIdleStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+            </section>
+            <section class="dashboard-panel settings-card">
                 <h2><svg class="icon"><use href="#icon-image"></use></svg> Görünüm</h2>
                 <p>Yönetim paneli için açık veya koyu temayı seçin. Tercihiniz bu tarayıcıda saklanır.</p>
                 <div class="theme-options" role="radiogroup" aria-label="Tema seçimi">
@@ -1262,10 +1273,45 @@
 
                 const data = await res.json();
                 if (data.interval) {
-                    document.getElementById('slideInterval').value = data.interval;
+                    const slideInput = document.getElementById('slideInterval');
+                    if (slideInput) slideInput.value = data.interval;
+                }
+                if (data.kioskIdleTimeout) {
+                    const kioskInput = document.getElementById('kioskIdleTimeout');
+                    if (kioskInput) kioskInput.value = data.kioskIdleTimeout;
                 }
             } catch (err) {
-                console.error('Slayt süresi okunamadı:', err);
+                console.error('Ayarlar okunamadı:', err);
+            }
+        }
+
+        async function updateKioskIdleTimeout() {
+            const val = document.getElementById('kioskIdleTimeout').value;
+            const status = document.getElementById('kioskIdleStatus');
+
+            try {
+                const res = await fetch('/api/settings/kiosk-idle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ kioskIdleTimeout: Number(val) })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = `Güncellendi (${data.kioskIdleTimeout}sn)`;
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
             }
         }
 
