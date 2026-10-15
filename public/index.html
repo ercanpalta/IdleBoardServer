@@ -101,11 +101,22 @@
         .selection-summary strong { color: #0f172a; font-size: 19px; }
         .selection-track { height: 9px; overflow: hidden; border-radius: 99px; background: #e2e8f0; }
         .selection-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #34d399); transition: width 0.35s ease; }
-        .dashboard-settings { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #eef2f7; }
-        .dashboard-settings h3 { margin: 0 0 var(--space-3); color: #334155; font-size: 14px; }
         .settings-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: #64748b; font-size: 13px; }
         .settings-row input { width: 72px; padding: var(--space-2); border: 1px solid #cbd5e1; border-radius: 7px; font-size: 14px; }
         .dashboard-updated { margin-top: var(--space-3); color: #94a3b8; font-size: 11px; }
+        .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+        .settings-card { min-width: 0; }
+        .settings-card h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: #0f172a; font-size: 16px; }
+        .settings-card > p { margin: 0 0 var(--space-4); color: #64748b; font-size: 13px; line-height: 1.5; }
+        .settings-card .settings-row input { width: 90px; }
+        .theme-options { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+        .theme-option { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 var(--space-3); border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; color: #334155; cursor: pointer; font-size: 13px; }
+        .theme-option:has(input:checked) { border-color: var(--color-primary); background: #eff6ff; color: var(--color-primary-hover); }
+        .theme-option input { margin: 0; accent-color: var(--color-primary); }
+        .settings-card .password-change-card { max-width: none; margin: 0; padding: 0; border: 0; background: transparent; }
+        .settings-card .password-change-card .setup-note { margin-bottom: var(--space-4); }
+        .settings-card .password-change-card .login-input { margin-bottom: var(--space-3); }
+        .settings-card .password-change-card .btn-login { width: auto; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); border-bottom: 1px solid #e2e8f0; padding-bottom: var(--space-4); margin-bottom: var(--space-6); }
         h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: var(--space-2); font-size: 22px; }
         .btn, .btn-back, .btn-stream-nav, .btn-playback { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); box-sizing: border-box; padding: var(--space-2) var(--space-4); border-radius: 8px; font: inherit; font-size: 14px; font-weight: 600; line-height: 1.25; text-decoration: none; white-space: nowrap; }
@@ -162,6 +173,7 @@
         @media (max-width: 700px) {
             .dashboard-hero { align-items: flex-start; flex-direction: column; gap: var(--space-2); padding: var(--space-4); }
             .dashboard-lower { grid-template-columns: 1fr; }
+            .settings-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 420px) {
             .dashboard-metrics { gap: var(--space-2); }
@@ -270,6 +282,58 @@
         .btn-broadcast-stream { background: #eff6ff; color: var(--color-primary-hover); border-color: #bfdbfe; }
         .btn-broadcast-stream:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 
+        html[data-theme="dark"] body { background: #0b1220; color: #e2e8f0; }
+        html[data-theme="dark"] .container:not(.dashboard-view),
+        html[data-theme="dark"] .dashboard-panel,
+        html[data-theme="dark"] .metric-card,
+        html[data-theme="dark"] .card,
+        html[data-theme="dark"] .login-card,
+        html[data-theme="dark"] .password-change-card,
+        html[data-theme="dark"] .settings-card { background-color: #111c2e; border-color: #26364f; color: #e2e8f0; }
+        html[data-theme="dark"] .metric-top,
+        html[data-theme="dark"] .selection-summary,
+        html[data-theme="dark"] .settings-row,
+        html[data-theme="dark"] .settings-card > p,
+        html[data-theme="dark"] .setup-note,
+        html[data-theme="dark"] .login-card p,
+        html[data-theme="dark"] .gallery-status,
+        html[data-theme="dark"] .upload-status,
+        html[data-theme="dark"] .stream-panel-description { color: #a9b8cc; }
+        html[data-theme="dark"] .metric-value,
+        html[data-theme="dark"] .panel-heading h2,
+        html[data-theme="dark"] .stream-info-heading h3,
+        html[data-theme="dark"] .selection-summary strong,
+        html[data-theme="dark"] .settings-card h2,
+        html[data-theme="dark"] .file-name,
+        html[data-theme="dark"] .latest-image-name,
+        html[data-theme="dark"] .empty-state h3,
+        html[data-theme="dark"] .login-card h2 { color: #f1f5f9; }
+        html[data-theme="dark"] .metric-caption,
+        html[data-theme="dark"] .panel-kicker,
+        html[data-theme="dark"] .dashboard-updated,
+        html[data-theme="dark"] .latest-placeholder,
+        html[data-theme="dark"] .empty-state,
+        html[data-theme="dark"] .empty-state p,
+        html[data-theme="dark"] .empty-msg { color: #94a3b8; }
+        html[data-theme="dark"] .header-bar { border-color: #26364f; }
+        html[data-theme="dark"] .header-bar h1 { color: #f1f5f9; }
+        html[data-theme="dark"] .settings-row input,
+        html[data-theme="dark"] .login-input { border-color: #334155; background: #0b1220; color: #f1f5f9; }
+        html[data-theme="dark"] .btn-back,
+        html[data-theme="dark"] .btn-toggle-visibility { border-color: #334155; background: #1e293b; color: #e2e8f0; }
+        html[data-theme="dark"] .btn-toggle-visibility.is-visible { border-color: #1d4ed8; background: #172554; color: #bfdbfe; }
+        html[data-theme="dark"] .upload-card { border-color: #334155; background: #111c2e; }
+        html[data-theme="dark"] .upload-card > p { color: #e2e8f0 !important; }
+        html[data-theme="dark"] .card img { background: #0b1220; }
+        html[data-theme="dark"] .empty-state { border-color: #334155; background: #0f1929; }
+        html[data-theme="dark"] .empty-state-icon,
+        html[data-theme="dark"] .stream-info-icon { background: #1e293b; color: #93c5fd; }
+        html[data-theme="dark"] .latest-image-wrap { background: linear-gradient(135deg, #111c2e, #1e293b); }
+        html[data-theme="dark"] .selection-track { background: #26364f; }
+        html[data-theme="dark"] .theme-option { border-color: #334155; background: #0b1220; color: #cbd5e1; }
+        html[data-theme="dark"] .theme-option:has(input:checked) { border-color: #3b82f6; background: #172554; color: #bfdbfe; }
+        html[data-theme="dark"] .admin-sidebar { border-right: 1px solid #26364f; }
+
         @media (max-width: 1150px) {
             .stream-control-layout { grid-template-columns: 1fr; gap: 20px; }
             .stream-preview-column { margin: 0 auto; }
@@ -290,6 +354,7 @@
         <symbol id="icon-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20v-1a6 6 0 0 1 12 0v1"></path><path d="M16 5.5a3 3 0 0 1 0 5.8"></path><path d="M18 14a5 5 0 0 1 3 4.6v1"></path></symbol>
         <symbol id="icon-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></symbol>
         <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M4 21v-7"></path><path d="M4 10V3"></path><path d="M12 21v-9"></path><path d="M12 8V3"></path><path d="M20 21v-5"></path><path d="M20 12V3"></path><path d="M2 14h4"></path><path d="M10 8h4"></path><path d="M18 16h4"></path></symbol>
         <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"></path></symbol>
         <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 5h3v14H8z" fill="currentColor" stroke="none"></path><path d="M15 5h3v14h-3z" fill="currentColor" stroke="none"></path></symbol>
         <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path></symbol>
@@ -335,7 +400,7 @@
                 <button id="dashboardNav" class="sidebar-link active" type="button" onclick="showDashboard()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-home"></use></svg></span><span class="sidebar-label">Genel Bakış</span></button>
                 <button id="streamNav" class="sidebar-link" type="button" onclick="showStream()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-radio"></use></svg></span><span class="sidebar-label">Yayın Akışı</span></button>
                 <button id="galleryNav" class="sidebar-link" type="button" onclick="showGallery()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-image"></use></svg></span><span class="sidebar-label">Galeri Paneli</span></button>
-                <button id="passwordNav" class="sidebar-link" type="button" onclick="showPasswordChange()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-key"></use></svg></span><span class="sidebar-label">Parola Değiştir</span></button>
+                <button id="settingsNav" class="sidebar-link" type="button" onclick="showSettings()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-settings"></use></svg></span><span class="sidebar-label">Ayarlar</span></button>
             </nav>
             <div class="sidebar-footer">
                 <button class="sidebar-logout" type="button" onclick="logout()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-logout"></use></svg></span><span class="sidebar-label">Çıkış Yap</span></button>
@@ -405,16 +470,6 @@
                     <div id="dashboardSelectionProgress" class="selection-fill"></div>
                 </div>
                 <button class="btn" style="margin-top: 16px;" type="button" onclick="showGallery()">Galeriyi yönet</button>
-                <div class="dashboard-settings">
-                    <h3><svg class="icon"><use href="#icon-clock"></use></svg> Slayt geçiş ayarı</h3>
-                    <div class="settings-row">
-                        <label for="slideInterval">Geçiş süresi</label>
-                        <input type="number" id="slideInterval" value="5" min="1" max="300">
-                        <span>saniye</span>
-                        <button id="btnSaveInterval" class="btn" onclick="updateSlideInterval()">Kaydet</button>
-                    </div>
-                    <span id="intervalStatus" class="dashboard-updated" role="status"></span>
-                </div>
                 <div id="dashboardUpdatedAt" class="dashboard-updated">İstatistikler yükleniyor...</div>
             </article>
         </section>
@@ -524,18 +579,46 @@
         <div class="grid" id="imageGrid"></div>
     </div>
 
-    <!-- Yönetici parolası için ayrı ekran -->
-    <div id="passwordChangeSection" class="container" style="display: none;">
-        <div class="header-bar">
-            <h1><svg class="icon"><use href="#icon-key"></use></svg> Yönetici Parolasını Değiştir</h1>
-        </div>
-        <div class="password-change-card">
-            <p class="setup-note">Güvenliğiniz için mevcut parolanızı doğrulayın ve en az 6 karakterli yeni bir parola belirleyin.</p>
-            <input type="password" id="currentPasswordInput" class="login-input" placeholder="Mevcut parola" autocomplete="current-password">
-            <input type="password" id="changedPasswordInput" class="login-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
-            <input type="password" id="changedPasswordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
-            <button class="btn btn-login" onclick="changePassword()">Parolayı Kaydet</button>
-            <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
+    <div id="settingsSection" class="container dashboard-view" style="display: none;">
+        <section class="dashboard-hero">
+            <div>
+                <p class="dashboard-eyebrow">IdleBoard Yönetim Merkezi</p>
+                <h1>Ayarlar</h1>
+                <p>Yayın tercihlerini, görünümü ve yönetici hesabınızı düzenleyin.</p>
+            </div>
+            <div class="dashboard-live"><svg class="icon"><use href="#icon-settings"></use></svg><span>Sistem Ayarları</span></div>
+        </section>
+        <div class="settings-grid">
+            <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-radio"></use></svg> Yayın ayarları</h2>
+                <p>Slayt gösterisinde görsellerin ne sıklıkta değişeceğini belirleyin.</p>
+                <div class="settings-row">
+                    <label for="slideInterval">Geçiş süresi</label>
+                    <input type="number" id="slideInterval" value="5" min="1" max="300">
+                    <span>saniye</span>
+                    <button id="btnSaveInterval" class="btn" type="button" onclick="updateSlideInterval()">Kaydet</button>
+                </div>
+                <span id="intervalStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+            </section>
+            <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-image"></use></svg> Görünüm</h2>
+                <p>Yönetim paneli için açık veya koyu temayı seçin. Tercihiniz bu tarayıcıda saklanır.</p>
+                <div class="theme-options" role="radiogroup" aria-label="Tema seçimi">
+                    <label class="theme-option"><input type="radio" name="adminTheme" value="light" onchange="setTheme(this.value)"><span>Açık tema</span></label>
+                    <label class="theme-option"><input type="radio" name="adminTheme" value="dark" onchange="setTheme(this.value)"><span>Koyu tema</span></label>
+                </div>
+            </section>
+            <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-key"></use></svg> Yönetici hesabı</h2>
+                <p>Yönetim paneli parolanızı değiştirmek için mevcut parolanızı doğrulayın.</p>
+                <div class="password-change-card">
+                    <input type="password" id="currentPasswordInput" class="login-input" placeholder="Mevcut parola" autocomplete="current-password">
+                    <input type="password" id="changedPasswordInput" class="login-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
+                    <input type="password" id="changedPasswordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
+                    <button class="btn" type="button" onclick="changePassword()">Parolayı Kaydet</button>
+                    <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
+                </div>
+            </section>
         </div>
     </div>
         </main>
@@ -543,6 +626,7 @@
 
     <script>
         const TOKEN_KEY = 'idleboard_admin_token';
+        const THEME_KEY = 'idleboard_admin_theme';
         let sseSource = null;
         let debounceTimer = null;
         let galleryImages = [];
@@ -681,7 +765,7 @@
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
-            document.getElementById('passwordChangeSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
             document.getElementById('passwordInput').focus();
         }
 
@@ -692,7 +776,7 @@
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
-            document.getElementById('passwordChangeSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
             document.getElementById('newPasswordInput').focus();
         }
 
@@ -703,10 +787,9 @@
             document.getElementById('dashboardSection').style.display = 'block';
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
-            document.getElementById('passwordChangeSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
             setActiveNavigation('dashboardNav');
             closeMobileSidebar();
-            loadSlideInterval();
             loadDashboardStats();
             clearInterval(dashboardRefreshTimer);
             dashboardRefreshTimer = setInterval(refreshActiveView, 10000);
@@ -720,7 +803,7 @@
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'block';
             document.getElementById('gallerySection').style.display = 'none';
-            document.getElementById('passwordChangeSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
             setActiveNavigation('streamNav');
             closeMobileSidebar();
             loadStreamStatus();
@@ -744,23 +827,40 @@
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'block';
-            document.getElementById('passwordChangeSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
             setActiveNavigation('galleryNav');
             closeMobileSidebar();
             loadGallery(true);
         }
 
-        function showPasswordChange() {
+        function showSettings() {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
-            document.getElementById('passwordChangeSection').style.display = 'block';
-            setActiveNavigation('passwordNav');
+            document.getElementById('settingsSection').style.display = 'block';
+            setActiveNavigation('settingsNav');
             closeMobileSidebar();
-            document.getElementById('currentPasswordInput').focus();
+            clearInterval(dashboardRefreshTimer);
+            dashboardRefreshTimer = null;
+            loadSlideInterval();
+            syncThemeOptions();
+        }
+
+        function setTheme(theme) {
+            const selectedTheme = theme === 'dark' ? 'dark' : 'light';
+            document.documentElement.dataset.theme = selectedTheme;
+            localStorage.setItem(THEME_KEY, selectedTheme);
+            syncThemeOptions();
+        }
+
+        function syncThemeOptions() {
+            const selectedTheme = document.documentElement.dataset.theme || 'light';
+            document.querySelectorAll('input[name="adminTheme"]').forEach(input => {
+                input.checked = input.value === selectedTheme;
+            });
         }
 
         function setActiveNavigation(activeId) {
@@ -1186,16 +1286,16 @@
 
                 const data = await res.json();
                 if (data.success) {
-                    status.style.color = 'green';
+                    status.style.color = '#15803d';
                     status.innerText = `Güncellendi (${data.interval}sn)`;
                     loadDashboardStats();
                     setTimeout(() => status.innerText = '', 3000);
                 } else {
-                    status.style.color = 'red';
+                    status.style.color = '#dc2626';
                     status.innerText = data.error || 'Hata oluştu';
                 }
             } catch (e) {
-                status.style.color = 'red';
+                status.style.color = '#dc2626';
                 status.innerText = 'Hata oluştu';
             }
         }
@@ -1532,6 +1632,10 @@
                 }
             };
         }
+
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        document.documentElement.dataset.theme = savedTheme === 'dark' ? 'dark' : 'light';
+        syncThemeOptions();
 
         // Başlangıç kontrolü
         checkAuth();
