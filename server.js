@@ -171,6 +171,9 @@ let showInfoBar = true;
 const VALID_TRANSITION_EFFECTS = new Set(['fade', 'none']);
 let transitionEffect = 'fade';
 
+const VALID_SLIDESHOW_ORDERS = new Set(['sequential', 'random']);
+let slideshowOrder = 'sequential';
+
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
@@ -196,6 +199,10 @@ function getTransitionEffect() {
     return transitionEffect;
 }
 
+function getSlideshowOrder() {
+    return slideshowOrder;
+}
+
 function loadServerSettings() {
     if (!fs.existsSync(SETTINGS_FILE)) return;
     try {
@@ -216,6 +223,9 @@ function loadServerSettings() {
             if (typeof stored.transitionEffect === 'string' && VALID_TRANSITION_EFFECTS.has(stored.transitionEffect)) {
                 transitionEffect = stored.transitionEffect;
             }
+            if (typeof stored.slideshowOrder === 'string' && VALID_SLIDESHOW_ORDERS.has(stored.slideshowOrder)) {
+                slideshowOrder = stored.slideshowOrder;
+            }
         }
     } catch (err) {
         console.error('[!] Ayar dosyası okunamadı:', err.message);
@@ -230,7 +240,8 @@ function saveServerSettings() {
             kioskIdleTimeout: kioskIdleTimeoutSec,
             imageFit: imageFitMode,
             showInfoBar: showInfoBar,
-            transitionEffect: transitionEffect
+            transitionEffect: transitionEffect,
+            slideshowOrder: slideshowOrder
         }, null, 2), { mode: 0o600 });
         fs.renameSync(temporaryFile, SETTINGS_FILE);
     } catch (err) {
@@ -320,7 +331,11 @@ function advanceSlide(step) {
     if (selectedList.length === 0) return null;
 
     let targetIndex = 0;
-    if (lastBroadcast.fileName) {
+    if (slideshowOrder === 'random' && selectedList.length > 1 && step > 0) {
+        do {
+            targetIndex = Math.floor(Math.random() * selectedList.length);
+        } while (selectedList[targetIndex] === lastBroadcast.fileName);
+    } else if (lastBroadcast.fileName) {
         const currentIdx = selectedList.indexOf(lastBroadcast.fileName);
         if (currentIdx !== -1) {
             targetIndex = (currentIdx + step + selectedList.length) % selectedList.length;
@@ -379,13 +394,24 @@ function slideshowTick() {
         const imageFiles = listImageFiles(files).filter(fileName => selectedImageFiles.has(fileName));
         if (imageFiles.length === 0) return;
 
-        if (currentImageIndex >= imageFiles.length) {
-            currentImageIndex = 0;
+        let selectedFile;
+        if (slideshowOrder === 'random' && imageFiles.length > 1) {
+            let nextIndex;
+            do {
+                nextIndex = Math.floor(Math.random() * imageFiles.length);
+            } while (imageFiles[nextIndex] === lastBroadcast.fileName);
+            currentImageIndex = nextIndex;
+            selectedFile = imageFiles[currentImageIndex];
+            currentImageIndex = (currentImageIndex + 1) % imageFiles.length;
+        } else {
+            if (currentImageIndex >= imageFiles.length) {
+                currentImageIndex = 0;
+            }
+            selectedFile = imageFiles[currentImageIndex];
+            currentImageIndex++;
         }
 
-        const selectedFile = imageFiles[currentImageIndex];
         broadcastImage(selectedFile);
-        currentImageIndex++;
     });
 }
 
@@ -475,6 +501,21 @@ function setTransitionEffect(effect) {
     return true;
 }
 
+function setSlideshowOrder(order) {
+    if (typeof order !== 'string' || !VALID_SLIDESHOW_ORDERS.has(order)) {
+        return false;
+    }
+    slideshowOrder = order;
+    saveServerSettings();
+    broadcastToAll({
+        tip: 'config',
+        slideshowOrder: slideshowOrder
+    });
+    broadcastDashboardUpdate();
+    console.log(`[i] Slayt sıralaması güncellendi: ${slideshowOrder}`);
+    return true;
+}
+
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -500,6 +541,7 @@ app.get('/events', (req, res) => {
         imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
         transitionEffect: getTransitionEffect(),
+        slideshowOrder: getSlideshowOrder(),
         isPaused: isPlaybackPaused
     })}\n\n`);
 
@@ -554,6 +596,7 @@ function broadcastImage(fileName) {
             imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
+            slideshowOrder: getSlideshowOrder(),
             resimData: base64Image
         };
 
@@ -773,6 +816,7 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
+            slideshowOrder: getSlideshowOrder(),
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
             uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
@@ -1004,7 +1048,8 @@ app.get('/api/settings', requireAuth, (req, res) => {
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
         imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
-        transitionEffect: getTransitionEffect()
+        transitionEffect: getTransitionEffect(),
+        slideshowOrder: getSlideshowOrder()
     });
 });
 
@@ -1059,6 +1104,16 @@ app.post('/api/settings/transition-effect', requireAuth, (req, res) => {
         });
     }
     res.json({ success: true, transitionEffect: getTransitionEffect() });
+});
+
+app.post('/api/settings/slideshow-order', requireAuth, (req, res) => {
+    if (!setSlideshowOrder(req.body && req.body.slideshowOrder)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Geçersiz sıralama modu. Seçenekler: sequential, random'
+        });
+    }
+    res.json({ success: true, slideshowOrder: getSlideshowOrder() });
 });
 
 app.listen(3000, () => {

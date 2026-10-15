@@ -364,6 +364,7 @@
         <symbol id="icon-minus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></symbol>
         <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
         <symbol id="icon-eye-off" viewBox="0 0 24 24"><path d="m3 3 18 18"></path><path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.1 3.9"></path><path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.8 10.8 0 0 0 4.1-.8"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></symbol>
+        <symbol id="icon-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -638,6 +639,15 @@
                     <label class="theme-option"><input type="radio" name="transitionEffect" value="none" onchange="updateTransitionEffect(this.value)"><span>Anında geçiş</span></label>
                 </div>
                 <span id="transitionEffectStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+            </section>
+            <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-shuffle"></use></svg> Slayt sıralaması</h2>
+                <p>Görsellerin hangi sıra ile ekrana geleceğini belirleyin.</p>
+                <div class="theme-options" role="radiogroup" aria-label="Slayt sıralaması">
+                    <label class="theme-option"><input type="radio" name="slideshowOrder" value="sequential" onchange="updateSlideshowOrder(this.value)"><span>Sıralı (Liste sırası)</span></label>
+                    <label class="theme-option"><input type="radio" name="slideshowOrder" value="random" onchange="updateSlideshowOrder(this.value)"><span>Rastgele (Karışık)</span></label>
+                </div>
+                <span id="slideshowOrderStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
             </section>
             <section class="dashboard-panel settings-card">
                 <h2><svg class="icon"><use href="#icon-eye"></use></svg> Görünüm</h2>
@@ -1326,8 +1336,42 @@
                         r.checked = (r.value === data.transitionEffect);
                     }
                 }
+                if (data.slideshowOrder) {
+                    const radios = document.getElementsByName('slideshowOrder');
+                    for (const r of radios) {
+                        r.checked = (r.value === data.slideshowOrder);
+                    }
+                }
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
+            }
+        }
+
+        async function updateSlideshowOrder(val) {
+            const status = document.getElementById('slideshowOrderStatus');
+            try {
+                const res = await fetch('/api/settings/slideshow-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ slideshowOrder: val })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Slayt sıralaması güncellendi';
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
             }
         }
 
@@ -1816,6 +1860,12 @@
                             const radios = document.getElementsByName('transitionEffect');
                             for (const r of radios) {
                                 r.checked = (r.value === data.transitionEffect);
+                            }
+                        }
+                        if (data.slideshowOrder) {
+                            const radios = document.getElementsByName('slideshowOrder');
+                            for (const r of radios) {
+                                r.checked = (r.value === data.slideshowOrder);
                             }
                         }
                         loadDashboardStats();
