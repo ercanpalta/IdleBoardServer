@@ -166,6 +166,8 @@ let kioskIdleTimeoutSec = 5;
 const VALID_IMAGE_FITS = new Set(['uniform', 'uniformToFill', 'fill']);
 let imageFitMode = 'uniform';
 
+let showInfoBar = true;
+
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
@@ -183,6 +185,10 @@ function getImageFitMode() {
     return imageFitMode;
 }
 
+function getShowInfoBar() {
+    return showInfoBar;
+}
+
 function loadServerSettings() {
     if (!fs.existsSync(SETTINGS_FILE)) return;
     try {
@@ -197,6 +203,9 @@ function loadServerSettings() {
             if (typeof stored.imageFit === 'string' && VALID_IMAGE_FITS.has(stored.imageFit)) {
                 imageFitMode = stored.imageFit;
             }
+            if (typeof stored.showInfoBar === 'boolean') {
+                showInfoBar = stored.showInfoBar;
+            }
         }
     } catch (err) {
         console.error('[!] Ayar dosyası okunamadı:', err.message);
@@ -209,7 +218,8 @@ function saveServerSettings() {
         fs.writeFileSync(temporaryFile, JSON.stringify({
             slideInterval: slideIntervalSec,
             kioskIdleTimeout: kioskIdleTimeoutSec,
-            imageFit: imageFitMode
+            imageFit: imageFitMode,
+            showInfoBar: showInfoBar
         }, null, 2), { mode: 0o600 });
         fs.renameSync(temporaryFile, SETTINGS_FILE);
     } catch (err) {
@@ -424,6 +434,21 @@ function setImageFitMode(mode) {
     return true;
 }
 
+function setShowInfoBar(visible) {
+    if (typeof visible !== 'boolean') {
+        return false;
+    }
+    showInfoBar = visible;
+    saveServerSettings();
+    broadcastToAll({
+        tip: 'config',
+        showInfoBar: showInfoBar
+    });
+    broadcastDashboardUpdate();
+    console.log(`[i] Alt bilgi şeridi görünürlüğü güncellendi: ${showInfoBar}`);
+    return true;
+}
+
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -447,6 +472,7 @@ app.get('/events', (req, res) => {
         slideInterval: getSlideIntervalSec(),
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
         imageFit: getImageFitMode(),
+        showInfoBar: getShowInfoBar(),
         isPaused: isPlaybackPaused
     })}\n\n`);
 
@@ -499,6 +525,7 @@ function broadcastImage(fileName) {
             slideInterval: getSlideIntervalSec(),
             kioskIdleTimeout: getKioskIdleTimeoutSec(),
             imageFit: getImageFitMode(),
+            showInfoBar: getShowInfoBar(),
             resimData: base64Image
         };
 
@@ -716,6 +743,7 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             slideInterval: getSlideIntervalSec(),
             kioskIdleTimeout: getKioskIdleTimeoutSec(),
             imageFit: getImageFitMode(),
+            showInfoBar: getShowInfoBar(),
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
             uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
@@ -945,7 +973,8 @@ app.get('/api/settings', requireAuth, (req, res) => {
     res.json({
         interval: getSlideIntervalSec(),
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
-        imageFit: getImageFitMode()
+        imageFit: getImageFitMode(),
+        showInfoBar: getShowInfoBar()
     });
 });
 
@@ -977,6 +1006,19 @@ app.post('/api/settings/image-fit', requireAuth, (req, res) => {
         });
     }
     res.json({ success: true, imageFit: getImageFitMode() });
+});
+
+app.post('/api/settings/info-bar', requireAuth, (req, res) => {
+    const show = req.body && typeof req.body.showInfoBar === 'boolean'
+        ? req.body.showInfoBar
+        : (req.body && req.body.showInfoBar === 'true');
+    if (!setShowInfoBar(show)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Geçersiz parametre. showInfoBar boolean olmalıdır.'
+        });
+    }
+    res.json({ success: true, showInfoBar: getShowInfoBar() });
 });
 
 app.listen(3000, () => {

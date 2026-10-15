@@ -622,6 +622,15 @@
                 <span id="imageFitStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
             </section>
             <section class="dashboard-panel settings-card">
+                <h2><svg class="icon"><use href="#icon-clock"></use></svg> Alt bilgi şeridi</h2>
+                <p>Kiosk ekranının altındaki bağlantı durumu ve tarih/saat bandının görünürlüğünü belirleyin.</p>
+                <div class="theme-options" role="radiogroup" aria-label="Alt bilgi şeridi görünürlüğü">
+                    <label class="theme-option"><input type="radio" name="showInfoBar" value="true" onchange="updateShowInfoBar(true)"><span>Göster (Durum &amp; Saat)</span></label>
+                    <label class="theme-option"><input type="radio" name="showInfoBar" value="false" onchange="updateShowInfoBar(false)"><span>Gizle (Tam ekran görsel)</span></label>
+                </div>
+                <span id="infoBarStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+            </section>
+            <section class="dashboard-panel settings-card">
                 <h2><svg class="icon"><use href="#icon-eye"></use></svg> Görünüm</h2>
                 <p>Yönetim paneli için açık veya koyu temayı seçin. Tercihiniz bu tarayıcıda saklanır.</p>
                 <div class="theme-options" role="radiogroup" aria-label="Tema seçimi">
@@ -1296,8 +1305,42 @@
                         r.checked = (r.value === data.imageFit);
                     }
                 }
+                if (typeof data.showInfoBar === 'boolean') {
+                    const radios = document.getElementsByName('showInfoBar');
+                    for (const r of radios) {
+                        r.checked = (r.value === String(data.showInfoBar));
+                    }
+                }
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
+            }
+        }
+
+        async function updateShowInfoBar(val) {
+            const status = document.getElementById('infoBarStatus');
+            try {
+                const res = await fetch('/api/settings/info-bar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ showInfoBar: Boolean(val) })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Görünürlük güncellendi';
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
             }
         }
 
@@ -1718,6 +1761,12 @@
                             const radios = document.getElementsByName('imageFit');
                             for (const r of radios) {
                                 r.checked = (r.value === data.imageFit);
+                            }
+                        }
+                        if (typeof data.showInfoBar === 'boolean') {
+                            const radios = document.getElementsByName('showInfoBar');
+                            for (const r of radios) {
+                                r.checked = (r.value === String(data.showInfoBar));
                             }
                         }
                         loadDashboardStats();
