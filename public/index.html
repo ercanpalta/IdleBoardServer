@@ -35,7 +35,23 @@
         .sidebar-link { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--control-height); box-sizing: border-box; padding: var(--space-3); border: 0; border-radius: 8px; background: transparent; color: #cbd5e1; text-align: left; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; transition: background 0.2s ease, color 0.2s ease; }
         .sidebar-link:hover, .sidebar-link.active { background: #1e40af; color: white; }
         .sidebar-icon { width: 20px; text-align: center; }
-        .sidebar-footer { margin-top: auto; }
+        .sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: var(--space-2); }
+        .sidebar-theme-row { width: 100%; }
+        .sidebar-theme-toggle { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--control-height); box-sizing: border-box; padding: var(--space-2) var(--space-3); border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); color: #cbd5e1; cursor: pointer; user-select: none; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+        .sidebar-theme-toggle:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+        .sidebar-theme-toggle .theme-label-text { flex-grow: 1; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+        .theme-switch-wrap { position: relative; display: inline-block; width: 34px; height: 18px; flex-shrink: 0; }
+        .theme-switch-wrap input { opacity: 0; width: 0; height: 0; position: absolute; margin: 0; }
+        .theme-switch-slider { position: absolute; inset: 0; background-color: #334155; border-radius: 20px; transition: background-color 0.2s ease; }
+        .theme-switch-slider::before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: transform 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); }
+        .theme-switch-wrap input:checked + .theme-switch-slider { background-color: #2563eb; }
+        .theme-switch-wrap input:checked + .theme-switch-slider::before { transform: translateX(16px); }
+        .theme-switch-wrap input:focus-visible + .theme-switch-slider { outline: 2px solid #60a5fa; outline-offset: 1px; }
+        .theme-icon-sun, .theme-icon-moon { width: 18px; height: 18px; }
+        html[data-theme="dark"] .theme-icon-sun { display: none; }
+        html[data-theme="dark"] .theme-icon-moon { display: inline-block; color: #fbbf24; }
+        html:not([data-theme="dark"]) .theme-icon-sun { display: inline-block; color: #f59e0b; }
+        html:not([data-theme="dark"]) .theme-icon-moon { display: none; }
         .sidebar-logout { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--control-height); box-sizing: border-box; padding: var(--space-3); border: 1px solid #7f1d1d; border-radius: 8px; background: #450a0a; color: #fecaca; text-align: left; cursor: pointer; font: inherit; font-size: 14px; }
         .app-main { flex: 1; min-width: 0; padding: var(--space-6); }
         .mobile-menu-toggle, .sidebar-backdrop { display: none; }
@@ -49,7 +65,8 @@
         .admin-layout.sidebar-collapsed .admin-sidebar { width: 72px; }
         .admin-layout.sidebar-collapsed .sidebar-heading { justify-content: center; padding-right: 0; padding-left: 0; }
         .admin-layout.sidebar-collapsed .sidebar-brand, .admin-layout.sidebar-collapsed .sidebar-label { display: none; }
-        .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout { justify-content: center; padding-right: 6px; padding-left: 6px; text-align: center; }
+        .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout, .admin-layout.sidebar-collapsed .sidebar-theme-toggle { justify-content: center; padding-right: 6px; padding-left: 6px; text-align: center; }
+        .admin-layout.sidebar-collapsed .theme-switch-wrap, .admin-layout.sidebar-collapsed .theme-label-text { display: none; }
         .gallery-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-4) 0; }
         .gallery-status { flex: 1; min-width: 180px; color: #475569; font-size: 14px; }
         .gallery-card { position: relative; }
@@ -66,7 +83,7 @@
         .empty-state h3 { color: #334155; font-size: 16px; }
         .empty-state p { max-width: 440px; font-size: 13px; line-height: 1.5; }
         .upload-status { display: block; min-height: 18px; margin-top: var(--space-2); color: #475569; font-size: 13px; }
-        .dashboard-view { max-width: 1240px; padding: 0; background: transparent; box-shadow: none; }
+        .dashboard-view { max-width: 1240px; padding: 0; background: transparent; box-shadow: none; border: none; }
         .dashboard-hero { position: relative; display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); min-height: 128px; box-sizing: border-box; margin-bottom: 20px; padding: 20px; overflow: hidden; border-radius: 14px; background: linear-gradient(115deg, #1e3a8a 0%, #2563eb 52%, #4338ca 100%); color: white; }
         .dashboard-hero::before, .dashboard-hero::after { display: none; }
         .dashboard-eyebrow { position: relative; z-index: 1; margin: 0 0 6px; color: #dbeafe; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -103,20 +120,72 @@
         .selection-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #34d399); transition: width 0.35s ease; }
         .settings-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: #64748b; font-size: 13px; }
         .settings-row input { width: 72px; padding: var(--space-2); border: 1px solid #cbd5e1; border-radius: 7px; font-size: 14px; }
-        .dashboard-updated { margin-top: var(--space-3); color: #94a3b8; font-size: 11px; }
-        .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-        .settings-card { min-width: 0; }
-        .settings-card h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: #0f172a; font-size: 16px; }
-        .settings-card > p { margin: 0 0 var(--space-4); color: #64748b; font-size: 13px; line-height: 1.5; }
-        .settings-card .settings-row input { width: 90px; }
-        .theme-options { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-        .theme-option { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 var(--space-3); border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; color: #334155; cursor: pointer; font-size: 13px; }
-        .theme-option:has(input:checked) { border-color: var(--color-primary); background: #eff6ff; color: var(--color-primary-hover); }
-        .theme-option input { margin: 0; accent-color: var(--color-primary); }
-        .settings-card .password-change-card { max-width: none; margin: 0; padding: 0; border: 0; background: transparent; }
-        .settings-card .password-change-card .setup-note { margin-bottom: var(--space-4); }
-        .settings-card .password-change-card .login-input { margin-bottom: var(--space-3); }
-        .settings-card .password-change-card .btn-login { width: auto; }
+        .btn-sm { min-height: 32px !important; height: 32px; padding: 0 12px !important; font-size: 12px !important; }
+
+        /* Minimalist Ayarlar Tasarımı */
+        #settingsSection { max-width: 820px; margin-left: auto !important; margin-right: auto !important; width: 100%; box-sizing: border-box; border: none !important; box-shadow: none !important; background: transparent !important; }
+        .settings-minimal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
+        .settings-header-copy h1 { margin: 0; font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
+        .settings-header-copy p { margin: 4px 0 0 0; font-size: 13px; color: #64748b; }
+        .settings-header-pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 99px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px; font-weight: 600; color: #475569; }
+
+        .settings-container { display: flex; flex-direction: column; gap: 20px; width: 100%; margin: 0 auto; }
+        .settings-group-block { display: flex; flex-direction: column; }
+        .settings-group-label { display: flex; align-items: center; gap: 7px; margin: 0 0 8px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; }
+        .settings-group-label .icon { width: 14px; height: 14px; opacity: 0.75; }
+
+        .settings-sheet { background: white; border: 1px solid #e8edf5; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02); }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding: 14px 18px; border-bottom: 1px solid #f1f5f9; transition: background 0.12s ease; }
+        .settings-item:last-child { border-bottom: none; }
+        .settings-item:hover { background-color: #fafbfc; }
+        .settings-item-info { flex: 1; min-width: 200px; }
+        .settings-item-title { display: block; font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+        .settings-item-desc { margin: 0; font-size: 12px; color: #64748b; line-height: 1.4; }
+        .settings-item-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+
+        /* Minimal Segmented Pills (Radio gizleme) */
+        .theme-options { display: inline-flex; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 2px; border: 1px solid #e2e8f0; }
+        .theme-option { display: inline-flex; align-items: center; justify-content: center; padding: 5px 12px; border-radius: 6px; background: transparent; border: none; color: #64748b; cursor: pointer; font-size: 12.5px; font-weight: 500; line-height: 1.25; transition: all 0.15s ease; user-select: none; position: relative; }
+        .theme-option input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; margin: 0; }
+        .theme-option:hover { color: #0f172a; }
+        .theme-option:has(input:checked) { background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04); }
+
+        /* Tıklama Odaklı Kontroller (Preset Pill & Stepper) */
+        .settings-click-group { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .preset-pill-group { display: inline-flex; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 2px; border: 1px solid #e2e8f0; }
+        .preset-pill { padding: 5px 11px; border-radius: 6px; background: transparent; border: none; color: #64748b; cursor: pointer; font-size: 12px; font-weight: 500; line-height: 1.25; transition: all 0.15s ease; user-select: none; }
+        .preset-pill:hover { color: #0f172a; }
+        .preset-pill.active { background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04); }
+        .stepper-capsule { display: inline-flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px; gap: 3px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+        .stepper-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: white; border: 1px solid #e2e8f0; color: #334155; font-size: 15px; font-weight: 600; cursor: pointer; line-height: 1; padding: 0; transition: background 0.15s, border-color 0.15s, transform 0.1s; user-select: none; }
+        .stepper-btn:hover { background: #0f172a; color: white; border-color: #0f172a; }
+        .stepper-btn:active { transform: scale(0.94); }
+        .stepper-display-wrap { display: inline-flex; align-items: center; justify-content: center; min-width: 52px; cursor: pointer; border-radius: 5px; padding: 2px 4px; transition: background 0.15s ease; }
+        .stepper-display-wrap:hover { background: #e2e8f0; }
+        .stepper-display { min-width: 46px; text-align: center; font-size: 12.5px; font-weight: 600; color: #0f172a; padding: 0 2px; user-select: none; border-bottom: 1px dashed rgba(100, 116, 139, 0.5); }
+        .stepper-edit-input { width: 46px; height: 24px; padding: 0 2px; border: 1px solid var(--color-primary); border-radius: 4px; background: white; color: #0f172a; font-size: 13px; font-weight: 700; text-align: center; outline: none; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18); -moz-appearance: textfield; box-sizing: border-box; }
+        .stepper-edit-input::-webkit-outer-spin-button, .stepper-edit-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .settings-clickable-title { cursor: pointer; transition: color 0.15s ease; }
+        .settings-clickable-title:hover { color: var(--color-primary); }
+
+        .dashboard-updated { margin-top: 3px; color: #15803d; font-size: 11px; font-weight: 600; min-height: 14px; }
+
+        /* Minimal Parola Formu & Açılır Kapanır Panel */
+        .settings-item-stacked { flex-direction: column; align-items: stretch; gap: 0; }
+        .settings-item-header-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: var(--space-3); }
+        .btn-password-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+        .btn-password-toggle .icon { width: 14px; height: 14px; }
+        .btn-password-toggle:hover { background: #e2e8f0; color: #0f172a; }
+        .btn-password-toggle.active { background: #0f172a; color: white; border-color: #0f172a; }
+        .password-collapse { width: 100%; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; }
+        .password-fields-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .minimal-input { flex: 1 1 170px; height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 7px; background: #f8fafc; font-size: 13px; color: #0f172a; outline: none; transition: border-color 0.15s, background 0.15s; }
+        .minimal-input:focus { border-color: var(--color-primary); background: white; }
+        .btn-minimal-save { height: 34px; padding: 0 16px; font-size: 12.5px; border-radius: 7px; background: #0f172a; color: white; border: none; cursor: pointer; font-weight: 600; transition: background 0.15s; }
+        .btn-minimal-save:hover { background: var(--color-primary); }
+        .btn-password-cancel { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 7px; }
+        .password-collapse .login-error { margin-top: 6px; font-size: 12px; }
+
         .header-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); border-bottom: 1px solid #e2e8f0; padding-bottom: var(--space-4); margin-bottom: var(--space-6); }
         h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: var(--space-2); font-size: 22px; }
         .btn, .btn-back, .btn-stream-nav, .btn-playback { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); box-sizing: border-box; padding: var(--space-2) var(--space-4); border-radius: 8px; font: inherit; font-size: 14px; font-weight: 600; line-height: 1.25; text-decoration: none; white-space: nowrap; }
@@ -133,7 +202,8 @@
             .admin-layout.sidebar-open .mobile-menu-toggle { display: none; }
             .admin-layout.sidebar-collapsed .admin-sidebar { width: min(300px, 86vw); }
             .admin-layout.sidebar-collapsed .sidebar-brand, .admin-layout.sidebar-collapsed .sidebar-label { display: inline; }
-            .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout { justify-content: flex-start; padding: var(--space-3); text-align: left; }
+            .admin-layout.sidebar-collapsed .sidebar-link, .admin-layout.sidebar-collapsed .sidebar-logout, .admin-layout.sidebar-collapsed .sidebar-theme-toggle { justify-content: flex-start; padding: var(--space-3); text-align: left; }
+            .admin-layout.sidebar-collapsed .theme-switch-wrap, .admin-layout.sidebar-collapsed .theme-label-text { display: inline-flex; }
             .sidebar-backdrop { position: fixed; inset: 0; z-index: 19; background: rgba(15, 23, 42, 0.45); }
             .admin-layout.sidebar-open .sidebar-backdrop { display: block; }
             .app-main { width: 100%; box-sizing: border-box; padding: var(--space-4); }
@@ -330,13 +400,54 @@
         html[data-theme="dark"] .stream-info-icon { background: #1e293b; color: #93c5fd; }
         html[data-theme="dark"] .latest-image-wrap { background: linear-gradient(135deg, #111c2e, #1e293b); }
         html[data-theme="dark"] .selection-track { background: #26364f; }
-        html[data-theme="dark"] .theme-option { border-color: #334155; background: #0b1220; color: #cbd5e1; }
-        html[data-theme="dark"] .theme-option:has(input:checked) { border-color: #3b82f6; background: #172554; color: #bfdbfe; }
         html[data-theme="dark"] .admin-sidebar { border-right: 1px solid #26364f; }
+        html[data-theme="dark"] .settings-minimal-header { border-bottom-color: #1e293b; }
+        html[data-theme="dark"] .settings-header-copy h1 { color: #f1f5f9; }
+        html[data-theme="dark"] .settings-header-copy p { color: #94a3b8; }
+        html[data-theme="dark"] .settings-header-pill { background: #111c2e; border-color: #1e293b; color: #cbd5e1; }
+        html[data-theme="dark"] .settings-group-label { color: #94a3b8; }
+        html[data-theme="dark"] .settings-sheet { background: #111c2e; border-color: #1e293b; }
+        html[data-theme="dark"] .settings-item { border-bottom-color: #1a273b; }
+        html[data-theme="dark"] .settings-item:hover { background-color: #152238; }
+        html[data-theme="dark"] .settings-item-title { color: #f1f5f9; }
+        html[data-theme="dark"] .settings-item-desc { color: #94a3b8; }
+        html[data-theme="dark"] .theme-options { background: #090e17; border-color: #1e293b; }
+        html[data-theme="dark"] .theme-option { color: #94a3b8; }
+        html[data-theme="dark"] .theme-option:hover { color: #f1f5f9; }
+        html[data-theme="dark"] .theme-option:has(input:checked) { background: #1e293b; color: #f1f5f9; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+        html[data-theme="dark"] .preset-pill-group { background: #090e17; border-color: #1e293b; }
+        html[data-theme="dark"] .preset-pill { color: #94a3b8; }
+        html[data-theme="dark"] .preset-pill:hover { color: #f1f5f9; }
+        html[data-theme="dark"] .preset-pill.active { background: #1e293b; color: #f1f5f9; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+        html[data-theme="dark"] .stepper-capsule { background: #090e17; border-color: #1e293b; }
+        html[data-theme="dark"] .stepper-btn { background: #111c2e; border-color: #26364f; color: #e2e8f0; }
+        html[data-theme="dark"] .stepper-btn:hover { background: #2563eb; border-color: #2563eb; color: white; }
+        html[data-theme="dark"] .stepper-display-wrap:hover { background: #1e293b; }
+        html[data-theme="dark"] .stepper-display { color: #f1f5f9; border-bottom-color: rgba(148, 163, 184, 0.5); }
+        html[data-theme="dark"] .stepper-edit-input { background: #0b1220; color: #f1f5f9; border-color: #3b82f6; }
+        html[data-theme="dark"] .settings-clickable-title:hover { color: #60a5fa; }
+        html[data-theme="dark"] .btn-password-toggle { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+        html[data-theme="dark"] .btn-password-toggle:hover { background: #26364f; color: #f1f5f9; }
+        html[data-theme="dark"] .btn-password-toggle.active { background: #2563eb; border-color: #2563eb; color: white; }
+        html[data-theme="dark"] .password-collapse { border-top-color: #1e293b; }
+        html[data-theme="dark"] .minimal-input { background: #090e17; border-color: #334155; color: #f1f5f9; }
+        html[data-theme="dark"] .minimal-input:focus { background: #0f172a; border-color: #3b82f6; }
+        html[data-theme="dark"] .btn-minimal-save { background: #2563eb; }
+        html[data-theme="dark"] .btn-minimal-save:hover { background: #1d4ed8; }
 
         @media (max-width: 1150px) {
             .stream-control-layout { grid-template-columns: 1fr; gap: 20px; }
             .stream-preview-column { margin: 0 auto; }
+        }
+        @media (max-width: 700px) {
+            .settings-minimal-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .settings-item { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+            .settings-item-controls { align-items: flex-start; width: 100%; }
+            .settings-click-group { justify-content: flex-start; width: 100%; }
+            .settings-item-header-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .btn-password-toggle { width: 100%; justify-content: center; }
+            .password-fields-row { flex-direction: column; align-items: stretch; }
+            .btn-minimal-save, .btn-password-cancel { width: 100%; }
         }
     </style>
 </head>
@@ -365,6 +476,8 @@
         <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
         <symbol id="icon-eye-off" viewBox="0 0 24 24"><path d="m3 3 18 18"></path><path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.1 3.9"></path><path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.8 10.8 0 0 0 4.1-.8"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></symbol>
         <symbol id="icon-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></symbol>
+        <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></symbol>
+        <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -404,6 +517,19 @@
                 <button id="settingsNav" class="sidebar-link" type="button" onclick="showSettings()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-settings"></use></svg></span><span class="sidebar-label">Ayarlar</span></button>
             </nav>
             <div class="sidebar-footer">
+                <div class="sidebar-theme-row">
+                    <label class="sidebar-theme-toggle" for="sidebarThemeSwitch" title="Koyu / Açık tema değiştir">
+                        <span class="sidebar-icon">
+                            <svg class="icon theme-icon-sun"><use href="#icon-sun"></use></svg>
+                            <svg class="icon theme-icon-moon"><use href="#icon-moon"></use></svg>
+                        </span>
+                        <span class="sidebar-label theme-label-text" id="sidebarThemeText">Koyu Tema</span>
+                        <span class="theme-switch-wrap">
+                            <input type="checkbox" id="sidebarThemeSwitch" onchange="toggleTheme(this.checked)" aria-label="Karanlık tema aç/kapat">
+                            <span class="theme-switch-slider"></span>
+                        </span>
+                    </label>
+                </div>
                 <button class="sidebar-logout" type="button" onclick="logout()"><span class="sidebar-icon"><svg class="icon"><use href="#icon-logout"></use></svg></span><span class="sidebar-label">Çıkış Yap</span></button>
             </div>
         </aside>
@@ -580,94 +706,191 @@
         <div class="grid" id="imageGrid"></div>
     </div>
 
-    <div id="settingsSection" class="container dashboard-view" style="display: none;">
-        <section class="dashboard-hero">
-            <div>
-                <p class="dashboard-eyebrow">IdleBoard Yönetim Merkezi</p>
+    <div id="settingsSection" class="dashboard-view" style="display: none;">
+        <header class="settings-minimal-header">
+            <div class="settings-header-copy">
                 <h1>Ayarlar</h1>
-                <p>Yayın tercihlerini, görünümü ve yönetici hesabınızı düzenleyin.</p>
+                <p>Yayın akışı, ekran yerleşimi ve yönetim tercihlerinizi düzenleyin.</p>
             </div>
-            <div class="dashboard-live"><svg class="icon"><use href="#icon-settings"></use></svg><span>Sistem Ayarları</span></div>
-        </section>
-        <div class="settings-grid">
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-radio"></use></svg> Yayın ayarları</h2>
-                <p>Slayt gösterisinde görsellerin ne sıklıkta değişeceğini belirleyin.</p>
-                <div class="settings-row">
-                    <label for="slideInterval">Geçiş süresi</label>
-                    <input type="number" id="slideInterval" value="5" min="1" max="300">
-                    <span>saniye</span>
-                    <button id="btnSaveInterval" class="btn" type="button" onclick="updateSlideInterval()">Kaydet</button>
+            <div class="settings-header-pill">
+                <span class="live-dot"></span>
+                <span>Canlı Yayın</span>
+            </div>
+        </header>
+
+        <div class="settings-container">
+            <!-- 1. Slayt ve Oynatma -->
+            <div class="settings-group-block">
+                <div class="settings-group-label">
+                    <svg class="icon"><use href="#icon-play"></use></svg>
+                    <span>Slayt ve Oynatma</span>
                 </div>
-                <span id="intervalStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-monitor"></use></svg> Bekleme süresi</h2>
-                <p>İstemci bilgisayarlarda işlem yapılmadığında ekranın kaç saniye sonra açılacağını belirleyin.</p>
-                <div class="settings-row">
-                    <label for="kioskIdleTimeout">Açılma süresi</label>
-                    <input type="number" id="kioskIdleTimeout" value="5" min="1" max="86400">
-                    <span>saniye</span>
-                    <button id="btnSaveKioskIdle" class="btn" type="button" onclick="updateKioskIdleTimeout()">Kaydet</button>
+                <div class="settings-sheet">
+                    <!-- Slayt Geçiş Süresi -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title settings-clickable-title" onclick="startEditingSlideInterval()" title="Tıklayarak klavyeden değer girin">Slayt Geçiş Süresi</span>
+                            <p class="settings-item-desc">Görsellerin ekranda kalma süresini belirleyin.</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="settings-click-group">
+                                <div id="slidePresetGroup" class="preset-pill-group" role="group" aria-label="Slayt geçiş süresi seçenekleri">
+                                    <button type="button" class="preset-pill" data-value="10" onclick="setSlideIntervalQuick(10)">10 sn</button>
+                                    <button type="button" class="preset-pill" data-value="15" onclick="setSlideIntervalQuick(15)">15 sn</button>
+                                    <button type="button" class="preset-pill" data-value="20" onclick="setSlideIntervalQuick(20)">20 sn</button>
+                                    <button type="button" class="preset-pill" data-value="30" onclick="setSlideIntervalQuick(30)">30 sn</button>
+                                    <button type="button" class="preset-pill" data-value="45" onclick="setSlideIntervalQuick(45)">45 sn</button>
+                                    <button type="button" class="preset-pill" data-value="60" onclick="setSlideIntervalQuick(60)">60 sn</button>
+                                </div>
+                                <div class="stepper-capsule">
+                                    <button type="button" class="stepper-btn" onclick="adjustSlideInterval(-1)" aria-label="Süreyi 1 saniye azalt" title="Azalt">−</button>
+                                    <div class="stepper-display-wrap" onclick="startEditingSlideInterval()" title="Tıklayarak klavyeden değer girin">
+                                        <span id="slideIntervalDisplay" class="stepper-display">10 sn</span>
+                                        <input type="number" id="slideIntervalInlineInput" class="stepper-edit-input" min="1" max="300" style="display: none;" onkeydown="handleSlideIntervalKey(event)" onblur="finishEditingSlideInterval()">
+                                    </div>
+                                    <button type="button" class="stepper-btn" onclick="adjustSlideInterval(1)" aria-label="Süreyi 1 saniye artır" title="Artır">+</button>
+                                </div>
+                                <input type="hidden" id="slideInterval" value="10">
+                            </div>
+                            <span id="intervalStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
+
+                    <!-- Slayt Sıralaması -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title">Slayt Sıralaması</span>
+                            <p class="settings-item-desc">Görsellerin ekrana gelme sırasını belirleyin.</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="theme-options" role="radiogroup" aria-label="Slayt sıralaması">
+                                <label class="theme-option"><input type="radio" name="slideshowOrder" value="sequential" onchange="updateSlideshowOrder(this.value)"><span>Sıralı</span></label>
+                                <label class="theme-option"><input type="radio" name="slideshowOrder" value="random" onchange="updateSlideshowOrder(this.value)"><span>Rastgele</span></label>
+                            </div>
+                            <span id="slideshowOrderStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
+
+                    <!-- Geçiş Efekti -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title">Geçiş Efekti</span>
+                            <p class="settings-item-desc">Görseller değişirken uygulanacak animasyon türü.</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="theme-options" role="radiogroup" aria-label="Geçiş efekti">
+                                <label class="theme-option"><input type="radio" name="transitionEffect" value="fade" onchange="updateTransitionEffect(this.value)"><span>Yumuşak (Fade)</span></label>
+                                <label class="theme-option"><input type="radio" name="transitionEffect" value="none" onchange="updateTransitionEffect(this.value)"><span>Anında</span></label>
+                            </div>
+                            <span id="transitionEffectStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
                 </div>
-                <span id="kioskIdleStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-image"></use></svg> Görsel yerleşimi</h2>
-                <p>Görsellerin ekranda nasıl ölçekleneceğini belirleyin.</p>
-                <div class="theme-options" role="radiogroup" aria-label="Görsel yerleşimi">
-                    <label class="theme-option"><input type="radio" name="imageFit" value="uniform" onchange="updateImageFit(this.value)"><span>Orantılı sığdır (Kenarlar siyah)</span></label>
-                    <label class="theme-option"><input type="radio" name="imageFit" value="uniformToFill" onchange="updateImageFit(this.value)"><span>Ekranı kapla (Kırp)</span></label>
-                    <label class="theme-option"><input type="radio" name="imageFit" value="fill" onchange="updateImageFit(this.value)"><span>Ekranı doldur (Esnet)</span></label>
+            </div>
+
+            <!-- 2. Ekran ve İstemci Görünümü -->
+            <div class="settings-group-block">
+                <div class="settings-group-label">
+                    <svg class="icon"><use href="#icon-monitor"></use></svg>
+                    <span>Ekran ve İstemci Görünümü</span>
                 </div>
-                <span id="imageFitStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-clock"></use></svg> Alt bilgi şeridi</h2>
-                <p>Ekranın altındaki bağlantı durumu ve tarih/saat bandının görünürlüğünü belirleyin.</p>
-                <div class="theme-options" role="radiogroup" aria-label="Alt bilgi şeridi görünürlüğü">
-                    <label class="theme-option"><input type="radio" name="showInfoBar" value="true" onchange="updateShowInfoBar(true)"><span>Göster (Durum &amp; Saat)</span></label>
-                    <label class="theme-option"><input type="radio" name="showInfoBar" value="false" onchange="updateShowInfoBar(false)"><span>Gizle (Tam ekran görsel)</span></label>
+                <div class="settings-sheet">
+                    <!-- Boşta Kalma Süresi -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title settings-clickable-title" onclick="startEditingKioskIdle()" title="Tıklayarak klavyeden değer girin">Boşta Kalma Süresi</span>
+                            <p class="settings-item-desc">İstemcide işlem yapılmadığında ekranın açılma süresi.</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="settings-click-group">
+                                <div id="idlePresetGroup" class="preset-pill-group" role="group" aria-label="Boşta kalma süresi seçenekleri">
+                                    <button type="button" class="preset-pill" data-value="20" onclick="setKioskIdleQuick(20)">20 sn</button>
+                                    <button type="button" class="preset-pill" data-value="30" onclick="setKioskIdleQuick(30)">30 sn</button>
+                                    <button type="button" class="preset-pill" data-value="45" onclick="setKioskIdleQuick(45)">45 sn</button>
+                                    <button type="button" class="preset-pill" data-value="60" onclick="setKioskIdleQuick(60)">1 dk</button>
+                                    <button type="button" class="preset-pill" data-value="90" onclick="setKioskIdleQuick(90)">1,5 dk</button>
+                                    <button type="button" class="preset-pill" data-value="120" onclick="setKioskIdleQuick(120)">2 dk</button>
+                                    <button type="button" class="preset-pill" data-value="180" onclick="setKioskIdleQuick(180)">3 dk</button>
+                                </div>
+                                <div class="stepper-capsule">
+                                    <button type="button" class="stepper-btn" onclick="adjustKioskIdle(-1)" aria-label="Süreyi azalt" title="Azalt">−</button>
+                                    <div class="stepper-display-wrap" onclick="startEditingKioskIdle()" title="Tıklayarak klavyeden değer girin">
+                                        <span id="kioskIdleDisplay" class="stepper-display">20 sn</span>
+                                        <input type="number" id="kioskIdleInlineInput" class="stepper-edit-input" min="1" max="86400" style="display: none;" onkeydown="handleKioskIdleKey(event)" onblur="finishEditingKioskIdle()">
+                                    </div>
+                                    <button type="button" class="stepper-btn" onclick="adjustKioskIdle(1)" aria-label="Süreyi artır" title="Artır">+</button>
+                                </div>
+                                <input type="hidden" id="kioskIdleTimeout" value="20">
+                            </div>
+                            <span id="kioskIdleStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
+
+                    <!-- Görsel Yerleşimi -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title">Görsel Yerleşimi</span>
+                            <p class="settings-item-desc">Görsellerin ekranda ölçeklenme ve kırpılma biçimi.</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="theme-options" role="radiogroup" aria-label="Görsel yerleşimi">
+                                <label class="theme-option"><input type="radio" name="imageFit" value="uniform" onchange="updateImageFit(this.value)"><span>Orijinal Boyut</span></label>
+                                <label class="theme-option"><input type="radio" name="imageFit" value="uniformToFill" onchange="updateImageFit(this.value)"><span>Ekranı Kapla</span></label>
+                                <label class="theme-option"><input type="radio" name="imageFit" value="fill" onchange="updateImageFit(this.value)"><span>Genişlet</span></label>
+                            </div>
+                            <span id="imageFitStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
+
+                    <!-- Alt Bilgi Şeridi -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title">Alt Bilgi Şeridi</span>
+                            <p class="settings-item-desc">Ekranın altındaki bağlantı durumu ve tarih/saat bandı.</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="theme-options" role="radiogroup" aria-label="Alt bilgi şeridi görünürlüğü">
+                                <label class="theme-option"><input type="radio" name="showInfoBar" value="true" onchange="updateShowInfoBar(true)"><span>Göster</span></label>
+                                <label class="theme-option"><input type="radio" name="showInfoBar" value="false" onchange="updateShowInfoBar(false)"><span>Gizle</span></label>
+                            </div>
+                            <span id="infoBarStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
                 </div>
-                <span id="infoBarStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-play"></use></svg> Geçiş efekti</h2>
-                <p>Görseller değişirken uygulanacak animasyon efektini belirleyin.</p>
-                <div class="theme-options" role="radiogroup" aria-label="Geçiş efekti">
-                    <label class="theme-option"><input type="radio" name="transitionEffect" value="fade" onchange="updateTransitionEffect(this.value)"><span>Yumuşak geçiş (Fade)</span></label>
-                    <label class="theme-option"><input type="radio" name="transitionEffect" value="none" onchange="updateTransitionEffect(this.value)"><span>Anında geçiş</span></label>
+            </div>
+
+            <!-- 3. Yönetim ve Güvenlik -->
+            <div class="settings-group-block">
+                <div class="settings-group-label">
+                    <svg class="icon"><use href="#icon-lock"></use></svg>
+                    <span>Yönetim ve Güvenlik</span>
                 </div>
-                <span id="transitionEffectStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-shuffle"></use></svg> Slayt sıralaması</h2>
-                <p>Görsellerin hangi sıra ile ekrana geleceğini belirleyin.</p>
-                <div class="theme-options" role="radiogroup" aria-label="Slayt sıralaması">
-                    <label class="theme-option"><input type="radio" name="slideshowOrder" value="sequential" onchange="updateSlideshowOrder(this.value)"><span>Sıralı (Liste sırası)</span></label>
-                    <label class="theme-option"><input type="radio" name="slideshowOrder" value="random" onchange="updateSlideshowOrder(this.value)"><span>Rastgele (Karışık)</span></label>
+                <div class="settings-sheet">
+                    <!-- Yönetici Parolası -->
+                    <div class="settings-item settings-item-stacked">
+                        <div class="settings-item-header-row">
+                            <div class="settings-item-info">
+                                <span class="settings-item-title">Yönetici Parolası</span>
+                                <p class="settings-item-desc">Yönetim paneline giriş için kullanılan güvenlik şifresini güncelleyin.</p>
+                            </div>
+                            <button id="btnTogglePasswordForm" class="btn-password-toggle" type="button" onclick="togglePasswordForm()">
+                                <svg class="icon"><use href="#icon-key"></use></svg>
+                                <span>Parolayı Değiştir</span>
+                            </button>
+                        </div>
+                        <div id="passwordFormCollapse" class="password-collapse" style="display: none;">
+                            <div class="password-fields-row">
+                                <input type="password" id="currentPasswordInput" class="minimal-input" placeholder="Mevcut parola" autocomplete="current-password">
+                                <input type="password" id="changedPasswordInput" class="minimal-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
+                                <input type="password" id="changedPasswordConfirmationInput" class="minimal-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
+                                <button class="btn btn-minimal-save" type="button" onclick="changePassword()">Kaydet</button>
+                                <button class="btn-back btn-password-cancel" type="button" onclick="togglePasswordForm(false)">Vazgeç</button>
+                            </div>
+                            <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
+                        </div>
+                    </div>
                 </div>
-                <span id="slideshowOrderStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-eye"></use></svg> Görünüm</h2>
-                <p>Yönetim paneli için açık veya koyu temayı seçin. Tercihiniz bu tarayıcıda saklanır.</p>
-                <div class="theme-options" role="radiogroup" aria-label="Tema seçimi">
-                    <label class="theme-option"><input type="radio" name="adminTheme" value="light" onchange="setTheme(this.value)"><span>Açık tema</span></label>
-                    <label class="theme-option"><input type="radio" name="adminTheme" value="dark" onchange="setTheme(this.value)"><span>Koyu tema</span></label>
-                </div>
-            </section>
-            <section class="dashboard-panel settings-card">
-                <h2><svg class="icon"><use href="#icon-key"></use></svg> Yönetici hesabı</h2>
-                <p>Yönetim paneli parolanızı değiştirmek için mevcut parolanızı doğrulayın.</p>
-                <div class="password-change-card">
-                    <input type="password" id="currentPasswordInput" class="login-input" placeholder="Mevcut parola" autocomplete="current-password">
-                    <input type="password" id="changedPasswordInput" class="login-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
-                    <input type="password" id="changedPasswordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
-                    <button class="btn" type="button" onclick="changePassword()">Parolayı Kaydet</button>
-                    <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
-                </div>
-            </section>
+            </div>
         </div>
     </div>
         </main>
@@ -882,6 +1105,231 @@
             loadGallery(true);
         }
 
+        // Tıklama Odaklı Ayar Kontrolleri (Preset Pills & Stepper)
+        function renderSlideIntervalDisplay(sec) {
+            sec = Number(sec) || 10;
+            const display = document.getElementById('slideIntervalDisplay');
+            if (display) display.textContent = `${sec} sn`;
+            const pills = document.querySelectorAll('#slidePresetGroup .preset-pill');
+            pills.forEach(pill => {
+                const pVal = Number(pill.getAttribute('data-value'));
+                pill.classList.toggle('active', pVal === sec);
+            });
+        }
+
+        let slideIntervalSaveTimer = null;
+        function setSlideIntervalQuick(sec) {
+            sec = Math.max(1, Math.min(300, Number(sec) || 10));
+            const input = document.getElementById('slideInterval');
+            if (input) input.value = sec;
+            renderSlideIntervalDisplay(sec);
+            clearTimeout(slideIntervalSaveTimer);
+            slideIntervalSaveTimer = setTimeout(() => {
+                updateSlideInterval(sec);
+            }, 250);
+        }
+
+        function adjustSlideInterval(delta) {
+            const input = document.getElementById('slideInterval');
+            let val = Number(input ? input.value : 10) || 10;
+            val = Math.max(1, Math.min(300, val + delta));
+            setSlideIntervalQuick(val);
+        }
+
+        function formatIdleSeconds(sec) {
+            sec = Number(sec) || 0;
+            if (sec >= 60) {
+                const mins = Math.floor(sec / 60);
+                const remSec = sec % 60;
+                if (remSec === 0) return `${mins} dk`;
+                if (remSec === 30) return `${mins},5 dk`;
+                return `${mins} dk ${remSec} sn`;
+            }
+            return `${sec} sn`;
+        }
+
+        function renderKioskIdleDisplay(sec) {
+            sec = Number(sec) || 20;
+            const display = document.getElementById('kioskIdleDisplay');
+            if (display) display.textContent = formatIdleSeconds(sec);
+            const pills = document.querySelectorAll('#idlePresetGroup .preset-pill');
+            pills.forEach(pill => {
+                const pVal = Number(pill.getAttribute('data-value'));
+                pill.classList.toggle('active', pVal === sec);
+            });
+        }
+
+        let kioskIdleSaveTimer = null;
+        function setKioskIdleQuick(sec) {
+            sec = Math.max(1, Math.min(86400, Number(sec) || 20));
+            const input = document.getElementById('kioskIdleTimeout');
+            if (input) input.value = sec;
+            renderKioskIdleDisplay(sec);
+            clearTimeout(kioskIdleSaveTimer);
+            kioskIdleSaveTimer = setTimeout(() => {
+                updateKioskIdleTimeout(sec);
+            }, 250);
+        }
+
+        function adjustKioskIdle(direction) {
+            const input = document.getElementById('kioskIdleTimeout');
+            let val = Number(input ? input.value : 20) || 20;
+            if (direction > 0) {
+                if (val < 10) val += 1;
+                else if (val < 30) val += 5;
+                else if (val < 60) val += 10;
+                else if (val < 300) val += 30;
+                else val += 60;
+                if (val > 86400) val = 86400;
+            } else {
+                if (val <= 1) val = 1;
+                else if (val <= 10) val -= 1;
+                else if (val <= 30) val -= 5;
+                else if (val <= 60) val -= 10;
+                else if (val <= 300) val -= 30;
+                else val -= 60;
+                if (val < 1) val = 1;
+            }
+            setKioskIdleQuick(val);
+        }
+
+        // Klavye ile Özel Değer Girişi (Inline Edit)
+        let isEditingSlideInterval = false;
+
+        function startEditingSlideInterval() {
+            if (isEditingSlideInterval) return;
+            const display = document.getElementById('slideIntervalDisplay');
+            const editInput = document.getElementById('slideIntervalInlineInput');
+            const hiddenInput = document.getElementById('slideInterval');
+            if (!display || !editInput || !hiddenInput) return;
+
+            isEditingSlideInterval = true;
+            editInput.value = hiddenInput.value || '10';
+            display.style.display = 'none';
+            editInput.style.display = 'inline-block';
+            setTimeout(() => {
+                editInput.focus();
+                editInput.select();
+            }, 10);
+        }
+
+        function finishEditingSlideInterval() {
+            if (!isEditingSlideInterval) return;
+            isEditingSlideInterval = false;
+            const display = document.getElementById('slideIntervalDisplay');
+            const editInput = document.getElementById('slideIntervalInlineInput');
+            if (!display || !editInput) return;
+
+            let val = parseInt(editInput.value, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            if (val > 300) val = 300;
+
+            editInput.style.display = 'none';
+            display.style.display = 'inline-block';
+
+            setSlideIntervalQuick(val);
+        }
+
+        function cancelEditingSlideInterval() {
+            if (!isEditingSlideInterval) return;
+            isEditingSlideInterval = false;
+            const display = document.getElementById('slideIntervalDisplay');
+            const editInput = document.getElementById('slideIntervalInlineInput');
+            if (display && editInput) {
+                editInput.style.display = 'none';
+                display.style.display = 'inline-block';
+            }
+        }
+
+        function handleSlideIntervalKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                finishEditingSlideInterval();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelEditingSlideInterval();
+            }
+        }
+
+        let isEditingKioskIdle = false;
+
+        function startEditingKioskIdle() {
+            if (isEditingKioskIdle) return;
+            const display = document.getElementById('kioskIdleDisplay');
+            const editInput = document.getElementById('kioskIdleInlineInput');
+            const hiddenInput = document.getElementById('kioskIdleTimeout');
+            if (!display || !editInput || !hiddenInput) return;
+
+            isEditingKioskIdle = true;
+            editInput.value = hiddenInput.value || '20';
+            display.style.display = 'none';
+            editInput.style.display = 'inline-block';
+            setTimeout(() => {
+                editInput.focus();
+                editInput.select();
+            }, 10);
+        }
+
+        function finishEditingKioskIdle() {
+            if (!isEditingKioskIdle) return;
+            isEditingKioskIdle = false;
+            const display = document.getElementById('kioskIdleDisplay');
+            const editInput = document.getElementById('kioskIdleInlineInput');
+            if (!display || !editInput) return;
+
+            let val = parseInt(editInput.value, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            if (val > 86400) val = 86400;
+
+            editInput.style.display = 'none';
+            display.style.display = 'inline-block';
+
+            setKioskIdleQuick(val);
+        }
+
+        function cancelEditingKioskIdle() {
+            if (!isEditingKioskIdle) return;
+            isEditingKioskIdle = false;
+            const display = document.getElementById('kioskIdleDisplay');
+            const editInput = document.getElementById('kioskIdleInlineInput');
+            if (display && editInput) {
+                editInput.style.display = 'none';
+                display.style.display = 'inline-block';
+            }
+        }
+
+        function handleKioskIdleKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                finishEditingKioskIdle();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelEditingKioskIdle();
+            }
+        }
+
+        function togglePasswordForm(force) {
+            const form = document.getElementById('passwordFormCollapse');
+            const btn = document.getElementById('btnTogglePasswordForm');
+            if (!form || !btn) return;
+            const isVisible = force !== undefined ? force : form.style.display === 'none';
+            form.style.display = isVisible ? 'block' : 'none';
+            btn.classList.toggle('active', isVisible);
+            if (!isVisible) {
+                const cur = document.getElementById('currentPasswordInput');
+                const nxt = document.getElementById('changedPasswordInput');
+                const conf = document.getElementById('changedPasswordConfirmationInput');
+                const status = document.getElementById('passwordChangeStatus');
+                if (cur) cur.value = '';
+                if (nxt) nxt.value = '';
+                if (conf) conf.value = '';
+                if (status) status.innerText = '';
+            } else {
+                const cur = document.getElementById('currentPasswordInput');
+                if (cur) cur.focus();
+            }
+        }
+
         function showSettings() {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
@@ -894,6 +1342,7 @@
             closeMobileSidebar();
             clearInterval(dashboardRefreshTimer);
             dashboardRefreshTimer = null;
+            togglePasswordForm(false);
             loadSlideInterval();
             syncThemeOptions();
         }
@@ -905,11 +1354,24 @@
             syncThemeOptions();
         }
 
+        function toggleTheme(explicitIsDark) {
+            const currentTheme = document.documentElement.dataset.theme || 'light';
+            const newTheme = explicitIsDark !== undefined
+                ? (explicitIsDark ? 'dark' : 'light')
+                : (currentTheme === 'dark' ? 'light' : 'dark');
+            setTheme(newTheme);
+        }
+
         function syncThemeOptions() {
             const selectedTheme = document.documentElement.dataset.theme || 'light';
-            document.querySelectorAll('input[name="adminTheme"]').forEach(input => {
-                input.checked = input.value === selectedTheme;
-            });
+            const themeSwitch = document.getElementById('sidebarThemeSwitch');
+            if (themeSwitch) {
+                themeSwitch.checked = (selectedTheme === 'dark');
+            }
+            const themeText = document.getElementById('sidebarThemeText');
+            if (themeText) {
+                themeText.innerText = selectedTheme === 'dark' ? 'Koyu Tema' : 'Açık Tema';
+            }
         }
 
         function setActiveNavigation(activeId) {
@@ -956,7 +1418,9 @@
                 document.getElementById('dashboardImageCount').innerText = stats.imageCount;
                 document.getElementById('dashboardSelectedCount').innerText = stats.selectedImageCount;
                 document.getElementById('dashboardInterval').innerText = stats.slideInterval;
-                document.getElementById('slideInterval').value = stats.slideInterval;
+                const slideInput = document.getElementById('slideInterval');
+                if (slideInput) slideInput.value = stats.slideInterval;
+                renderSlideIntervalDisplay(stats.slideInterval);
 
                 const ratio = stats.imageCount === 0
                     ? 0
@@ -1049,6 +1513,9 @@
                 confirmationInput.value = '';
                 status.style.color = '#15803d';
                 status.innerText = 'Parolanız başarıyla değiştirildi.';
+                setTimeout(() => {
+                    togglePasswordForm(false);
+                }, 1500);
             } catch (err) {
                 status.innerText = 'Sunucuya bağlanılamadı.';
             }
@@ -1313,10 +1780,12 @@
                 if (data.interval) {
                     const slideInput = document.getElementById('slideInterval');
                     if (slideInput) slideInput.value = data.interval;
+                    renderSlideIntervalDisplay(data.interval);
                 }
                 if (data.kioskIdleTimeout) {
                     const kioskInput = document.getElementById('kioskIdleTimeout');
                     if (kioskInput) kioskInput.value = data.kioskIdleTimeout;
+                    renderKioskIdleDisplay(data.kioskIdleTimeout);
                 }
                 if (data.imageFit) {
                     const radios = document.getElementsByName('imageFit');
@@ -1459,9 +1928,10 @@
             }
         }
 
-        async function updateKioskIdleTimeout() {
-            const val = document.getElementById('kioskIdleTimeout').value;
+        async function updateKioskIdleTimeout(explicitVal) {
+            const val = explicitVal !== undefined ? explicitVal : document.getElementById('kioskIdleTimeout').value;
             const status = document.getElementById('kioskIdleStatus');
+            renderKioskIdleDisplay(val);
 
             try {
                 const res = await fetch('/api/settings/kiosk-idle', {
@@ -1477,8 +1947,8 @@
                 const data = await res.json();
                 if (data.success) {
                     status.style.color = '#15803d';
-                    status.innerText = `Güncellendi (${data.kioskIdleTimeout}sn)`;
-                    setTimeout(() => status.innerText = '', 3000);
+                    status.innerText = `Kaydedildi (${formatIdleSeconds(data.kioskIdleTimeout)})`;
+                    setTimeout(() => status.innerText = '', 2500);
                 } else {
                     status.style.color = '#dc2626';
                     status.innerText = data.error || 'Hata oluştu';
@@ -1489,9 +1959,10 @@
             }
         }
 
-        async function updateSlideInterval() {
-            const val = document.getElementById('slideInterval').value;
+        async function updateSlideInterval(explicitVal) {
+            const val = explicitVal !== undefined ? explicitVal : document.getElementById('slideInterval').value;
             const status = document.getElementById('intervalStatus');
+            renderSlideIntervalDisplay(val);
 
             try {
                 const res = await fetch('/api/settings/interval', {
@@ -1507,9 +1978,9 @@
                 const data = await res.json();
                 if (data.success) {
                     status.style.color = '#15803d';
-                    status.innerText = `Güncellendi (${data.interval}sn)`;
+                    status.innerText = `Kaydedildi (${data.interval}sn)`;
                     loadDashboardStats();
-                    setTimeout(() => status.innerText = '', 3000);
+                    setTimeout(() => status.innerText = '', 2500);
                 } else {
                     status.style.color = '#dc2626';
                     status.innerText = data.error || 'Hata oluştu';
@@ -1839,10 +2310,12 @@
                         if (data.slideInterval) {
                             const slideInput = document.getElementById('slideInterval');
                             if (slideInput) slideInput.value = data.slideInterval;
+                            renderSlideIntervalDisplay(data.slideInterval);
                         }
                         if (data.kioskIdleTimeout) {
                             const kioskInput = document.getElementById('kioskIdleTimeout');
                             if (kioskInput) kioskInput.value = data.kioskIdleTimeout;
+                            renderKioskIdleDisplay(data.kioskIdleTimeout);
                         }
                         if (data.imageFit) {
                             const radios = document.getElementsByName('imageFit');
