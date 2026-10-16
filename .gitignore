@@ -13,4 +13,5 @@ images/*
 admin-password.json
 selected-images.json*
 server-settings.json*
+activity-log.json*
 thumbnails/

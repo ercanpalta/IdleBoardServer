@@ -18,6 +18,7 @@ const IMAGES_DIR = path.join(__dirname, 'images');
 const THUMBNAILS_DIR = path.join(__dirname, 'thumbnails');
 const SELECTED_IMAGES_FILE = path.join(__dirname, 'selected-images.json');
 const SETTINGS_FILE = path.join(__dirname, 'server-settings.json');
+const ACTIVITY_LOG_FILE = path.join(__dirname, 'activity-log.json');
 if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
@@ -257,6 +258,59 @@ function broadcastDashboardUpdate() {
     broadcastToAdmins({ tip: 'dashboard_update' });
 }
 
+// Aktivite Günlüğü (Activity Log)
+const MAX_ACTIVITY_LOG = 40;
+let activityLog = [];
+
+function loadActivityLog() {
+    if (!fs.existsSync(ACTIVITY_LOG_FILE)) {
+        activityLog = [{
+            id: 'act-' + Date.now(),
+            type: 'system',
+            title: 'IdleBoard sunucusu başlatıldı',
+            detail: 'Sistem izleme ve yayın servisi devrede',
+            time: Date.now()
+        }];
+        saveActivityLog();
+        return;
+    }
+    try {
+        const stored = JSON.parse(fs.readFileSync(ACTIVITY_LOG_FILE, 'utf8'));
+        if (Array.isArray(stored)) {
+            activityLog = stored.slice(0, MAX_ACTIVITY_LOG);
+        }
+    } catch (e) {
+        console.error('[!] Aktivite günlüğü okunamadı:', e.message);
+        activityLog = [];
+    }
+}
+
+function saveActivityLog() {
+    try {
+        const temporaryFile = `${ACTIVITY_LOG_FILE}.${process.pid}.tmp`;
+        fs.writeFileSync(temporaryFile, JSON.stringify(activityLog.slice(0, MAX_ACTIVITY_LOG), null, 2), { mode: 0o600 });
+        fs.renameSync(temporaryFile, ACTIVITY_LOG_FILE);
+    } catch (e) {
+        console.error('[!] Aktivite günlüğü kaydedilemedi:', e.message);
+    }
+}
+
+function logActivity(type, title, detail = '') {
+    const entry = {
+        id: 'act-' + Date.now() + '-' + Math.round(Math.random() * 1000),
+        type,
+        title,
+        detail: typeof detail === 'string' ? detail : (detail ? String(detail) : ''),
+        time: Date.now()
+    };
+    activityLog.unshift(entry);
+    if (activityLog.length > MAX_ACTIVITY_LOG) {
+        activityLog = activityLog.slice(0, MAX_ACTIVITY_LOG);
+    }
+    saveActivityLog();
+    broadcastDashboardUpdate();
+}
+
 function clearCurrentBroadcast() {
     lastBroadcast = { fileName: null, time: 0 };
     broadcastToAll({ tip: 'stream_control', action: 'clear' });
@@ -381,6 +435,7 @@ function saveSelectedImages(imageFiles) {
 
 loadSelectedImages();
 loadServerSettings();
+loadActivityLog();
 ensureThumbnails();
 
 function slideshowTick() {
@@ -437,6 +492,7 @@ function setSlideIntervalSec(seconds) {
         slideInterval: slideIntervalSec
     });
     console.log(`[i] Slayt süresi güncellendi: ${slideIntervalSec}sn`);
+    logActivity('settings', 'Geçiş aralığı güncellendi', `${slideIntervalSec} saniye`);
     return true;
 }
 
@@ -453,6 +509,7 @@ function setKioskIdleTimeoutSec(seconds) {
     });
     broadcastDashboardUpdate();
     console.log(`[i] Bekleme süresi güncellendi: ${kioskIdleTimeoutSec}sn`);
+    logActivity('settings', 'Boşta kalma süresi güncellendi', `${seconds} saniye`);
     return true;
 }
 
@@ -468,6 +525,8 @@ function setImageFitMode(mode) {
     });
     broadcastDashboardUpdate();
     console.log(`[i] Görsel yerleşim modu güncellendi: ${imageFitMode}`);
+    const fitLabels = { uniform: 'Orijinal Boyut', uniformToFill: 'Ekranı Kapla', fill: 'Genişlet' };
+    logActivity('settings', 'Görsel yerleşimi güncellendi', fitLabels[imageFitMode] || imageFitMode);
     return true;
 }
 
@@ -483,6 +542,7 @@ function setShowInfoBar(visible) {
     });
     broadcastDashboardUpdate();
     console.log(`[i] Alt bilgi şeridi görünürlüğü güncellendi: ${showInfoBar}`);
+    logActivity('settings', 'Alt bilgi şeridi güncellendi', showInfoBar ? 'Görünür yapıldı' : 'Gizlendi');
     return true;
 }
 
@@ -498,6 +558,7 @@ function setTransitionEffect(effect) {
     });
     broadcastDashboardUpdate();
     console.log(`[i] Geçiş efekti güncellendi: ${transitionEffect}`);
+    logActivity('settings', 'Geçiş efekti güncellendi', transitionEffect === 'none' ? 'Anında geçiş' : 'Yumuşak geçiş (Fade)');
     return true;
 }
 
@@ -513,6 +574,7 @@ function setSlideshowOrder(order) {
     });
     broadcastDashboardUpdate();
     console.log(`[i] Slayt sıralaması güncellendi: ${slideshowOrder}`);
+    logActivity('settings', 'Slayt sıralaması güncellendi', slideshowOrder === 'random' ? 'Rastgele döngü' : 'Sıralı döngü');
     return true;
 }
 
@@ -525,11 +587,13 @@ app.get('/events', (req, res) => {
 
     const clientId = crypto.randomUUID();
     const isAdmin = req.query.source === 'admin';
+    const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').replace(/^.*:/, '');
     const newClient = { id: clientId, res, isAdmin };
     clients.push(newClient);
 
     if (!isAdmin) {
         broadcastToAdmins({ tip: 'client_count', connectedClients: getConnectedClientCount() });
+        logActivity('client_connect', 'Ekran istemcisi bağlandı', clientIp ? `IP: ${clientIp}` : 'Yeni ekran bağlantısı');
     }
     console.log(`[+] Yeni istemci bağlandı. (ID: ${clientId}, Toplam: ${getConnectedClientCount()})`);
 
@@ -564,6 +628,7 @@ app.get('/events', (req, res) => {
         clients = clients.filter(c => c.id !== clientId);
         if (!isAdmin) {
             broadcastToAdmins({ tip: 'client_count', connectedClients: getConnectedClientCount() });
+            logActivity('client_disconnect', 'Ekran istemcisi ayrıldı', clientIp ? `IP: ${clientIp}` : 'Ekran bağlantısı sonlandı');
         }
         console.log(`[-] İstemci ayrıldı. (ID: ${clientId}, Kalan: ${getConnectedClientCount()})`);
     });
@@ -820,7 +885,8 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             latestImage,
             latestBroadcastAt: lastBroadcast.time || null,
             uptimeSeconds: Math.floor((Date.now() - serverStartedAt) / 1000),
-            isPaused: isPlaybackPaused
+            isPaused: isPlaybackPaused,
+            recentActivities: activityLog.slice(0, 10)
         });
     });
 });
@@ -850,6 +916,7 @@ app.put('/api/gallery/selection', requireAuth, (req, res) => {
         }
         currentImageIndex = 0;
         restartSlideshowTimer();
+        logActivity('gallery', 'Yayındaki görsel seçimi güncellendi', `${selection.length} görsel yayında`);
         if (selection.length > 0) {
             broadcastDashboardUpdate();
             slideshowTick();
@@ -883,6 +950,7 @@ app.post('/api/upload', requireAuth, upload.single('image'), async (req, res) =>
     }
 
     generateThumbnail(req.file.filename).catch(() => {});
+    logActivity('upload', 'Yeni görsel yüklendi', req.file.originalname || req.file.filename);
     res.json({ success: true, fileName: req.file.filename });
 });
 
@@ -901,6 +969,7 @@ app.delete('/api/images/:name', requireAuth, (req, res) => {
         if (selectedImageFiles.has(req.params.name)) {
             saveSelectedImages([...selectedImageFiles].filter(fileName => fileName !== req.params.name));
         }
+        logActivity('delete', 'Görsel silindi', req.params.name);
         return res.json({ success: true });
     }
     res.status(404).json({ error: "Dosya bulunamadı" });
@@ -913,6 +982,7 @@ app.post('/api/broadcast/:name', requireAuth, (req, res) => {
     }
     broadcastImage(req.params.name);
     restartSlideshowTimer();
+    logActivity('stream', 'Görsel anlık olarak yayınlandı', req.params.name);
     res.json({ success: true });
 });
 
@@ -953,7 +1023,7 @@ app.post('/api/stream/pause', requireAuth, (req, res) => {
         isPaused: true,
         currentImage: lastBroadcast.fileName
     });
-    broadcastDashboardUpdate();
+    logActivity('stream', 'Yayın duraklatıldı', 'Ekranlar bekleme durumuna alındı');
     console.log('[⏸️ Yayın] Yayın durduruldu, istemciler sistem tepsisine alındı.');
     res.json({ success: true, isPaused: true });
 });
@@ -970,7 +1040,7 @@ app.post('/api/stream/resume', requireAuth, (req, res) => {
         isPaused: false,
         currentImage: lastBroadcast.fileName
     });
-    broadcastDashboardUpdate();
+    logActivity('stream', 'Yayın yeniden başlatıldı', 'Canlı görsel akışı devrede');
     slideshowTick();
     console.log('[▶️ Yayın] Yayın yeniden başlatıldı.');
     res.json({ success: true, isPaused: false });
@@ -1024,6 +1094,8 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
     } else if (lastBroadcast.fileName === fileName) {
         advanceSlide(1);
     }
+
+    logActivity('gallery', 'Görsel yayından kaldırıldı', fileName);
 
     broadcastToAll({
         tip: 'gallery_update',
@@ -1114,6 +1186,24 @@ app.post('/api/settings/slideshow-order', requireAuth, (req, res) => {
         });
     }
     res.json({ success: true, slideshowOrder: getSlideshowOrder() });
+});
+
+// Aktivite Günlüğü Endpoint'leri
+app.get('/api/activity-log', requireAuth, (req, res) => {
+    res.json({ activities: activityLog.slice(0, 30) });
+});
+
+app.post('/api/activity-log/clear', requireAuth, (req, res) => {
+    activityLog = [{
+        id: 'act-' + Date.now(),
+        type: 'system',
+        title: 'Aktivite geçmişi temizlendi',
+        detail: 'Yönetici tarafından sıfırlandı',
+        time: Date.now()
+    }];
+    saveActivityLog();
+    broadcastDashboardUpdate();
+    res.json({ success: true });
 });
 
 app.listen(3000, () => {

@@ -92,28 +92,83 @@
         .dashboard-live { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: var(--space-2); flex-shrink: 0; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; background: rgba(15,23,42,0.18); color: #eff6ff; font-size: 12px; font-weight: 600; }
         .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 4px rgba(74,222,128,0.16); }
         .live-dot.offline { background: #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,0.16); }
-        .dashboard-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
-        .metric-card { position: relative; min-height: 128px; box-sizing: border-box; padding: var(--space-4); overflow: hidden; border: 1px solid #e8edf5; border-radius: 12px; background: white; box-shadow: none; transition: none; }
+        .dashboard-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: 0; }
+        .metric-card { position: relative; min-height: 98px; box-sizing: border-box; padding: 12px 14px; overflow: hidden; border: 1px solid #e8edf5; border-radius: 12px; background: white; box-shadow: none; transition: none; }
         .metric-card:hover { transform: none; box-shadow: none; }
-        .metric-card::after { position: absolute; right: -24px; bottom: -42px; width: 110px; height: 110px; border-radius: 50%; background: var(--metric-tint); content: ''; }
+        .metric-card::after { position: absolute; right: -24px; bottom: -42px; width: 90px; height: 90px; border-radius: 50%; background: var(--metric-tint); content: ''; }
         .metric-card.clients { --metric-tint: #dbeafe; --metric-color: #2563eb; }
         .metric-card.images { --metric-tint: #dcfce7; --metric-color: #059669; }
         .metric-card.selected { --metric-tint: #fef3c7; --metric-color: #d97706; }
         .metric-card.interval { --metric-tint: #ede9fe; --metric-color: #7c3aed; }
-        .metric-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 13px; font-weight: 600; }
-        .metric-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 11px; background: var(--metric-tint); color: var(--metric-color); }
-        .metric-icon .icon { width: var(--icon-size); height: var(--icon-size); }
-        .metric-value { position: relative; z-index: 1; margin-top: var(--space-3); color: #0f172a; font-size: 29px; font-weight: 750; letter-spacing: -0.04em; line-height: 1; }
-        .metric-caption { position: relative; z-index: 1; margin-top: var(--space-2); color: #94a3b8; font-size: 12px; }
-        .dashboard-lower { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(270px, 0.75fr); gap: var(--space-4); }
-        .dashboard-panel { min-width: 0; padding: 20px; border: 1px solid #e8edf5; border-radius: 12px; background: white; box-shadow: none; }
+        .metric-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 12px; font-weight: 600; }
+        .metric-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: var(--metric-tint); color: var(--metric-color); }
+        .metric-icon .icon { width: 16px; height: 16px; }
+        .metric-value { position: relative; z-index: 1; margin-top: 6px; color: #0f172a; font-size: 24px; font-weight: 750; letter-spacing: -0.04em; line-height: 1; }
+        .metric-caption { position: relative; z-index: 1; margin-top: 4px; color: #94a3b8; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Genel Bakış Üst Bölüm: Son Yayınlanan Görsel & Yan Sütun */
+        .dashboard-upper-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr);
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            align-items: stretch;
+        }
+        .dashboard-latest-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px 18px;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+        .dashboard-latest-panel .panel-heading { margin-bottom: 10px; }
+        .dashboard-latest-panel .panel-heading h2 { font-size: 15px; font-weight: 700; margin: 0; }
+        .latest-image-wrap {
+            display: grid;
+            flex: 1;
+            min-height: 180px;
+            max-height: 250px;
+            aspect-ratio: 16 / 9;
+            place-items: center;
+            overflow: hidden;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            cursor: pointer;
+            transition: opacity 0.15s ease;
+        }
+        .latest-image-wrap:hover { opacity: 0.94; }
+        #latestImagePreview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .latest-placeholder { padding: var(--space-4); color: #94a3b8; text-align: center; font-size: 13px; line-height: 1.4; }
+        .latest-image-name { margin-top: 10px; overflow: hidden; color: #334155; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; display: block; width: 100%; min-width: 0; box-sizing: border-box; }
+
+        .dashboard-side-column {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            min-width: 0;
+            justify-content: space-between;
+        }
+        .dashboard-gallery-panel {
+            display: flex;
+            flex-direction: column;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            min-width: 0;
+            margin-top: 0;
+        }
+        .dashboard-gallery-panel .panel-heading { margin-bottom: 6px; }
+        .dashboard-gallery-panel .panel-heading h2 { font-size: 14px; font-weight: 700; margin: 0; }
+        .dashboard-gallery-panel .panel-kicker { font-size: 11px; }
+        .dashboard-gallery-panel .gallery-panel-body { margin: 4px 0 6px; padding: 0; }
+        .dashboard-gallery-panel .selection-summary { margin: 0 0 4px; font-size: 12px; }
+        .dashboard-gallery-panel .selection-summary strong { font-size: 16px; }
+        .dashboard-gallery-panel .selection-track { height: 7px; }
+        .dashboard-gallery-panel .dashboard-updated { margin-top: 4px; font-size: 10.5px; line-height: 1.35; color: #94a3b8; }
+        .dashboard-panel { min-width: 0; padding: 18px; border: 1px solid #e8edf5; border-radius: 12px; background: white; box-shadow: none; }
         .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
         .panel-heading h2 { margin: 0; color: #0f172a; font-size: 16px; }
         .panel-kicker { color: #94a3b8; font-size: 12px; }
-        .latest-image-wrap { display: grid; min-height: 180px; place-items: center; overflow: hidden; border-radius: 12px; background: linear-gradient(135deg, #f1f5f9, #e2e8f0); }
-        #latestImagePreview img { width: 100%; height: 210px; object-fit: cover; }
-        .latest-placeholder { padding: var(--space-6); color: #94a3b8; text-align: center; font-size: 14px; }
-        .latest-image-name { margin-top: var(--space-3); overflow: hidden; color: #334155; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; display: block; width: 100%; min-width: 0; box-sizing: border-box; }
         .selection-summary { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin: var(--space-2) 0 var(--space-3); color: #475569; font-size: 13px; }
         .selection-summary strong { color: #0f172a; font-size: 19px; }
         .selection-track { height: 9px; overflow: hidden; border-radius: 99px; background: #e2e8f0; }
@@ -181,6 +236,18 @@
         .btn-minimal-save:hover { background: var(--color-primary); }
         .btn-password-cancel { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 7px; }
         .password-collapse .login-error { margin-top: 6px; font-size: 12px; }
+
+        /* Aktif Tercihler Özeti (Genel Bakış) */
+        .dashboard-settings-summary { margin-bottom: var(--space-4); }
+        .settings-summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); }
+        .settings-summary-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e8edf5; border-radius: 9px; cursor: pointer; transition: all 0.15s ease; user-select: none; min-width: 0; }
+        .settings-summary-item:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-1px); }
+        .settings-summary-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px; background: #eaf1fb; color: var(--color-primary); transition: background 0.15s ease, color 0.15s ease; }
+        .settings-summary-icon .icon { width: 17px; height: 17px; }
+        .settings-summary-item:hover .settings-summary-icon { background: var(--color-primary); color: white; }
+        .settings-summary-content { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+        .settings-summary-label { font-size: 11px; font-weight: 600; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .settings-summary-value { font-size: 13.5px; font-weight: 700; color: #0f172a; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .header-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); border-bottom: 1px solid #e2e8f0; padding-bottom: var(--space-4); margin-bottom: var(--space-6); }
         h1 { color: #2c3e50; margin: 0; display: flex; align-items: center; gap: var(--space-2); font-size: 22px; }
@@ -426,6 +493,155 @@
         html[data-theme="dark"] .minimal-input:focus { background: #0f172a; border-color: #3b82f6; }
         html[data-theme="dark"] .btn-minimal-save { background: #2563eb; }
         html[data-theme="dark"] .btn-minimal-save:hover { background: #1d4ed8; }
+        html[data-theme="dark"] .dashboard-settings-summary { background: #111c2e; border-color: #1e293b; }
+        html[data-theme="dark"] .settings-summary-item { background: #090e17; border-color: #1e293b; }
+        html[data-theme="dark"] .settings-summary-item:hover { background: #172554; border-color: #2563eb; }
+        html[data-theme="dark"] .settings-summary-icon { background: #1e293b; color: #93c5fd; }
+        html[data-theme="dark"] .settings-summary-item:hover .settings-summary-icon { background: #2563eb; color: white; }
+        html[data-theme="dark"] .settings-summary-label { color: #94a3b8; }
+        html[data-theme="dark"] .settings-summary-value { color: #f1f5f9; }
+
+        /* Mini Aktivite Akışı */
+        .dashboard-activity-panel { margin-top: var(--space-4); }
+        .activity-heading-left { display: flex; flex-direction: column; gap: 3px; }
+        .activity-title-wrap { display: flex; align-items: center; gap: 8px; }
+        .live-activity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .activity-pulse {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #16a34a;
+            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+            animation: pulseDot 2s infinite;
+        }
+        @keyframes pulseDot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+        }
+        .btn-subtle {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+        }
+        .btn-subtle:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 1px solid #f1f5f9;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .activity-item:hover {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+        .activity-item-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            flex: 1;
+        }
+        .activity-icon-badge {
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            flex-shrink: 0;
+        }
+        .activity-icon-badge .icon {
+            width: 16px;
+            height: 16px;
+        }
+        .activity-icon-badge.client_connect { background: #dcfce7; color: #166534; }
+        .activity-icon-badge.client_disconnect { background: #f1f5f9; color: #64748b; }
+        .activity-icon-badge.upload { background: #dbeafe; color: #1e40af; }
+        .activity-icon-badge.delete { background: #fee2e2; color: #991b1b; }
+        .activity-icon-badge.gallery { background: #e0e7ff; color: #3730a3; }
+        .activity-icon-badge.stream { background: #fef3c7; color: #92400e; }
+        .activity-icon-badge.settings { background: #f3e8ff; color: #6b21a8; }
+        .activity-icon-badge.system { background: #ccfbf1; color: #115e59; }
+
+        .activity-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .activity-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.3;
+        }
+        .activity-detail {
+            font-size: 11.5px;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .activity-time {
+            font-size: 11px;
+            color: #94a3b8;
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-weight: 500;
+        }
+        .activity-empty {
+            padding: 32px 16px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        /* Dark Mode Aktivite Stilleri */
+        html[data-theme="dark"] .btn-subtle { border-color: #26364f; color: #94a3b8; }
+        html[data-theme="dark"] .btn-subtle:hover { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+        html[data-theme="dark"] .live-activity-badge { background: #14532d; color: #86efac; }
+        html[data-theme="dark"] .activity-item { background: #090e17; border-color: #1e293b; }
+        html[data-theme="dark"] .activity-item:hover { background: #152238; border-color: #334155; }
+        html[data-theme="dark"] .activity-title { color: #f1f5f9; }
+        html[data-theme="dark"] .activity-detail { color: #94a3b8; }
+        html[data-theme="dark"] .activity-time { color: #64748b; }
+        html[data-theme="dark"] .activity-icon-badge.client_connect { background: #064e3b; color: #6ee7b7; }
+        html[data-theme="dark"] .activity-icon-badge.client_disconnect { background: #1e293b; color: #94a3b8; }
+        html[data-theme="dark"] .activity-icon-badge.upload { background: #1e3a8a; color: #93c5fd; }
+        html[data-theme="dark"] .activity-icon-badge.delete { background: #7f1d1d; color: #fca5a5; }
+        html[data-theme="dark"] .activity-icon-badge.gallery { background: #312e81; color: #a5b4fc; }
+        html[data-theme="dark"] .activity-icon-badge.stream { background: #78350f; color: #fde68a; }
+        html[data-theme="dark"] .activity-icon-badge.settings { background: #581c87; color: #d8b4fe; }
+        html[data-theme="dark"] .activity-icon-badge.system { background: #134e4a; color: #5eead4; }
+
 
         @media (max-width: 1150px) {
             .stream-control-layout { grid-template-columns: 1fr; gap: 20px; }
@@ -490,6 +706,33 @@
             .btn-password-cancel { grid-column: 2; width: 100%; height: 28px; font-size: 11.5px; padding: 0; border-radius: 6px; }
             .password-collapse .login-error { font-size: 11px; margin-top: 4px; }
             .dashboard-updated { font-size: 11px; width: auto; text-align: left; }
+        }
+        @media (max-width: 960px) {
+            .settings-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .settings-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+            .settings-summary-item { padding: 8px 10px; gap: 8px; }
+            .settings-summary-icon { width: 30px; height: 30px; }
+            .settings-summary-icon .icon { width: 15px; height: 15px; }
+            .settings-summary-label { font-size: 10.5px; }
+            .settings-summary-value { font-size: 12.5px; }
+        }
+        @media (max-width: 960px) {
+            .dashboard-upper-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .dashboard-side-column .dashboard-metrics { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 450px) {
+            .dashboard-latest-panel,
+            .dashboard-gallery-panel { padding: 14px; }
+            .dashboard-latest-panel .latest-image-wrap { min-height: 140px; }
+            .dashboard-latest-panel .panel-heading h2,
+            .dashboard-gallery-panel .panel-heading h2 { font-size: 14px; }
+        }
+        @media (max-width: 380px) {
+            .settings-summary-grid { grid-template-columns: minmax(0, 1fr); }
         }
     </style>
 </head>
@@ -590,58 +833,148 @@
             <div class="dashboard-live"><span id="dashboardLiveDot" class="live-dot"></span><span id="dashboardLiveText">Sistem hazır</span></div>
         </section>
 
-        <section class="dashboard-metrics" aria-label="Sistem istatistikleri">
-            <article class="metric-card clients">
-                <div class="metric-top"><span>Bağlı istemciler</span><span class="metric-icon"><svg class="icon"><use href="#icon-users"></use></svg></span></div>
-                <div id="connectedClientCount" class="metric-value">—</div>
-                <div class="metric-caption">Şu anda yayın akışına bağlı ekranlar</div>
-            </article>
-            <article class="metric-card images">
-                <div class="metric-top"><span>Galerideki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-image"></use></svg></span></div>
-                <div id="dashboardImageCount" class="metric-value">—</div>
-                <div class="metric-caption">Sunucuda yüklü toplam görsel</div>
-            </article>
-            <article class="metric-card selected">
-                <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-check"></use></svg></span></div>
-                <div id="dashboardSelectedCount" class="metric-value">—</div>
-                <div class="metric-caption">Slayt döngüsüne dahil edilen görseller</div>
-            </article>
-            <article class="metric-card interval">
-                <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span></div>
-                <div class="metric-value"><span id="dashboardInterval">—</span><span style="font-size: 16px; letter-spacing: 0;"> sn</span></div>
-                <div class="metric-caption">Her görsel arasındaki süre</div>
-            </article>
-        </section>
-
-        <section class="dashboard-lower">
-            <article class="dashboard-panel">
+        <!-- Üst Bölüm: Son Yayınlanan Görsel (Solda) + Galeri Yayın Durumu ve Sistem Metrikleri (Sağda) -->
+        <div class="dashboard-upper-row">
+            <article class="dashboard-panel dashboard-latest-panel">
                 <div class="panel-heading">
                     <h2>Son yayınlanan görsel</h2>
-                    <button class="btn" style="font-size: 12px;" type="button" onclick="showStream()">Yayın akışını yönet</button>
+                    <button class="btn btn-sm" type="button" onclick="showStream()">Yayın akışını yönet</button>
                     <span id="dashboardLastBroadcast" style="display: none;"></span>
                 </div>
-                <div id="latestImagePreview" class="latest-image-wrap">
+                <div id="latestImagePreview" class="latest-image-wrap" onclick="showStream()" title="Yayın akışını yönet">
                     <div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>
                 </div>
                 <div id="latestImageName" class="latest-image-name">Henüz görsel yayınlanmadı</div>
             </article>
 
-            <article class="dashboard-panel">
-                <div class="panel-heading">
-                    <h2>Galeri yayın durumu</h2>
-                    <span class="panel-kicker">Seçim özeti</span>
+            <div class="dashboard-side-column">
+                <article class="dashboard-panel dashboard-gallery-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Galeri yayın durumu</h2>
+                            <span class="panel-kicker">Seçim özeti</span>
+                        </div>
+                        <button class="btn btn-sm" type="button" onclick="showGallery()">
+                            <svg class="icon" aria-hidden="true"><use href="#icon-image"></use></svg> Yönet
+                        </button>
+                    </div>
+                    <div class="gallery-panel-body">
+                        <div class="selection-summary">
+                            <span>Yayına dahil edilenler</span>
+                            <strong><span id="dashboardSelectionRatio">—</span></strong>
+                        </div>
+                        <div class="selection-track" role="progressbar" aria-label="Yayındaki görsellerin galeriye oranı" aria-valuemin="0" aria-valuemax="100">
+                            <div id="dashboardSelectionProgress" class="selection-fill"></div>
+                        </div>
+                    </div>
+                    <div id="dashboardUpdatedAt" class="dashboard-updated">İstatistikler yükleniyor...</div>
+                </article>
+
+                <section class="dashboard-metrics" aria-label="Sistem istatistikleri">
+                    <article class="metric-card clients">
+                        <div class="metric-top"><span>Bağlı istemciler</span><span class="metric-icon"><svg class="icon"><use href="#icon-users"></use></svg></span></div>
+                        <div id="connectedClientCount" class="metric-value">—</div>
+                        <div class="metric-caption">Şu anda yayın akışına bağlı ekranlar</div>
+                    </article>
+                    <article class="metric-card interval">
+                        <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span></div>
+                        <div class="metric-value"><span id="dashboardInterval">—</span><span style="font-size: 16px; letter-spacing: 0;"> sn</span></div>
+                        <div class="metric-caption">Her görsel arasındaki süre</div>
+                    </article>
+                    <article class="metric-card images">
+                        <div class="metric-top"><span>Galerideki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-image"></use></svg></span></div>
+                        <div id="dashboardImageCount" class="metric-value">—</div>
+                        <div class="metric-caption">Sunucuda yüklü toplam görsel</div>
+                    </article>
+                    <article class="metric-card selected">
+                        <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-check"></use></svg></span></div>
+                        <div id="dashboardSelectedCount" class="metric-value">—</div>
+                        <div class="metric-caption">Slayt döngüsüne dahil edilen görseller</div>
+                    </article>
+                </section>
+            </div>
+        </div>
+
+        <!-- Aktif Yayın ve Ekran Tercihleri -->
+        <article class="dashboard-panel dashboard-settings-summary">
+            <div class="panel-heading">
+                <div>
+                    <h2>Aktif Yayın ve Ekran Tercihleri</h2>
+                    <span class="panel-kicker">Ekranlarda geçerli olan anlık yapılandırma</span>
                 </div>
-                <div class="selection-summary">
-                    <span>Yayına dahil edilenler</span>
-                    <strong><span id="dashboardSelectionRatio">—</span></strong>
+                <button class="btn btn-sm" type="button" onclick="showSettings()">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg> Ayarları Düzenle
+                </button>
+            </div>
+            <div class="settings-summary-grid">
+                <div class="settings-summary-item" onclick="showSettings()" title="Slayt sıralamasını değiştirmek için tıkla" role="button" tabindex="0">
+                    <div class="settings-summary-icon">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-shuffle"></use></svg>
+                    </div>
+                    <div class="settings-summary-content">
+                        <span class="settings-summary-label">Slayt Sıralaması</span>
+                        <strong id="dashboardSummaryOrder" class="settings-summary-value">—</strong>
+                    </div>
                 </div>
-                <div class="selection-track" role="progressbar" aria-label="Yayındaki görsellerin galeriye oranı" aria-valuemin="0" aria-valuemax="100">
-                    <div id="dashboardSelectionProgress" class="selection-fill"></div>
+                <div class="settings-summary-item" onclick="showSettings()" title="Geçiş efektini değiştirmek için tıkla" role="button" tabindex="0">
+                    <div class="settings-summary-icon">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-play"></use></svg>
+                    </div>
+                    <div class="settings-summary-content">
+                        <span class="settings-summary-label">Geçiş Efekti</span>
+                        <strong id="dashboardSummaryEffect" class="settings-summary-value">—</strong>
+                    </div>
                 </div>
-                <button class="btn" style="margin-top: 16px;" type="button" onclick="showGallery()">Galeriyi yönet</button>
-                <div id="dashboardUpdatedAt" class="dashboard-updated">İstatistikler yükleniyor...</div>
-            </article>
-        </section>
+                <div class="settings-summary-item" onclick="showSettings()" title="Görsel yerleşimini değiştirmek için tıkla" role="button" tabindex="0">
+                    <div class="settings-summary-icon">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-monitor"></use></svg>
+                    </div>
+                    <div class="settings-summary-content">
+                        <span class="settings-summary-label">Görsel Yerleşimi</span>
+                        <strong id="dashboardSummaryFit" class="settings-summary-value">—</strong>
+                    </div>
+                </div>
+                <div class="settings-summary-item" onclick="showSettings()" title="Boşta kalma süresini değiştirmek için tıkla" role="button" tabindex="0">
+                    <div class="settings-summary-icon">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-clock"></use></svg>
+                    </div>
+                    <div class="settings-summary-content">
+                        <span class="settings-summary-label">Boşta Kalma Süresi</span>
+                        <strong id="dashboardSummaryIdle" class="settings-summary-value">—</strong>
+                    </div>
+                </div>
+                <div class="settings-summary-item" onclick="showSettings()" title="Alt bilgi şeridi görünürlüğünü değiştirmek için tıkla" role="button" tabindex="0">
+                    <div class="settings-summary-icon">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-eye"></use></svg>
+                    </div>
+                    <div class="settings-summary-content">
+                        <span class="settings-summary-label">Alt Bilgi Şeridi</span>
+                        <strong id="dashboardSummaryInfoBar" class="settings-summary-value">—</strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Mini Aktivite Akışı -->
+        <article class="dashboard-panel dashboard-activity-panel">
+            <div class="panel-heading">
+                <div class="activity-heading-left">
+                    <div class="activity-title-wrap">
+                        <h2>Son Sistem Aktiviteleri</h2>
+                        <span class="live-activity-badge"><span class="activity-pulse"></span> Canlı</span>
+                    </div>
+                    <span class="panel-kicker">Sunucu, yayın ve ekran hareketleri</span>
+                </div>
+                <div class="activity-heading-actions">
+                    <button class="btn btn-sm btn-subtle" type="button" onclick="clearActivityLog()" title="Aktivite geçmişini temizle">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg> Temizle
+                    </button>
+                </div>
+            </div>
+            <div class="activity-list" id="dashboardActivityList">
+                <div class="activity-empty">Aktiviteler yükleniyor...</div>
+            </div>
+        </article>
     </div>
 
     <!-- Yayın Akışı Paneli -->
@@ -1445,6 +1778,34 @@
                 document.getElementById('dashboardSelectionProgress').style.width = `${ratio}%`;
                 document.querySelector('.selection-track').setAttribute('aria-valuenow', String(ratio));
 
+                // Aktif Tercihler Özeti Rozetleri
+                const summaryOrder = document.getElementById('dashboardSummaryOrder');
+                if (summaryOrder && stats.slideshowOrder) {
+                    summaryOrder.innerText = stats.slideshowOrder === 'random' ? 'Rastgele' : 'Sıralı';
+                }
+                const summaryEffect = document.getElementById('dashboardSummaryEffect');
+                if (summaryEffect && stats.transitionEffect) {
+                    summaryEffect.innerText = stats.transitionEffect === 'none' ? 'Anında' : 'Yumuşak (Fade)';
+                }
+                const summaryFit = document.getElementById('dashboardSummaryFit');
+                if (summaryFit && stats.imageFit) {
+                    const fitMap = {
+                        uniform: 'Orijinal Boyut',
+                        uniformToFill: 'Ekranı Kapla',
+                        fill: 'Genişlet'
+                    };
+                    summaryFit.innerText = fitMap[stats.imageFit] || stats.imageFit;
+                }
+                const summaryIdle = document.getElementById('dashboardSummaryIdle');
+                const currentIdleSec = stats.idleTimeout !== undefined ? stats.idleTimeout : stats[Object.keys(stats).find(k => k.toLowerCase().endsWith('idletimeout'))];
+                if (summaryIdle && currentIdleSec !== undefined) {
+                    summaryIdle.innerText = formatIdleSeconds(currentIdleSec);
+                }
+                const summaryInfoBar = document.getElementById('dashboardSummaryInfoBar');
+                if (summaryInfoBar && stats.showInfoBar !== undefined) {
+                    summaryInfoBar.innerText = stats.showInfoBar ? 'Gösteriliyor' : 'Gizli';
+                }
+
                 const live = stats.connectedClients > 0;
                 document.getElementById('dashboardLiveDot').classList.toggle('offline', !live || stats.isPaused);
                 if (stats.isPaused) {
@@ -1479,9 +1840,90 @@
                 }
                 document.getElementById('dashboardUpdatedAt').innerText =
                     `Sunucu çalışma süresi: ${formatUptime(stats.uptimeSeconds)} · Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`;
+
+                if (stats.recentActivities) {
+                    renderActivityLog(stats.recentActivities);
+                }
             } catch (err) {
                 console.error('Dashboard istatistikleri yüklenemedi:', err);
                 document.getElementById('dashboardUpdatedAt').innerText = 'İstatistikler güncellenemedi.';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatRelativeTime(ts) {
+            if (!ts) return '';
+            const diffSec = Math.max(0, Math.floor((Date.now() - Number(ts)) / 1000));
+            if (diffSec < 10) return 'Az önce';
+            if (diffSec < 60) return `${diffSec} sn önce`;
+            const diffMin = Math.floor(diffSec / 60);
+            if (diffMin < 60) return `${diffMin} dk önce`;
+            const diffHours = Math.floor(diffMin / 60);
+            if (diffHours < 24) return `${diffHours} sa önce`;
+            const d = new Date(Number(ts));
+            return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function renderActivityLog(activities) {
+            const list = document.getElementById('dashboardActivityList');
+            if (!list) return;
+            if (!Array.isArray(activities) || activities.length === 0) {
+                list.innerHTML = '<div class="activity-empty"><p style="margin:0;">Henüz kaydedilmiş bir sistem aktivitesi bulunmuyor.</p></div>';
+                return;
+            }
+            const iconMap = {
+                client_connect: 'icon-monitor',
+                client_disconnect: 'icon-minus-circle',
+                upload: 'icon-upload',
+                delete: 'icon-trash',
+                gallery: 'icon-image',
+                stream: 'icon-play',
+                settings: 'icon-settings',
+                system: 'icon-check'
+            };
+            list.innerHTML = activities.map(act => {
+                const iconId = iconMap[act.type] || 'icon-clock';
+                const relTime = formatRelativeTime(act.time);
+                const escapedTitle = escapeHtml(act.title || '');
+                const escapedDetail = act.detail ? `<span class="activity-detail">${escapeHtml(act.detail)}</span>` : '';
+                return `
+                    <div class="activity-item">
+                        <div class="activity-item-main">
+                            <div class="activity-icon-badge ${escapeHtml(act.type || 'system')}">
+                                <svg class="icon"><use href="#${iconId}"></use></svg>
+                            </div>
+                            <div class="activity-text">
+                                <span class="activity-title">${escapedTitle}</span>
+                                ${escapedDetail}
+                            </div>
+                        </div>
+                        <span class="activity-time">${relTime}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function clearActivityLog() {
+            if (!confirm('Aktivite günlüğünü temizlemek istediğinizden emin misiniz?')) return;
+            try {
+                const res = await fetch('/api/activity-log/clear', {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (res.ok) {
+                    loadDashboardStats();
+                }
+            } catch (e) {
+                console.error('Aktivite günlüğü temizlenemedi:', e);
             }
         }
 
@@ -1848,6 +2290,7 @@
                 if (data.success) {
                     status.style.color = '#15803d';
                     status.innerText = 'Slayt sıralaması güncellendi';
+                    loadDashboardStats();
                     setTimeout(() => status.innerText = '', 3000);
                 } else {
                     status.style.color = '#dc2626';
@@ -1876,6 +2319,7 @@
                 if (data.success) {
                     status.style.color = '#15803d';
                     status.innerText = 'Geçiş efekti güncellendi';
+                    loadDashboardStats();
                     setTimeout(() => status.innerText = '', 3000);
                 } else {
                     status.style.color = '#dc2626';
@@ -1904,6 +2348,7 @@
                 if (data.success) {
                     status.style.color = '#15803d';
                     status.innerText = 'Görünürlük güncellendi';
+                    loadDashboardStats();
                     setTimeout(() => status.innerText = '', 3000);
                 } else {
                     status.style.color = '#dc2626';
@@ -1932,6 +2377,7 @@
                 if (data.success) {
                     status.style.color = '#15803d';
                     status.innerText = 'Yerleşim modu güncellendi';
+                    loadDashboardStats();
                     setTimeout(() => status.innerText = '', 3000);
                 } else {
                     status.style.color = '#dc2626';
@@ -1963,6 +2409,7 @@
                 if (data.success) {
                     status.style.color = '#15803d';
                     status.innerText = `Kaydedildi (${formatIdleSeconds(data.kioskIdleTimeout)})`;
+                    loadDashboardStats();
                     setTimeout(() => status.innerText = '', 2500);
                 } else {
                     status.style.color = '#dc2626';
