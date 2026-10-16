@@ -415,6 +415,190 @@
         .btn-broadcast-stream { background: #eff6ff; color: var(--color-primary-hover); border-color: #bfdbfe; }
         .btn-broadcast-stream:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 
+        /* Medya Oynatıcı Sol & Sağ Kontroller & Süre Göstergesi */
+        .stream-control-left {
+            position: absolute;
+            left: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stream-control-right {
+            position: absolute;
+            right: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stream-player-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #f1f5f9;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11.5px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+            user-select: none;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .stream-player-time:hover {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+        .stream-player-time .stream-time-sep {
+            color: rgba(255, 255, 255, 0.45);
+            margin: 0 1px;
+        }
+        .stream-player-time.is-paused {
+            color: #fde68a;
+            border-color: rgba(251, 191, 36, 0.35);
+            background: rgba(120, 53, 15, 0.45);
+        }
+        .btn-player-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #f1f5f9;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+        }
+        .btn-player-action:hover {
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.38);
+            color: white;
+            transform: scale(1.05);
+        }
+        .btn-player-action:active {
+            transform: scale(0.95);
+        }
+        .btn-player-action .icon {
+            width: 14px;
+            height: 14px;
+        }
+        .stream-control-bar:hover .stream-progress-track {
+            height: 4px;
+        }
+        @media (max-width: 480px) {
+            .stream-control-left {
+                left: 8px;
+                gap: 4px;
+            }
+            .stream-control-right {
+                right: 8px;
+                gap: 4px;
+            }
+            .stream-player-time {
+                font-size: 10px;
+                padding: 2px 5px;
+            }
+            .btn-player-action {
+                width: 24px;
+                height: 24px;
+            }
+            .btn-player-action .icon {
+                width: 12px;
+                height: 12px;
+            }
+        }
+
+        /* Tam Ekran / Tiyatro Modu Stilleri */
+        .stream-large-img-wrap:fullscreen,
+        .stream-large-img-wrap:-webkit-full-screen,
+        .stream-large-img-wrap:-moz-full-screen,
+        .stream-large-img-wrap.is-fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            aspect-ratio: auto !important;
+            border-radius: 0 !important;
+            border: none !important;
+            background: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 99999 !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-large-img,
+        .stream-large-img-wrap:-webkit-full-screen .stream-large-img,
+        .stream-large-img-wrap:-moz-full-screen .stream-large-img,
+        .stream-large-img-wrap.is-fullscreen .stream-large-img {
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: contain !important;
+            background: #000000 !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-control-bar,
+        .stream-large-img-wrap:-webkit-full-screen .stream-control-bar,
+        .stream-large-img-wrap:-moz-full-screen .stream-control-bar,
+        .stream-large-img-wrap.is-fullscreen .stream-control-bar {
+            border-radius: 0 !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.5) 25%, rgba(0, 0, 0, 0.9) 100%) !important;
+            padding: 14px 28px !important;
+            transition: opacity 0.3s ease, transform 0.3s ease !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-control-left,
+        .stream-large-img-wrap:-webkit-full-screen .stream-control-left,
+        .stream-large-img-wrap:-moz-full-screen .stream-control-left,
+        .stream-large-img-wrap.is-fullscreen .stream-control-left {
+            left: 28px !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-control-right,
+        .stream-large-img-wrap:-webkit-full-screen .stream-control-right,
+        .stream-large-img-wrap:-moz-full-screen .stream-control-right,
+        .stream-large-img-wrap.is-fullscreen .stream-control-right {
+            right: 28px !important;
+        }
+        /* Tam ekranda fare hareketsiz kaldığında kontrollerin otomatik gizlenmesi */
+        .stream-large-img-wrap.controls-hidden {
+            cursor: none !important;
+        }
+        .stream-large-img-wrap.controls-hidden .stream-control-bar,
+        .stream-large-img-wrap.controls-hidden .stream-overlay-badge {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(12px) !important;
+        }
+
+        .stream-progress-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.16);
+            overflow: hidden;
+            cursor: default;
+        }
+        .stream-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #60a5fa, #818cf8);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            transition: width 0.1s linear;
+        }
+        .stream-progress-fill.is-paused {
+            background: #f59e0b;
+            box-shadow: none;
+        }
+
         html[data-theme="dark"] body { background: #0b1220; color: #e2e8f0; }
         html[data-theme="dark"] .container:not(.dashboard-view),
         html[data-theme="dark"] .dashboard-panel,
@@ -763,6 +947,8 @@
         <symbol id="icon-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></symbol>
         <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></symbol>
         <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></symbol>
+        <symbol id="icon-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></symbol>
+        <symbol id="icon-minimize" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -1004,13 +1190,26 @@
             <div class="stream-control-layout">
                 <!-- Sol: Büyük 16:9 Aktif Görsel Önizlemesi -->
                 <div class="stream-preview-column">
-                    <div class="stream-large-img-wrap">
+                    <div class="stream-large-img-wrap" id="streamLargeImgWrap" ondblclick="toggleStreamFullscreen()" onmousemove="handleStreamFullscreenMouseMove()" title="Çift tıklayarak tam ekrana geçin">
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
                             <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
                         </div>
                         <span id="streamActiveBadge" class="badge-active stream-overlay-badge" style="display: none;"><span class="status-dot"></span><span id="streamActiveBadgeText">Yayında</span></span>
+                        
                         <div class="stream-control-bar">
+                            <!-- Canlı Geçiş İlerleme Çubuğu -->
+                            <div class="stream-progress-track" id="streamProgressTrack" title="Sonraki görsel geçişine kalan süre">
+                                <div id="streamProgressBar" class="stream-progress-fill"></div>
+                            </div>
+                            <div class="stream-control-left">
+                                <!-- Medya Oynatıcı Süre / Geri Sayım Göstergesi -->
+                                <div class="stream-player-time" id="streamPlayerTime" onclick="toggleStreamTimeMode()" title="Süre görünümünü değiştir (Geçen / Kalan)">
+                                    <span id="streamTimeCurrent">0:00</span>
+                                    <span class="stream-time-sep">/</span>
+                                    <span id="streamTimeTotal">0:10</span>
+                                </div>
+                            </div>
                             <div class="stream-control-buttons">
                                 <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim">
                                     <svg class="icon"><use href="#icon-chevron-left"></use></svg> Önceki Resim
@@ -1020,6 +1219,12 @@
                                 </button>
                                 <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim">
                                     Sonraki Resim <svg class="icon"><use href="#icon-chevron-right"></use></svg>
+                                </button>
+                            </div>
+                            <div class="stream-control-right">
+                                <!-- Tam Ekran / Tiyatro Modu Butonu -->
+                                <button id="btnStreamFullscreen" class="btn-player-action" type="button" onclick="toggleStreamFullscreen()" title="Tam Ekran / Tiyatro Modu (F)">
+                                    <svg class="icon"><use id="streamFullscreenIconUse" href="#icon-maximize"></use></svg>
                                 </button>
                             </div>
                         </div>
@@ -1389,6 +1594,7 @@
         }
 
         function showLogin() {
+            stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'none';
@@ -1400,6 +1606,7 @@
         }
 
         function showSetup() {
+            stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'flex';
             document.getElementById('adminLayout').style.display = 'none';
@@ -1411,6 +1618,7 @@
         }
 
         function showDashboard() {
+            stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
@@ -1437,6 +1645,7 @@
             setActiveNavigation('streamNav');
             closeMobileSidebar();
             loadStreamStatus();
+            startStreamCountdown();
             clearInterval(dashboardRefreshTimer);
             dashboardRefreshTimer = setInterval(refreshActiveView, 10000);
             connectLiveUpdates();
@@ -1451,6 +1660,7 @@
         }
 
         function showGallery() {
+            stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
@@ -1679,6 +1889,7 @@
         }
 
         function showSettings() {
+            stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
@@ -2456,6 +2667,120 @@
         // Yayın Akışı (Stream) Fonksiyonları
         let currentStreamData = null;
 
+        // Medya Oynatıcı Süre ve Geçiş İlerlemesi Durumu
+        let streamCountdownTimer = null;
+        let streamCountdownStart = null;
+        let streamCountdownDurationMs = 10000;
+        let streamCountdownIsPaused = false;
+        let streamCountdownTotalSelected = 0;
+        let streamCountdownHasActiveImage = false;
+        let streamTimeMode = 'elapsed'; // 'elapsed' veya 'remaining'
+
+        function toggleStreamTimeMode() {
+            streamTimeMode = streamTimeMode === 'elapsed' ? 'remaining' : 'elapsed';
+            updateStreamCountdownTick();
+        }
+
+        function formatPlayerTime(seconds) {
+            seconds = Math.max(0, Math.floor(seconds));
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function startStreamCountdown() {
+            if (!streamCountdownTimer) {
+                streamCountdownTimer = setInterval(updateStreamCountdownTick, 100);
+            }
+            updateStreamCountdownTick();
+        }
+
+        function stopStreamCountdown() {
+            if (streamCountdownTimer) {
+                clearInterval(streamCountdownTimer);
+                streamCountdownTimer = null;
+            }
+            if (typeof isStreamFullscreen === 'function' && isStreamFullscreen()) {
+                exitStreamFullscreen();
+            }
+        }
+
+        function updateStreamCountdownTick() {
+            const streamSection = document.getElementById('streamSection');
+            if (!streamSection || streamSection.style.display !== 'block') {
+                return;
+            }
+
+            const progressBar = document.getElementById('streamProgressBar');
+            const timeDisplay = document.getElementById('streamPlayerTime');
+            const timeCurrent = document.getElementById('streamTimeCurrent');
+            const timeTotal = document.getElementById('streamTimeTotal');
+            const timeSep = timeDisplay ? timeDisplay.querySelector('.stream-time-sep') : null;
+
+            if (!progressBar || !timeDisplay || !timeCurrent || !timeTotal) return;
+
+            // Görsel yoksa veya aktif görsel bulunmuyorsa
+            if (!streamCountdownHasActiveImage || streamCountdownTotalSelected === 0) {
+                timeDisplay.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressBar.classList.remove('is-paused');
+                return;
+            }
+
+            timeDisplay.style.display = 'inline-flex';
+
+            // Tek görsel varsa (döngü yapılmaz)
+            if (streamCountdownTotalSelected <= 1) {
+                timeDisplay.className = 'stream-player-time';
+                timeCurrent.innerText = 'Tek Görsel';
+                if (timeSep) timeSep.style.display = 'none';
+                timeTotal.style.display = 'none';
+                progressBar.style.width = '100%';
+                progressBar.classList.remove('is-paused');
+                return;
+            }
+
+            if (timeSep) timeSep.style.display = 'inline';
+            timeTotal.style.display = 'inline';
+
+            const totalSec = Math.max(1, Math.round(streamCountdownDurationMs / 1000));
+            timeTotal.innerText = formatPlayerTime(totalSec);
+
+            // Duraklatılmışsa
+            if (streamCountdownIsPaused) {
+                timeDisplay.className = 'stream-player-time is-paused';
+                progressBar.classList.add('is-paused');
+                timeCurrent.innerText = 'Durduruldu';
+                if (timeSep) timeSep.style.display = 'none';
+                timeTotal.style.display = 'none';
+                return;
+            }
+
+            // Normal canlı akış: süre ve ilerleme
+            timeDisplay.className = 'stream-player-time';
+            progressBar.classList.remove('is-paused');
+
+            const now = Date.now();
+            if (!streamCountdownStart) {
+                streamCountdownStart = now;
+            }
+
+            const totalMs = streamCountdownDurationMs > 0 ? streamCountdownDurationMs : 10000;
+            const elapsedMs = Math.max(0, now - streamCountdownStart);
+            const remainingMs = Math.max(0, totalMs - elapsedMs);
+            const progressRatio = Math.min(1, elapsedMs / totalMs);
+            const elapsedSec = Math.min(totalSec, Math.floor(elapsedMs / 1000));
+            const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+
+            progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
+
+            if (streamTimeMode === 'remaining') {
+                timeCurrent.innerText = `-${formatPlayerTime(remainingSec)}`;
+            } else {
+                timeCurrent.innerText = formatPlayerTime(elapsedSec);
+            }
+        }
+
         async function loadStreamStatus() {
             try {
                 const res = await fetch('/api/stream/status', { headers: getAuthHeaders() });
@@ -2464,6 +2789,19 @@
 
                 const data = await res.json();
                 currentStreamData = data;
+
+                // Canlı Geçiş Geri Sayımı Durumu
+                streamCountdownDurationMs = (Number(data.slideInterval) || 10) * 1000;
+                streamCountdownIsPaused = Boolean(data.isPaused);
+                streamCountdownTotalSelected = Number(data.totalSelected) || 0;
+                streamCountdownHasActiveImage = Boolean(data.currentImage);
+                if (data.latestBroadcastAt) {
+                    streamCountdownStart = Number(data.latestBroadcastAt);
+                } else if (!streamCountdownStart) {
+                    streamCountdownStart = Date.now();
+                }
+                updateStreamCountdownTick();
+                startStreamCountdown();
 
                 // 1. Durum rozeti ve butonlar
                 const liveDot = document.getElementById('streamLiveDot');
@@ -2506,7 +2844,12 @@
                     streamPlaceholder.style.display = 'none';
                     if (streamCurrentImg.dataset.filename !== data.currentImage) {
                         streamCurrentImg.dataset.filename = data.currentImage;
-                        streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                        streamCurrentImg.onerror = () => {
+                            if (streamCurrentImg.src && !streamCurrentImg.src.includes('/thumbnails/')) {
+                                streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                            }
+                        };
+                        streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
                     }
                     streamCurrentImg.alt = data.currentImage;
                     streamActiveBadge.style.display = 'inline-flex';
@@ -2741,6 +3084,168 @@
             }
         }
 
+        // Yayın Önizleme Tam Ekran / Tiyatro Modu & Klavye Kısayolları
+        let streamFullscreenHideTimer = null;
+
+        function isStreamFullscreen() {
+            const wrap = document.getElementById('streamLargeImgWrap');
+            if (!wrap) return false;
+            return !!(
+                document.fullscreenElement === wrap ||
+                document.webkitFullscreenElement === wrap ||
+                document.mozFullScreenElement === wrap ||
+                wrap.classList.contains('is-fullscreen')
+            );
+        }
+
+        async function toggleStreamFullscreen() {
+            if (isStreamFullscreen()) {
+                await exitStreamFullscreen();
+            } else {
+                await enterStreamFullscreen();
+            }
+        }
+
+        async function enterStreamFullscreen() {
+            const wrap = document.getElementById('streamLargeImgWrap');
+            if (!wrap) return;
+
+            const currentImg = document.getElementById('streamCurrentImg');
+            if (currentImg && currentImg.dataset.filename && (!currentImg.src || currentImg.src.includes('/thumbnails/'))) {
+                currentImg.src = `/images/${encodeURIComponent(currentImg.dataset.filename)}`;
+            }
+
+            try {
+                if (wrap.requestFullscreen) {
+                    await wrap.requestFullscreen();
+                } else if (wrap.webkitRequestFullscreen) {
+                    await wrap.webkitRequestFullscreen();
+                } else if (wrap.mozRequestFullScreen) {
+                    await wrap.mozRequestFullScreen();
+                } else {
+                    wrap.classList.add('is-fullscreen');
+                    updateFullscreenUI(true);
+                }
+            } catch (err) {
+                console.warn('Tam ekran isteği başarısız oldu, tiyatro moduna geçiliyor:', err);
+                wrap.classList.add('is-fullscreen');
+                updateFullscreenUI(true);
+            }
+        }
+
+        async function exitStreamFullscreen() {
+            const wrap = document.getElementById('streamLargeImgWrap');
+            try {
+                if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        await document.mozCancelFullScreen();
+                    }
+                }
+            } catch (err) {
+                console.warn('Tam ekrandan çıkış hatası:', err);
+            } finally {
+                if (wrap) {
+                    wrap.classList.remove('is-fullscreen');
+                    wrap.classList.remove('controls-hidden');
+                }
+                if (streamFullscreenHideTimer) {
+                    clearTimeout(streamFullscreenHideTimer);
+                    streamFullscreenHideTimer = null;
+                }
+                updateFullscreenUI(false);
+            }
+        }
+
+        function updateFullscreenUI(active) {
+            const iconUse = document.getElementById('streamFullscreenIconUse');
+            const btn = document.getElementById('btnStreamFullscreen');
+            const wrap = document.getElementById('streamLargeImgWrap');
+
+            if (iconUse) {
+                iconUse.setAttribute('href', active ? '#icon-minimize' : '#icon-maximize');
+            }
+            if (btn) {
+                btn.title = active ? 'Tam Ekrandan Çık (Esc veya F)' : 'Tam Ekran / Tiyatro Modu (F)';
+                btn.setAttribute('aria-label', active ? 'Tam ekrandan çık' : 'Tam ekrana geç');
+            }
+            if (wrap) {
+                wrap.title = active ? 'Çift tıklayarak tam ekrandan çıkın' : 'Çift tıklayarak tam ekrana geçin';
+            }
+        }
+
+        function handleStreamFullscreenChange() {
+            const wrap = document.getElementById('streamLargeImgWrap');
+            const isFull = !!(
+                document.fullscreenElement === wrap ||
+                document.webkitFullscreenElement === wrap ||
+                document.mozFullScreenElement === wrap
+            );
+
+            if (!isFull && wrap && !wrap.classList.contains('is-fullscreen')) {
+                wrap.classList.remove('controls-hidden');
+                if (streamFullscreenHideTimer) {
+                    clearTimeout(streamFullscreenHideTimer);
+                    streamFullscreenHideTimer = null;
+                }
+                updateFullscreenUI(false);
+            } else if (isFull) {
+                updateFullscreenUI(true);
+                handleStreamFullscreenMouseMove();
+            }
+        }
+
+        function handleStreamFullscreenMouseMove() {
+            const wrap = document.getElementById('streamLargeImgWrap');
+            if (!wrap || !isStreamFullscreen()) return;
+
+            wrap.classList.remove('controls-hidden');
+
+            if (streamFullscreenHideTimer) {
+                clearTimeout(streamFullscreenHideTimer);
+            }
+
+            streamFullscreenHideTimer = setTimeout(() => {
+                if (isStreamFullscreen()) {
+                    wrap.classList.add('controls-hidden');
+                }
+            }, 2500);
+        }
+
+        document.addEventListener('fullscreenchange', handleStreamFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleStreamFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleStreamFullscreenChange);
+
+        // Medya Oynatıcı & Tam Ekran Klavye Kısayolları (Space, Sol/Sağ Ok, F)
+        document.addEventListener('keydown', (e) => {
+            const streamSec = document.getElementById('streamSection');
+            const isStreamVisible = streamSec && streamSec.style.display === 'block';
+            if (!isStreamVisible && !isStreamFullscreen()) return;
+
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            const isInput = ['input', 'textarea', 'select'].includes(activeTag) || (document.activeElement && document.activeElement.isContentEditable);
+            if (isInput) return;
+
+            if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                toggleStreamFullscreen();
+            } else if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                togglePlayback();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                streamPrev();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                streamNext();
+            } else if (e.key === 'Escape' && isStreamFullscreen()) {
+                exitStreamFullscreen();
+            }
+        });
+
         // Canlı SSE Senkronizasyonu (Chokidar Watcher & Ayar Değişiklikleri)
         function connectLiveUpdates() {
             if (sseSource) {
@@ -2764,6 +3269,16 @@
                             }
                         }, 200);
                     } else if (data.tip === 'stream_status') {
+                        if (data.latestBroadcastAt) {
+                            streamCountdownStart = Number(data.latestBroadcastAt);
+                        }
+                        if (typeof data.isPaused === 'boolean') {
+                            streamCountdownIsPaused = data.isPaused;
+                        }
+                        if (data.slideInterval) {
+                            streamCountdownDurationMs = Number(data.slideInterval) * 1000;
+                        }
+                        updateStreamCountdownTick();
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {
                             loadStreamStatus();
@@ -2773,6 +3288,8 @@
                             const slideInput = document.getElementById('slideInterval');
                             if (slideInput) slideInput.value = data.slideInterval;
                             renderSlideIntervalDisplay(data.slideInterval);
+                            streamCountdownDurationMs = Number(data.slideInterval) * 1000;
+                            updateStreamCountdownTick();
                         }
                         if (data.kioskIdleTimeout) {
                             const kioskInput = document.getElementById('kioskIdleTimeout');
@@ -2807,7 +3324,18 @@
                         if (document.getElementById('streamSection').style.display === 'block') {
                             loadStreamStatus();
                         }
-                    } else if (data.tip === 'client_count' || data.tip === 'dashboard_update' || data.tip === 'image') {
+                    } else if (data.tip === 'image') {
+                        if (data.broadcastAt) {
+                            streamCountdownStart = Number(data.broadcastAt);
+                        } else {
+                            streamCountdownStart = Date.now();
+                        }
+                        updateStreamCountdownTick();
+                        loadDashboardStats();
+                        if (document.getElementById('streamSection').style.display === 'block') {
+                            loadStreamStatus();
+                        }
+                    } else if (data.tip === 'client_count' || data.tip === 'dashboard_update') {
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {
                             loadStreamStatus();

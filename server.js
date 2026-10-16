@@ -662,6 +662,7 @@ function broadcastImage(fileName) {
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
             slideshowOrder: getSlideshowOrder(),
+            broadcastAt: lastBroadcast.time,
             resimData: base64Image
         };
 
@@ -1003,7 +1004,8 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
             totalSelected: selectedList.length,
             selectedImages: selectedList,
             slideInterval: getSlideIntervalSec(),
-            connectedClients: getConnectedClientCount()
+            connectedClients: getConnectedClientCount(),
+            latestBroadcastAt: lastBroadcast.time || null
         });
     });
 });
@@ -1021,7 +1023,8 @@ app.post('/api/stream/pause', requireAuth, (req, res) => {
     broadcastToAdmins({
         tip: 'stream_status',
         isPaused: true,
-        currentImage: lastBroadcast.fileName
+        currentImage: lastBroadcast.fileName,
+        latestBroadcastAt: lastBroadcast.time || Date.now()
     });
     logActivity('stream', 'Yayın duraklatıldı', 'Ekranlar bekleme durumuna alındı');
     console.log('[⏸️ Yayın] Yayın durduruldu, istemciler sistem tepsisine alındı.');
@@ -1038,7 +1041,8 @@ app.post('/api/stream/resume', requireAuth, (req, res) => {
     broadcastToAdmins({
         tip: 'stream_status',
         isPaused: false,
-        currentImage: lastBroadcast.fileName
+        currentImage: lastBroadcast.fileName,
+        latestBroadcastAt: lastBroadcast.time || Date.now()
     });
     logActivity('stream', 'Yayın yeniden başlatıldı', 'Canlı görsel akışı devrede');
     slideshowTick();
@@ -1054,7 +1058,8 @@ app.post('/api/stream/next', requireAuth, (req, res) => {
     broadcastToAdmins({
         tip: 'stream_status',
         currentImage: nextFile,
-        isPaused: isPlaybackPaused
+        isPaused: isPlaybackPaused,
+        latestBroadcastAt: lastBroadcast.time || Date.now()
     });
     res.json({ success: true, currentImage: nextFile });
 });
@@ -1067,7 +1072,8 @@ app.post('/api/stream/prev', requireAuth, (req, res) => {
     broadcastToAdmins({
         tip: 'stream_status',
         currentImage: prevFile,
-        isPaused: isPlaybackPaused
+        isPaused: isPlaybackPaused,
+        latestBroadcastAt: lastBroadcast.time || Date.now()
     });
     res.json({ success: true, currentImage: prevFile });
 });
@@ -1106,7 +1112,8 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
         tip: 'stream_status',
         selectedImages: updated,
         currentImage: lastBroadcast.fileName,
-        isPaused: isPlaybackPaused
+        isPaused: isPlaybackPaused,
+        latestBroadcastAt: lastBroadcast.time || Date.now()
     });
     broadcastDashboardUpdate();
 
