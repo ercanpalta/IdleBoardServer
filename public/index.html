@@ -390,7 +390,7 @@
         .stream-panel-heading-copy { display: grid; gap: var(--space-1); }
         .stream-panel-description { margin: 0; color: #64748b; font-size: 13px; line-height: 1.4; }
         .stream-control-bar { position: absolute; right: 0; bottom: 0; left: 0; z-index: 3; display: flex; justify-content: center; align-items: center; box-sizing: border-box; width: 100%; margin: 0; padding: var(--space-2); border-top: 1px solid rgba(255,255,255,0.2); border-radius: 0 0 12px 12px; background: rgba(15,23,42,0.2); box-shadow: 0 -4px 16px rgba(0,0,0,0.12); backdrop-filter: blur(12px) saturate(160%); }
-        .stream-control-buttons { display: grid; grid-template-columns: repeat(3, 36px); flex: 0 0 auto; gap: 6px; }
+        .stream-control-buttons { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { width: 36px; height: 36px; min-width: 0; min-height: 36px; padding: 0; gap: 0; font-size: 0; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { border: 1px solid rgba(255,255,255,0.38); border-radius: 50%; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.18); backdrop-filter: blur(12px) saturate(160%); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-stream-nav { background: var(--color-neutral); color: white; border: 1px solid var(--color-neutral); cursor: pointer; transition: background 0.2s; box-shadow: none; }
@@ -409,8 +409,16 @@
         .stream-control-bar .btn-playback.paused { background: rgba(21,128,61,0.82); border-color: rgba(134,239,172,0.78); }
         .stream-control-bar .btn-playback.paused:hover { background: rgba(22,101,52,0.92); border-color: rgba(187,247,208,0.9); transform: translateY(-1px); }
         .badge-active { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: var(--color-danger); color: white; }
-        .stream-overlay-badge { position: absolute; top: 12px; left: 12px; z-index: 2; }
+        .stream-overlay-badge { position: absolute; top: 12px; left: 12px; z-index: 2; transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease; }
         .stream-overlay-badge.is-paused { background: #fef3c7; color: #92400e; }
+        .stream-overlay-badge.is-pinned { background: #d97706; color: white; }
+        .stream-overlay-pin { position: absolute; top: 12px; right: 12px; z-index: 4; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.18); color: #f1f5f9; cursor: pointer; backdrop-filter: blur(10px) saturate(160%); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, opacity 0.3s ease; }
+        .stream-overlay-pin .icon { width: 15px; height: 15px; }
+        .stream-overlay-pin:hover:not(:disabled) { background: rgba(15, 23, 42, 0.75); border-color: rgba(255, 255, 255, 0.45); color: white; transform: scale(1.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+        .stream-overlay-pin:active:not(:disabled) { transform: scale(0.95); }
+        .stream-overlay-pin:disabled { opacity: 0.4; cursor: not-allowed; }
+        .stream-overlay-pin.is-pinned { background: rgba(217, 119, 6, 0.9); border-color: rgba(253, 230, 138, 0.95); color: #ffffff; box-shadow: 0 0 14px rgba(245, 158, 11, 0.65), 0 2px 8px rgba(0, 0, 0, 0.3); }
+        .stream-overlay-pin.is-pinned:hover:not(:disabled) { background: rgba(180, 83, 9, 0.95); border-color: #ffffff; transform: scale(1.08); box-shadow: 0 0 18px rgba(245, 158, 11, 0.85), 0 4px 14px rgba(0, 0, 0, 0.4); }
         .status-dot { display: inline-block; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: currentColor; }
         .btn-broadcast-stream { background: #eff6ff; color: var(--color-primary-hover); border-color: #bfdbfe; }
         .btn-broadcast-stream:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
@@ -462,6 +470,11 @@
             border-color: rgba(251, 191, 36, 0.35);
             background: rgba(120, 53, 15, 0.45);
         }
+        .stream-player-time.is-pinned {
+            color: #fed7aa;
+            border-color: rgba(251, 146, 60, 0.4);
+            background: rgba(154, 52, 18, 0.45);
+        }
         .btn-player-action {
             display: inline-flex;
             align-items: center;
@@ -494,6 +507,16 @@
             height: 4px;
         }
         @media (max-width: 480px) {
+            .stream-overlay-pin {
+                top: 8px;
+                right: 8px;
+                width: 28px;
+                height: 28px;
+            }
+            .stream-overlay-pin .icon {
+                width: 13px;
+                height: 13px;
+            }
             .stream-control-left {
                 left: 8px;
                 gap: 4px;
@@ -566,15 +589,43 @@
         .stream-large-img-wrap.is-fullscreen .stream-control-right {
             right: 28px !important;
         }
+        .stream-large-img-wrap:fullscreen .stream-overlay-badge,
+        .stream-large-img-wrap:-webkit-full-screen .stream-overlay-badge,
+        .stream-large-img-wrap:-moz-full-screen .stream-overlay-badge,
+        .stream-large-img-wrap.is-fullscreen .stream-overlay-badge {
+            top: 24px !important;
+            left: 28px !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-overlay-pin,
+        .stream-large-img-wrap:-webkit-full-screen .stream-overlay-pin,
+        .stream-large-img-wrap:-moz-full-screen .stream-overlay-pin,
+        .stream-large-img-wrap.is-fullscreen .stream-overlay-pin {
+            top: 24px !important;
+            right: 28px !important;
+            width: 38px !important;
+            height: 38px !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-overlay-pin .icon,
+        .stream-large-img-wrap:-webkit-full-screen .stream-overlay-pin .icon,
+        .stream-large-img-wrap:-moz-full-screen .stream-overlay-pin .icon,
+        .stream-large-img-wrap.is-fullscreen .stream-overlay-pin .icon {
+            width: 18px !important;
+            height: 18px !important;
+        }
         /* Tam ekranda fare hareketsiz kaldığında kontrollerin otomatik gizlenmesi */
         .stream-large-img-wrap.controls-hidden {
             cursor: none !important;
         }
-        .stream-large-img-wrap.controls-hidden .stream-control-bar,
-        .stream-large-img-wrap.controls-hidden .stream-overlay-badge {
+        .stream-large-img-wrap.controls-hidden .stream-control-bar {
             opacity: 0 !important;
             pointer-events: none !important;
-            transform: translateY(12px) !important;
+            transform: translateY(14px) !important;
+        }
+        .stream-large-img-wrap.controls-hidden .stream-overlay-badge,
+        .stream-large-img-wrap.controls-hidden .stream-overlay-pin {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(-10px) !important;
         }
 
         .stream-progress-track {
@@ -596,6 +647,10 @@
         }
         .stream-progress-fill.is-paused {
             background: #f59e0b;
+            box-shadow: none;
+        }
+        .stream-progress-fill.is-pinned {
+            background: #ea580c;
             box-shadow: none;
         }
 
@@ -949,6 +1004,7 @@
         <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></symbol>
         <symbol id="icon-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></symbol>
         <symbol id="icon-minimize" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></symbol>
+        <symbol id="icon-pin" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -1196,6 +1252,9 @@
                             <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
                         </div>
                         <span id="streamActiveBadge" class="badge-active stream-overlay-badge" style="display: none;"><span class="status-dot"></span><span id="streamActiveBadgeText">Yayında</span></span>
+                        <button id="btnStreamPin" class="stream-overlay-pin" type="button" onclick="toggleStreamPin()" title="Görseli Ekranda Sabitle (P)" aria-label="Görseli ekranda sabitle">
+                            <svg class="icon"><use id="streamPinIconUse" href="#icon-pin"></use></svg>
+                        </button>
                         
                         <div class="stream-control-bar">
                             <!-- Canlı Geçiş İlerleme Çubuğu -->
@@ -1211,13 +1270,13 @@
                                 </div>
                             </div>
                             <div class="stream-control-buttons">
-                                <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim">
+                                <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim (Sol Ok)">
                                     <svg class="icon"><use href="#icon-chevron-left"></use></svg> Önceki Resim
                                 </button>
-                                <button id="btnStreamToggle" class="btn-playback playing" type="button" onclick="togglePlayback()">
+                                <button id="btnStreamToggle" class="btn-playback playing" type="button" onclick="togglePlayback()" title="Yayını Durdur / Başlat (Boşluk)">
                                     <svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur
                                 </button>
-                                <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim">
+                                <button id="btnStreamNext" class="btn-stream-nav" type="button" onclick="streamNext()" title="Sonraki Resim (Sağ Ok)">
                                     Sonraki Resim <svg class="icon"><use href="#icon-chevron-right"></use></svg>
                                 </button>
                             </div>
@@ -2672,6 +2731,7 @@
         let streamCountdownStart = null;
         let streamCountdownDurationMs = 10000;
         let streamCountdownIsPaused = false;
+        let streamCountdownIsPinned = false;
         let streamCountdownTotalSelected = 0;
         let streamCountdownHasActiveImage = false;
         let streamTimeMode = 'elapsed'; // 'elapsed' veya 'remaining'
@@ -2723,7 +2783,7 @@
             if (!streamCountdownHasActiveImage || streamCountdownTotalSelected === 0) {
                 timeDisplay.style.display = 'none';
                 progressBar.style.width = '0%';
-                progressBar.classList.remove('is-paused');
+                progressBar.classList.remove('is-paused', 'is-pinned');
                 return;
             }
 
@@ -2736,7 +2796,7 @@
                 if (timeSep) timeSep.style.display = 'none';
                 timeTotal.style.display = 'none';
                 progressBar.style.width = '100%';
-                progressBar.classList.remove('is-paused');
+                progressBar.classList.remove('is-paused', 'is-pinned');
                 return;
             }
 
@@ -2750,7 +2810,19 @@
             if (streamCountdownIsPaused) {
                 timeDisplay.className = 'stream-player-time is-paused';
                 progressBar.classList.add('is-paused');
+                progressBar.classList.remove('is-pinned');
                 timeCurrent.innerText = 'Durduruldu';
+                if (timeSep) timeSep.style.display = 'none';
+                timeTotal.style.display = 'none';
+                return;
+            }
+
+            // Ekranda sabitlenmişse
+            if (streamCountdownIsPinned) {
+                timeDisplay.className = 'stream-player-time is-pinned';
+                progressBar.classList.remove('is-paused');
+                progressBar.classList.add('is-pinned');
+                timeCurrent.innerText = 'Sabitlendi';
                 if (timeSep) timeSep.style.display = 'none';
                 timeTotal.style.display = 'none';
                 return;
@@ -2758,7 +2830,7 @@
 
             // Normal canlı akış: süre ve ilerleme
             timeDisplay.className = 'stream-player-time';
-            progressBar.classList.remove('is-paused');
+            progressBar.classList.remove('is-paused', 'is-pinned');
 
             const now = Date.now();
             if (!streamCountdownStart) {
@@ -2793,6 +2865,7 @@
                 // Canlı Geçiş Geri Sayımı Durumu
                 streamCountdownDurationMs = (Number(data.slideInterval) || 10) * 1000;
                 streamCountdownIsPaused = Boolean(data.isPaused);
+                streamCountdownIsPinned = Boolean(data.isPinned);
                 streamCountdownTotalSelected = Number(data.totalSelected) || 0;
                 streamCountdownHasActiveImage = Boolean(data.currentImage);
                 if (data.latestBroadcastAt) {
@@ -2807,6 +2880,7 @@
                 const liveDot = document.getElementById('streamLiveDot');
                 const liveText = document.getElementById('streamLiveText');
                 const btnToggle = document.getElementById('btnStreamToggle');
+                const btnPin = document.getElementById('btnStreamPin');
                 const btnPrev = document.getElementById('btnStreamPrev');
                 const btnNext = document.getElementById('btnStreamNext');
                 const controlKicker = document.getElementById('streamControlKicker');
@@ -2823,12 +2897,20 @@
                     liveText.innerText = hasClients ? `Yayın Aktif (${data.connectedClients} istemci)` : 'Yayın Aktif (İstemci bekleniyor)';
                     btnToggle.className = 'btn-playback playing';
                     btnToggle.innerHTML = '<svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur';
-                    controlKicker.innerText = 'Canlı Yönetim';
+                    controlKicker.innerText = data.isPinned ? 'Görsel Sabitlendi' : 'Canlı Yönetim';
                 }
 
                 const hasImages = Array.isArray(data.selectedImages) && data.selectedImages.length > 0;
                 btnPrev.disabled = !hasImages;
                 btnNext.disabled = !hasImages;
+                if (btnPin) {
+                    btnPin.disabled = !hasImages;
+                    btnPin.classList.toggle('is-pinned', Boolean(data.isPinned));
+                    btnPin.title = data.isPinned
+                        ? 'Sabitlemeyi Kaldır (Döngüyü Başlat) - P'
+                        : 'Görseli Ekranda Sabitle (Döngüyü Dondur) - P';
+                    btnPin.setAttribute('aria-label', data.isPinned ? 'Sabitlemeyi kaldır' : 'Görseli ekranda sabitle');
+                }
 
                 // 2. Aktif görsel önizlemesi
                 const streamCurrentImg = document.getElementById('streamCurrentImg');
@@ -2853,19 +2935,31 @@
                     }
                     streamCurrentImg.alt = data.currentImage;
                     streamActiveBadge.style.display = 'inline-flex';
-                    streamActiveBadge.classList.toggle('is-paused', data.isPaused);
-                    streamActiveBadgeText.innerText = data.isPaused ? 'Yayın duraklatıldı' : 'Yayında';
+                    streamActiveBadge.classList.remove('is-paused', 'is-pinned');
+                    if (data.isPaused) {
+                        streamActiveBadge.classList.add('is-paused');
+                        streamActiveBadgeText.innerText = 'Yayın duraklatıldı';
+                    } else if (data.isPinned) {
+                        streamActiveBadge.classList.add('is-pinned');
+                        streamActiveBadgeText.innerText = 'Ekranda Sabitlendi';
+                    } else {
+                        streamActiveBadgeText.innerText = 'Yayında';
+                    }
                     const currentIndex = data.selectedImages.indexOf(data.currentImage);
                     streamSlideInterval.innerText = data.slideInterval;
                     streamTotalSelected.innerText = `${data.totalSelected}`;
-                    streamInfoStatus.innerText = currentIndex !== -1
-                        ? `${data.isPaused ? 'Yayın duraklatıldı. ' : ''}Şu anda ${currentIndex + 1} / ${data.selectedImages.length} görsel gösteriliyor.`
-                        : 'Şu anda gösterilen görsel yayın listesinde değil.';
+                    if (data.isPinned) {
+                        streamInfoStatus.innerText = 'Görsel ekranda sabitlendi (otomatik geçiş durduruldu).';
+                    } else {
+                        streamInfoStatus.innerText = currentIndex !== -1
+                            ? `${data.isPaused ? 'Yayın duraklatıldı. ' : ''}Şu anda ${currentIndex + 1} / ${data.selectedImages.length} görsel gösteriliyor.`
+                            : 'Şu anda gösterilen görsel yayın listesinde değil.';
+                    }
                 } else {
                     streamCurrentImg.style.display = 'none';
                     streamPlaceholder.style.display = 'grid';
                     streamActiveBadge.style.display = 'none';
-                    streamActiveBadge.classList.remove('is-paused');
+                    streamActiveBadge.classList.remove('is-paused', 'is-pinned');
                     streamSlideInterval.innerText = data.slideInterval;
                     streamTotalSelected.innerText = `${data.totalSelected || 0}`;
                     streamInfoStatus.innerText = hasImages
@@ -3008,6 +3102,24 @@
                 }
             } catch (err) {
                 console.error('Yayın durdurma/başlatma hatası:', err);
+            }
+        }
+
+        async function toggleStreamPin() {
+            try {
+                const res = await fetch('/api/stream/toggle-pin', {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+                const result = await res.json();
+                if (result.success) {
+                    await loadStreamStatus();
+                } else {
+                    alert(result.error || 'Sabitleme işlemi gerçekleştirilemedi.');
+                }
+            } catch (err) {
+                console.error('Sabitleme hatası:', err);
             }
         }
 
@@ -3235,6 +3347,9 @@
             } else if (e.code === 'Space' || e.key === ' ') {
                 e.preventDefault();
                 togglePlayback();
+            } else if (e.key === 'p' || e.key === 'P') {
+                e.preventDefault();
+                toggleStreamPin();
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 streamPrev();
@@ -3274,6 +3389,9 @@
                         }
                         if (typeof data.isPaused === 'boolean') {
                             streamCountdownIsPaused = data.isPaused;
+                        }
+                        if (typeof data.isPinned === 'boolean') {
+                            streamCountdownIsPinned = data.isPinned;
                         }
                         if (data.slideInterval) {
                             streamCountdownDurationMs = Number(data.slideInterval) * 1000;
