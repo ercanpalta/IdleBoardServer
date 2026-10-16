@@ -150,12 +150,8 @@
         .theme-option:hover { color: #0f172a; }
         .theme-option:has(input:checked) { background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04); }
 
-        /* Tıklama Odaklı Kontroller (Preset Pill & Stepper) */
+        /* Tıklama Odaklı Kontroller (Stepper Kapsülü) */
         .settings-click-group { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-        .preset-pill-group { display: inline-flex; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 2px; border: 1px solid #e2e8f0; }
-        .preset-pill { padding: 5px 11px; border-radius: 6px; background: transparent; border: none; color: #64748b; cursor: pointer; font-size: 12px; font-weight: 500; line-height: 1.25; transition: all 0.15s ease; user-select: none; }
-        .preset-pill:hover { color: #0f172a; }
-        .preset-pill.active { background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04); }
         .stepper-capsule { display: inline-flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px; gap: 3px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
         .stepper-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: white; border: 1px solid #e2e8f0; color: #334155; font-size: 15px; font-weight: 600; cursor: pointer; line-height: 1; padding: 0; transition: background 0.15s, border-color 0.15s, transform 0.1s; user-select: none; }
         .stepper-btn:hover { background: #0f172a; color: white; border-color: #0f172a; }
@@ -415,10 +411,6 @@
         html[data-theme="dark"] .theme-option { color: #94a3b8; }
         html[data-theme="dark"] .theme-option:hover { color: #f1f5f9; }
         html[data-theme="dark"] .theme-option:has(input:checked) { background: #1e293b; color: #f1f5f9; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
-        html[data-theme="dark"] .preset-pill-group { background: #090e17; border-color: #1e293b; }
-        html[data-theme="dark"] .preset-pill { color: #94a3b8; }
-        html[data-theme="dark"] .preset-pill:hover { color: #f1f5f9; }
-        html[data-theme="dark"] .preset-pill.active { background: #1e293b; color: #f1f5f9; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
         html[data-theme="dark"] .stepper-capsule { background: #090e17; border-color: #1e293b; }
         html[data-theme="dark"] .stepper-btn { background: #111c2e; border-color: #26364f; color: #e2e8f0; }
         html[data-theme="dark"] .stepper-btn:hover { background: #2563eb; border-color: #2563eb; color: white; }
@@ -439,15 +431,65 @@
             .stream-control-layout { grid-template-columns: 1fr; gap: 20px; }
             .stream-preview-column { margin: 0 auto; }
         }
-        @media (max-width: 700px) {
+        @media (max-width: 750px) {
             .settings-minimal-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .settings-item { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
-            .settings-item-controls { align-items: flex-start; width: 100%; }
-            .settings-click-group { justify-content: flex-start; width: 100%; }
+            .settings-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .settings-item-controls { align-items: flex-start; width: auto; }
+            .settings-click-group { width: auto; display: inline-flex; }
+            .stepper-capsule { display: inline-flex; width: auto; align-items: center; height: 32px; padding: 2px 3px; border-radius: 7px; }
+            .stepper-btn { width: 30px; height: 28px; flex: 0 0 30px; font-size: 15px; border-radius: 5px; }
+            .stepper-display-wrap { min-width: 52px; padding: 0 4px; display: inline-flex; justify-content: center; align-items: center; }
+            .stepper-display { font-size: 12.5px; min-width: 44px; }
+            .stepper-edit-input { width: 56px; height: 26px; font-size: 14px; }
+            .theme-options { display: inline-flex; width: auto; max-width: 100%; padding: 2px; gap: 2px; border-radius: 7px; }
+            .theme-option { flex: 0 0 auto; width: auto; padding: 5px 12px; font-size: 12px; border-radius: 5px; white-space: nowrap; }
             .settings-item-header-row { flex-direction: column; align-items: flex-start; gap: 8px; }
-            .btn-password-toggle { width: 100%; justify-content: center; }
-            .password-fields-row { flex-direction: column; align-items: stretch; }
-            .btn-minimal-save, .btn-password-cancel { width: 100%; }
+            .btn-password-toggle { width: auto; align-self: flex-start; height: 30px; font-size: 12px; padding: 0 12px; border-radius: 6px; }
+            .password-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; max-width: 340px; }
+            .minimal-input { grid-column: 1 / -1; height: 30px; font-size: 12px; padding: 0 8px; border-radius: 6px; }
+            .btn-minimal-save { grid-column: 1; width: 100%; height: 30px; font-size: 12px; padding: 0; border-radius: 6px; }
+            .btn-password-cancel { grid-column: 2; width: 100%; height: 30px; font-size: 12px; padding: 0; border-radius: 6px; }
+            .dashboard-updated { font-size: 11px; width: auto; text-align: left; margin-top: 3px; }
+        }
+
+        @media (max-width: 450px) {
+            .app-main { padding: 12px 10px; }
+            #settingsSection { padding: 0; }
+            .settings-minimal-header { margin-bottom: 14px; padding-bottom: 10px; gap: 6px; }
+            .settings-header-copy h1 { font-size: 20px; }
+            .settings-header-copy p { font-size: 11.5px; line-height: 1.35; }
+            .settings-header-pill { padding: 3px 9px; font-size: 10.5px; }
+            .settings-container { gap: 12px; }
+            .settings-group-label { font-size: 10.5px; margin-bottom: 5px; margin-left: 2px; }
+            .settings-sheet { border-radius: 10px; }
+            .settings-item { padding: 11px 11px; gap: 8px; }
+            .settings-item-info { min-width: 0; width: 100%; }
+            .settings-item-title { font-size: 13px; margin-bottom: 1px; }
+            .settings-item-desc { font-size: 11px; line-height: 1.35; }
+            .settings-item-controls { width: auto; align-items: flex-start; }
+
+            /* Segmented butonlar: Kompakt içerik genişliği */
+            .theme-options { display: inline-flex; width: auto; max-width: 100%; padding: 2px; gap: 2px; border-radius: 7px; }
+            .theme-option { flex: 0 0 auto; width: auto; padding: 5px 9px; font-size: 11px; text-align: center; border-radius: 5px; white-space: nowrap; }
+
+            /* Süre kontrolü: Kompakt stepper kapsülü */
+            .settings-click-group { width: auto; display: inline-flex; }
+            .stepper-capsule { display: inline-flex; width: auto; height: 32px; padding: 2px 3px; border-radius: 7px; }
+            .stepper-btn { width: 30px; height: 28px; flex: 0 0 30px; font-size: 15px; border-radius: 5px; }
+            .stepper-display-wrap { min-width: 48px; padding: 0 3px; }
+            .stepper-display { font-size: 12.5px; min-width: 42px; }
+            .stepper-edit-input { width: 54px; height: 25px; font-size: 16px; }
+
+            /* Parola formu: Kompakt ve zarif yapı */
+            .settings-item-header-row { gap: 6px; }
+            .btn-password-toggle { width: auto; align-self: flex-start; height: 28px; font-size: 11.5px; padding: 0 11px; border-radius: 6px; }
+            .password-collapse { margin-top: 8px; padding-top: 8px; }
+            .password-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 100%; max-width: 320px; }
+            .minimal-input { grid-column: 1 / -1; height: 29px; font-size: 12px; padding: 0 8px; border-radius: 6px; }
+            .btn-minimal-save { grid-column: 1; width: 100%; height: 28px; font-size: 11.5px; padding: 0; border-radius: 6px; }
+            .btn-password-cancel { grid-column: 2; width: 100%; height: 28px; font-size: 11.5px; padding: 0; border-radius: 6px; }
+            .password-collapse .login-error { font-size: 11px; margin-top: 4px; }
+            .dashboard-updated { font-size: 11px; width: auto; text-align: left; }
         }
     </style>
 </head>
@@ -734,14 +776,6 @@
                         </div>
                         <div class="settings-item-controls">
                             <div class="settings-click-group">
-                                <div id="slidePresetGroup" class="preset-pill-group" role="group" aria-label="Slayt geçiş süresi seçenekleri">
-                                    <button type="button" class="preset-pill" data-value="10" onclick="setSlideIntervalQuick(10)">10 sn</button>
-                                    <button type="button" class="preset-pill" data-value="15" onclick="setSlideIntervalQuick(15)">15 sn</button>
-                                    <button type="button" class="preset-pill" data-value="20" onclick="setSlideIntervalQuick(20)">20 sn</button>
-                                    <button type="button" class="preset-pill" data-value="30" onclick="setSlideIntervalQuick(30)">30 sn</button>
-                                    <button type="button" class="preset-pill" data-value="45" onclick="setSlideIntervalQuick(45)">45 sn</button>
-                                    <button type="button" class="preset-pill" data-value="60" onclick="setSlideIntervalQuick(60)">60 sn</button>
-                                </div>
                                 <div class="stepper-capsule">
                                     <button type="button" class="stepper-btn" onclick="adjustSlideInterval(-1)" aria-label="Süreyi 1 saniye azalt" title="Azalt">−</button>
                                     <div class="stepper-display-wrap" onclick="startEditingSlideInterval()" title="Tıklayarak klavyeden değer girin">
@@ -803,15 +837,6 @@
                         </div>
                         <div class="settings-item-controls">
                             <div class="settings-click-group">
-                                <div id="idlePresetGroup" class="preset-pill-group" role="group" aria-label="Boşta kalma süresi seçenekleri">
-                                    <button type="button" class="preset-pill" data-value="20" onclick="setKioskIdleQuick(20)">20 sn</button>
-                                    <button type="button" class="preset-pill" data-value="30" onclick="setKioskIdleQuick(30)">30 sn</button>
-                                    <button type="button" class="preset-pill" data-value="45" onclick="setKioskIdleQuick(45)">45 sn</button>
-                                    <button type="button" class="preset-pill" data-value="60" onclick="setKioskIdleQuick(60)">1 dk</button>
-                                    <button type="button" class="preset-pill" data-value="90" onclick="setKioskIdleQuick(90)">1,5 dk</button>
-                                    <button type="button" class="preset-pill" data-value="120" onclick="setKioskIdleQuick(120)">2 dk</button>
-                                    <button type="button" class="preset-pill" data-value="180" onclick="setKioskIdleQuick(180)">3 dk</button>
-                                </div>
                                 <div class="stepper-capsule">
                                     <button type="button" class="stepper-btn" onclick="adjustKioskIdle(-1)" aria-label="Süreyi azalt" title="Azalt">−</button>
                                     <div class="stepper-display-wrap" onclick="startEditingKioskIdle()" title="Tıklayarak klavyeden değer girin">
@@ -1110,11 +1135,6 @@
             sec = Number(sec) || 10;
             const display = document.getElementById('slideIntervalDisplay');
             if (display) display.textContent = `${sec} sn`;
-            const pills = document.querySelectorAll('#slidePresetGroup .preset-pill');
-            pills.forEach(pill => {
-                const pVal = Number(pill.getAttribute('data-value'));
-                pill.classList.toggle('active', pVal === sec);
-            });
         }
 
         let slideIntervalSaveTimer = null;
@@ -1152,11 +1172,6 @@
             sec = Number(sec) || 20;
             const display = document.getElementById('kioskIdleDisplay');
             if (display) display.textContent = formatIdleSeconds(sec);
-            const pills = document.querySelectorAll('#idlePresetGroup .preset-pill');
-            pills.forEach(pill => {
-                const pVal = Number(pill.getAttribute('data-value'));
-                pill.classList.toggle('active', pVal === sec);
-            });
         }
 
         let kioskIdleSaveTimer = null;
