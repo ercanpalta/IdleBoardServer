@@ -294,7 +294,7 @@
             .panel-heading { align-items: flex-start; flex-wrap: wrap; }
             .panel-heading h2 { min-width: 0; }
             .panel-kicker { margin-left: auto; }
-            .stream-control-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+            .stream-control-layout { width: 100%; }
             .stream-actions-card { gap: var(--space-3); }
             .password-change-card { margin-top: var(--space-6); padding: var(--space-4); }
             .header-bar { align-items: flex-start; }
@@ -368,29 +368,57 @@
         .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 var(--space-6); }
 
         /* Yayın Akışı (Stream View) Stilleri */
-        .stream-control-layout { display: grid; grid-template-columns: minmax(0, 560px) minmax(200px, 1fr); gap: var(--space-4); align-items: start; }
-        .stream-preview-column { display: flex; flex-direction: column; width: 100%; max-width: 560px; min-width: 0; margin: 0; }
-        .stream-large-img-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; box-sizing: border-box; border-radius: 12px; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; box-shadow: none; }
-        .stream-large-img { width: 100%; height: 100%; object-fit: contain; background: #0b1120; }
-        .stream-large-placeholder { display: grid; place-items: center; place-content: center; width: 100%; height: 100%; color: #94a3b8; }
-        .stream-info-list { display: grid; align-content: start; gap: var(--space-3); min-width: 0; }
+        .stream-control-layout { display: flex; justify-content: center; width: 100%; margin: 0; }
+        .stream-preview-column { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 960px; min-width: 0; margin: 0 auto; filter: drop-shadow(0 8px 24px rgba(15, 23, 42, 0.12)); }
+        
+        /* Yan Alanlar İçin Ortam Işığı (Ambient Glow / Ambilight Efekti) */
+        .stream-pillar-ambient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            user-select: none;
+        }
+        .stream-pillar-ambient.is-visible {
+            opacity: 0.72;
+        }
+        html[data-theme="dark"] .stream-pillar-ambient.is-visible {
+            opacity: 0.88;
+        }
+        .stream-pillar-ambient img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(28px) saturate(190%) brightness(0.78);
+            -webkit-filter: blur(28px) saturate(190%) brightness(0.78);
+            transform: scale(1.12);
+            transition: opacity 0.4s ease;
+        }
+        .stream-pillar-vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.45) 100%),
+                        linear-gradient(90deg, rgba(0, 0, 0, 0.4) 0%, transparent 18%, transparent 82%, rgba(0, 0, 0, 0.4) 100%);
+            pointer-events: none;
+        }
+
+        .stream-large-img-wrap { position: relative; z-index: 1; width: 100%; aspect-ratio: 2 / 1; min-height: 280px; box-sizing: border-box; border-radius: 12px 12px 0 0; overflow: hidden; background: #000000; border: 1px solid #1e293b; border-bottom: 1px solid rgba(255, 255, 255, 0.08); box-shadow: none; }
+        .stream-large-img-wrap.has-carousel-hidden { border-radius: 12px !important; border-bottom: 1px solid #1e293b !important; }
+        .stream-large-img { position: absolute; top: 0; left: 0; right: 0; bottom: 66px; width: 100%; height: calc(100% - 66px); object-fit: contain; background: transparent; z-index: 2; filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.65)); transition: opacity 0.25s ease; }
+        .stream-large-placeholder { position: absolute; top: 0; left: 0; right: 0; bottom: 66px; width: 100%; height: calc(100% - 66px); display: grid; place-items: center; place-content: center; color: #94a3b8; background: #000000; z-index: 2; }
         .stream-card { position: relative; }
         .stream-card .stream-active-badge { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; }
-        .stream-info-heading { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); }
-        .stream-info-heading h3 { margin: 0; color: #0f172a; font-size: 15px; }
-        .stream-info-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #eaf1fb; color: var(--color-primary); }
-        .stream-info-list .metric-card { min-height: 104px; padding: var(--space-3); }
-        .stream-info-list .metric-card::after { right: -18px; bottom: -32px; width: 82px; height: 82px; }
-        .stream-info-list .metric-top { gap: var(--space-1); font-size: 11px; }
-        .stream-info-list .metric-icon { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; }
-        .stream-info-list .metric-icon .icon { width: 16px; height: 16px; }
-        .stream-info-list .metric-value { margin-top: var(--space-2); font-size: 24px; }
-        .stream-info-list .metric-caption { margin-top: 6px; font-size: 10px; line-height: 1.35; }
 
         .stream-panel-heading-copy { display: grid; gap: var(--space-1); }
         .stream-panel-description { margin: 0; color: #64748b; font-size: 13px; line-height: 1.4; }
-        .stream-control-bar { position: absolute; right: 0; bottom: 0; left: 0; z-index: 3; display: flex; justify-content: center; align-items: center; box-sizing: border-box; width: 100%; margin: 0; padding: var(--space-2); border-top: 1px solid rgba(255,255,255,0.2); border-radius: 0 0 12px 12px; background: rgba(15,23,42,0.2); box-shadow: 0 -4px 16px rgba(0,0,0,0.12); backdrop-filter: blur(12px) saturate(160%); }
-        .stream-control-buttons { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; }
+        .stream-control-bar { position: absolute; right: 0; bottom: 0; left: 0; height: 62px; z-index: 3; display: flex; justify-content: center; align-items: center; box-sizing: border-box; width: 100%; margin: 0; padding: 15px 16px 11px; border-top: 1px solid rgba(255, 255, 255, 0.14); border-radius: 0; background: rgba(15, 23, 42, 0.42); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+        .stream-control-buttons { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; margin-top: 2px; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { width: 36px; height: 36px; min-width: 0; min-height: 36px; padding: 0; gap: 0; font-size: 0; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { border: 1px solid rgba(255,255,255,0.38); border-radius: 50%; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.18); backdrop-filter: blur(12px) saturate(160%); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-stream-nav { background: var(--color-neutral); color: white; border: 1px solid var(--color-neutral); cursor: pointer; transition: background 0.2s; box-shadow: none; }
@@ -426,14 +454,18 @@
         /* Medya Oynatıcı Sol & Sağ Kontroller & Süre Göstergesi */
         .stream-control-left {
             position: absolute;
-            left: 12px;
+            left: 14px;
+            top: calc(50% + 2px);
+            transform: translateY(-50%);
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
         .stream-control-right {
             position: absolute;
-            right: 12px;
+            right: 14px;
+            top: calc(50% + 2px);
+            transform: translateY(-50%);
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -558,19 +590,37 @@
             inset: 0 !important;
             z-index: 99999 !important;
         }
+        .stream-large-img-wrap:fullscreen .stream-pillar-ambient,
+        .stream-large-img-wrap:-webkit-full-screen .stream-pillar-ambient,
+        .stream-large-img-wrap:-moz-full-screen .stream-pillar-ambient,
+        .stream-large-img-wrap.is-fullscreen .stream-pillar-ambient {
+            width: 100vw !important;
+            height: 100vh !important;
+            bottom: 0 !important;
+        }
         .stream-large-img-wrap:fullscreen .stream-large-img,
         .stream-large-img-wrap:-webkit-full-screen .stream-large-img,
         .stream-large-img-wrap:-moz-full-screen .stream-large-img,
         .stream-large-img-wrap.is-fullscreen .stream-large-img {
             width: 100vw !important;
             height: 100vh !important;
+            bottom: 0 !important;
             object-fit: contain !important;
-            background: #000000 !important;
+            background: transparent !important;
+        }
+        .stream-large-img-wrap:fullscreen .stream-large-placeholder,
+        .stream-large-img-wrap:-webkit-full-screen .stream-large-placeholder,
+        .stream-large-img-wrap:-moz-full-screen .stream-large-placeholder,
+        .stream-large-img-wrap.is-fullscreen .stream-large-placeholder {
+            width: 100vw !important;
+            height: 100vh !important;
+            bottom: 0 !important;
         }
         .stream-large-img-wrap:fullscreen .stream-control-bar,
         .stream-large-img-wrap:-webkit-full-screen .stream-control-bar,
         .stream-large-img-wrap:-moz-full-screen .stream-control-bar,
         .stream-large-img-wrap.is-fullscreen .stream-control-bar {
+            height: auto !important;
             border-radius: 0 !important;
             border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
             background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.5) 25%, rgba(0, 0, 0, 0.9) 100%) !important;
@@ -654,6 +704,294 @@
             box-shadow: none;
         }
 
+        /* Canlı Yayın Carousel Şeridi - Önizleme Ekranına Entegre Alt Konsol */
+        .stream-carousel-section {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            margin-top: 0;
+            padding: 8px 12px 10px;
+            box-sizing: border-box;
+            background: #0b1120;
+            border: 1px solid #1e293b;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .stream-carousel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2px;
+        }
+        .stream-carousel-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .stream-carousel-title .icon {
+            width: 13px;
+            height: 13px;
+            color: #60a5fa;
+        }
+        .stream-carousel-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            font-size: 10px;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .stream-carousel-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-width: 0;
+        }
+        .stream-carousel-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            flex: 0 0 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #f1f5f9;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            padding: 0;
+        }
+        .stream-carousel-nav:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.08);
+        }
+        .stream-carousel-nav:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+        .stream-carousel-nav .icon {
+            width: 12px;
+            height: 12px;
+        }
+        .stream-carousel-track-wrap {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            padding: 2px 0;
+        }
+        .stream-carousel-track-wrap::-webkit-scrollbar {
+            display: none;
+        }
+        .stream-carousel-track {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+            width: max-content;
+        }
+        .stream-carousel-item {
+            position: relative;
+            flex: 0 0 96px;
+            width: 96px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #020617;
+            border: 1.5px solid rgba(255, 255, 255, 0.14);
+            cursor: pointer;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        .stream-carousel-item:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        .stream-carousel-item.is-active {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 1px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.45);
+            transform: translateY(-1px);
+        }
+        .stream-carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #020617;
+        }
+        .stream-carousel-item .carousel-item-name {
+            display: none !important;
+        }
+        .stream-carousel-item .carousel-item-badge {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 7.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: rgba(220, 38, 38, 0.92);
+            color: #ffffff;
+            backdrop-filter: blur(4px);
+        }
+        .stream-carousel-item .carousel-item-badge .status-dot {
+            width: 4px;
+            height: 4px;
+        }
+        .stream-carousel-divider {
+            width: 1px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.12);
+            flex: 0 0 1px;
+            margin: 0 2px;
+        }
+        .stream-carousel-more-card {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 2px;
+            background: rgba(30, 58, 138, 0.35) !important;
+            border: 1.5px dashed rgba(96, 165, 250, 0.45) !important;
+            color: #93c5fd !important;
+            padding: 3px 6px !important;
+            cursor: pointer !important;
+            min-height: 54px;
+            height: 54px;
+            flex: 0 0 84px;
+            width: 84px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .stream-carousel-more-card:hover {
+            background: rgba(30, 58, 138, 0.6) !important;
+            border-color: #60a5fa !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+        }
+        .stream-carousel-more-card:focus-visible {
+            outline: 2px solid #60a5fa;
+            outline-offset: 1px;
+        }
+        .stream-carousel-more-card .icon {
+            width: 18px;
+            height: 18px;
+            color: #60a5fa;
+            flex-shrink: 0;
+        }
+        .stream-carousel-more-card .more-card-text {
+            font-size: 9.5px;
+            font-weight: 700;
+            line-height: 1.25;
+            text-align: center;
+            color: #bfdbfe;
+            white-space: nowrap;
+        }
+        .stream-carousel-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px;
+            color: #64748b;
+            font-size: 12px;
+            text-align: center;
+        }
+        .btn-panel-collapse {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 32px;
+            padding: 0 13px;
+            font-size: 12.5px;
+            font-weight: 600;
+            line-height: 1;
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .btn-panel-collapse:hover {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #94a3b8;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+        .btn-panel-collapse:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .btn-panel-collapse .icon {
+            width: 13px;
+            height: 13px;
+            stroke-width: 2.2;
+            transition: transform 0.15s ease;
+        }
+        .btn-panel-collapse:hover .icon {
+            transform: translateY(-1px);
+        }
+
+        html[data-theme="dark"] .stream-carousel-section { background: #0f172a; border-color: #1e293b; }
+        html[data-theme="dark"] .stream-carousel-title { color: #94a3b8; }
+        html[data-theme="dark"] .stream-carousel-badge { background: #1e293b; color: #cbd5e1; }
+        html[data-theme="dark"] .stream-carousel-nav { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+        html[data-theme="dark"] .stream-carousel-nav:hover:not(:disabled) { background: #334155; color: #60a5fa; border-color: #475569; }
+        html[data-theme="dark"] .stream-carousel-item .carousel-item-name { background: #1e293b; color: #cbd5e1; }
+        html[data-theme="dark"] .stream-carousel-item.is-active .carousel-item-name { color: #93c5fd; }
+        html[data-theme="dark"] .stream-carousel-more-card { background: rgba(30, 58, 138, 0.25) !important; border-color: #3b82f6 !important; color: #93c5fd !important; }
+        html[data-theme="dark"] .stream-carousel-more-card:hover { background: rgba(30, 58, 138, 0.45) !important; border-color: #60a5fa !important; }
+        html[data-theme="dark"] .stream-carousel-more-card .icon { color: #60a5fa; }
+        html[data-theme="dark"] .stream-carousel-more-card .more-card-text { color: #93c5fd; }
+        html[data-theme="dark"] .btn-panel-collapse {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        html[data-theme="dark"] .btn-panel-collapse:hover {
+            background: #334155;
+            border-color: #475569;
+            color: #f8fafc;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        }
+
         html[data-theme="dark"] body { background: #0b1220; color: #e2e8f0; }
         html[data-theme="dark"] .container:not(.dashboard-view),
         html[data-theme="dark"] .dashboard-panel,
@@ -673,7 +1011,6 @@
         html[data-theme="dark"] .stream-panel-description { color: #a9b8cc; }
         html[data-theme="dark"] .metric-value,
         html[data-theme="dark"] .panel-heading h2,
-        html[data-theme="dark"] .stream-info-heading h3,
         html[data-theme="dark"] .selection-summary strong,
         html[data-theme="dark"] .settings-card h2,
         html[data-theme="dark"] .file-name,
@@ -698,8 +1035,7 @@
         html[data-theme="dark"] .upload-card > p { color: #e2e8f0 !important; }
         html[data-theme="dark"] .card img { background: #0b1220; }
         html[data-theme="dark"] .empty-state { border-color: #334155; background: #0f1929; }
-        html[data-theme="dark"] .empty-state-icon,
-        html[data-theme="dark"] .stream-info-icon { background: #1e293b; color: #93c5fd; }
+        html[data-theme="dark"] .empty-state-icon { background: #1e293b; color: #93c5fd; }
         html[data-theme="dark"] .latest-image-wrap { background: linear-gradient(135deg, #111c2e, #1e293b); }
         html[data-theme="dark"] .selection-track { background: #26364f; }
         html[data-theme="dark"] .admin-sidebar { border-right: 1px solid #26364f; }
@@ -883,10 +1219,26 @@
 
 
         @media (max-width: 1150px) {
-            .stream-control-layout { grid-template-columns: 1fr; gap: 20px; }
+            .stream-control-layout { width: 100%; }
             .stream-preview-column { margin: 0 auto; }
         }
         @media (max-width: 750px) {
+            /* 750px ve altı: Carousel gizlenir, Yayındaki Görseller paneli doğrudan gösterilir */
+            .stream-large-img-wrap {
+                border-radius: 12px !important;
+                border-bottom: 1px solid #1e293b !important;
+            }
+            #streamCarouselSection {
+                display: none !important;
+            }
+            #streamSelectedPanel {
+                display: block !important;
+                margin-top: 16px !important;
+            }
+            #streamSelectedPanel .btn-panel-collapse {
+                display: none !important;
+            }
+
             .settings-minimal-header { flex-direction: column; align-items: flex-start; gap: 10px; }
             .settings-item { flex-direction: column; align-items: flex-start; gap: 8px; }
             .settings-item-controls { align-items: flex-start; width: auto; }
@@ -905,6 +1257,15 @@
             .btn-minimal-save { grid-column: 1; width: 100%; height: 30px; font-size: 12px; padding: 0; border-radius: 6px; }
             .btn-password-cancel { grid-column: 2; width: 100%; height: 30px; font-size: 12px; padding: 0; border-radius: 6px; }
             .dashboard-updated { font-size: 11px; width: auto; text-align: left; margin-top: 3px; }
+        }
+        @media (max-width: 640px) {
+            .stream-large-img-wrap { aspect-ratio: 16 / 10; min-height: 240px; }
+            .stream-pillar-ambient { bottom: 58px; }
+            .stream-large-img { bottom: 62px; height: calc(100% - 62px); }
+            .stream-large-placeholder { bottom: 62px; height: calc(100% - 62px); }
+            .stream-control-bar { height: 58px; padding: 13px 10px 9px; background: rgba(15, 23, 42, 0.52); }
+            .stream-control-left { left: 8px; }
+            .stream-control-right { right: 8px; }
         }
 
         @media (max-width: 450px) {
@@ -1005,6 +1366,9 @@
         <symbol id="icon-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></symbol>
         <symbol id="icon-minimize" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></symbol>
         <symbol id="icon-pin" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></symbol>
+        <symbol id="icon-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"></path></symbol>
+        <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -1235,18 +1599,16 @@
 
         <!-- Kontrol Masası -->
         <article class="dashboard-panel" style="margin-bottom: 20px;">
-            <div class="panel-heading">
-                <div class="stream-panel-heading-copy">
-                    <h2>Yayın Kontrol Paneli</h2>
-                    <p class="stream-panel-description">Yayını durdurabilir veya resimler arasında geçiş yapabilirsiniz.</p>
-                </div>
-                <span id="streamControlKicker" class="panel-kicker">Canlı Yönetim</span>
-            </div>
-
             <div class="stream-control-layout">
-                <!-- Sol: Büyük 16:9 Aktif Görsel Önizlemesi -->
+                <!-- Büyük 16:9 Aktif Görsel Önizlemesi -->
                 <div class="stream-preview-column">
                     <div class="stream-large-img-wrap" id="streamLargeImgWrap" ondblclick="toggleStreamFullscreen()" onmousemove="handleStreamFullscreenMouseMove()" title="Çift tıklayarak tam ekrana geçin">
+                        <!-- Yan Alanlar İçin Ortam Işığı (Ambilight) Efekti -->
+                        <div class="stream-pillar-ambient" id="streamPillarAmbient" aria-hidden="true">
+                            <img id="streamPillarAmbientImg" src="" alt="">
+                            <div class="stream-pillar-vignette"></div>
+                        </div>
+
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
                             <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
@@ -1288,31 +1650,38 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <aside class="stream-info-list" aria-label="Yayın bilgileri">
-                    <div class="stream-info-heading">
-                        <span class="stream-info-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span>
-                        <h3>Yayın Bilgileri</h3>
+
+                    <!-- Canlı Yayın Carousel Şeridi -->
+                    <div class="stream-carousel-section" id="streamCarouselSection">
+                        <div class="stream-carousel-container">
+                            <button class="stream-carousel-nav prev" id="btnCarouselPrev" type="button" onclick="scrollStreamCarousel(-1)" aria-label="Önceki görseller" title="Önceki görseller">
+                                <svg class="icon"><use href="#icon-chevron-left"></use></svg>
+                            </button>
+                            <div class="stream-carousel-track-wrap" id="streamCarouselTrackWrap">
+                                <div class="stream-carousel-track" id="streamCarouselTrack"></div>
+                            </div>
+                            <button class="stream-carousel-nav next" id="btnCarouselNext" type="button" onclick="scrollStreamCarousel(1)" aria-label="Sonraki görseller" title="Sonraki görseller">
+                                <svg class="icon"><use href="#icon-chevron-right"></use></svg>
+                            </button>
+                            <div class="stream-carousel-divider" aria-hidden="true"></div>
+                            <div class="stream-carousel-item stream-carousel-more-card" onclick="toggleStreamFullList(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleStreamFullList(true);}" role="button" tabindex="0" title="Yayındaki tüm görselleri listele ve sayfayı kaydır">
+                                <svg class="icon"><use href="#icon-grid"></use></svg>
+                                <span class="more-card-text">Tamamını<br>Listele</span>
+                            </div>
+                        </div>
                     </div>
-                    <article class="metric-card interval">
-                        <div class="metric-top"><span>Geçiş aralığı</span><span class="metric-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span></div>
-                        <div class="metric-value"><span id="streamSlideInterval">--</span><span style="font-size: 11px; letter-spacing: 0;"> sn</span></div>
-                        <div class="metric-caption">Her görsel arasındaki süre</div>
-                    </article>
-                    <article class="metric-card selected">
-                        <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-image"></use></svg></span></div>
-                        <div id="streamTotalSelected" class="metric-value">--</div>
-                        <div id="streamInfoStatus" class="metric-caption"></div>
-                    </article>
-                </aside>
+                </div>
             </div>
         </article>
 
-        <!-- Yayındaki Görseller -->
-        <article class="dashboard-panel">
+        <!-- Yayındaki Görseller (Başlangıçta Gizli) -->
+        <article class="dashboard-panel" id="streamSelectedPanel" style="display: none; margin-top: 20px;">
             <div class="panel-heading">
                 <h2><svg class="icon"><use href="#icon-image"></use></svg> Yayındaki Görseller (<span id="streamSelectedCount">0</span>)</h2>
-                <span class="panel-kicker">Slayt Döngüsündeki İçerikler</span>
+                <button class="btn-panel-collapse" type="button" onclick="toggleStreamFullList(false)" title="Listeyi Gizle ve Şeride Dön">
+                    <svg class="icon"><use href="#icon-chevron-up"></use></svg>
+                    <span>Listeyi Gizle</span>
+                </button>
             </div>
             <div class="grid" id="streamGrid"></div>
         </article>
@@ -2890,14 +3259,14 @@
                     liveText.innerText = 'Yayın Durduruldu (Tepside)';
                     btnToggle.className = 'btn-playback paused';
                     btnToggle.innerHTML = '<svg class="icon"><use href="#icon-play"></use></svg> Yayını Başlat';
-                    controlKicker.innerText = 'Yayın Beklemede';
+                    if (controlKicker) controlKicker.innerText = 'Yayın Beklemede';
                 } else {
                     const hasClients = data.connectedClients > 0;
                     liveDot.className = hasClients ? 'live-dot' : 'live-dot offline';
                     liveText.innerText = hasClients ? `Yayın Aktif (${data.connectedClients} istemci)` : 'Yayın Aktif (İstemci bekleniyor)';
                     btnToggle.className = 'btn-playback playing';
                     btnToggle.innerHTML = '<svg class="icon"><use href="#icon-pause"></use></svg> Yayını Durdur';
-                    controlKicker.innerText = data.isPinned ? 'Görsel Sabitlendi' : 'Canlı Yönetim';
+                    if (controlKicker) controlKicker.innerText = data.isPinned ? 'Görsel Sabitlendi' : 'Canlı Yönetim';
                 }
 
                 const hasImages = Array.isArray(data.selectedImages) && data.selectedImages.length > 0;
@@ -2912,14 +3281,13 @@
                     btnPin.setAttribute('aria-label', data.isPinned ? 'Sabitlemeyi kaldır' : 'Görseli ekranda sabitle');
                 }
 
-                // 2. Aktif görsel önizlemesi
+                // 2. Aktif görsel önizlemesi & Yan Alanlar Ortam Işığı (Ambilight)
                 const streamCurrentImg = document.getElementById('streamCurrentImg');
                 const streamPlaceholder = document.getElementById('streamPlaceholderThumb');
                 const streamActiveBadge = document.getElementById('streamActiveBadge');
                 const streamActiveBadgeText = document.getElementById('streamActiveBadgeText');
-                const streamSlideInterval = document.getElementById('streamSlideInterval');
-                const streamTotalSelected = document.getElementById('streamTotalSelected');
-                const streamInfoStatus = document.getElementById('streamInfoStatus');
+                const streamPillarAmbient = document.getElementById('streamPillarAmbient');
+                const streamPillarAmbientImg = document.getElementById('streamPillarAmbientImg');
 
                 if (data.currentImage) {
                     streamCurrentImg.style.display = 'block';
@@ -2933,6 +3301,21 @@
                         };
                         streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
                     }
+
+                    // Yan Alanlar Ortam Işığı (Ambilight) güncellemesi
+                    if (streamPillarAmbientImg && streamPillarAmbientImg.dataset.filename !== data.currentImage) {
+                        streamPillarAmbientImg.dataset.filename = data.currentImage;
+                        streamPillarAmbientImg.onerror = () => {
+                            if (streamPillarAmbientImg.src && !streamPillarAmbientImg.src.includes('/images/')) {
+                                streamPillarAmbientImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                            }
+                        };
+                        streamPillarAmbientImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                    }
+                    if (streamPillarAmbient) {
+                        streamPillarAmbient.classList.add('is-visible');
+                    }
+
                     streamCurrentImg.alt = data.currentImage;
                     streamActiveBadge.style.display = 'inline-flex';
                     streamActiveBadge.classList.remove('is-paused', 'is-pinned');
@@ -2945,32 +3328,21 @@
                     } else {
                         streamActiveBadgeText.innerText = 'Yayında';
                     }
-                    const currentIndex = data.selectedImages.indexOf(data.currentImage);
-                    streamSlideInterval.innerText = data.slideInterval;
-                    streamTotalSelected.innerText = `${data.totalSelected}`;
-                    if (data.isPinned) {
-                        streamInfoStatus.innerText = 'Görsel ekranda sabitlendi (otomatik geçiş durduruldu).';
-                    } else {
-                        streamInfoStatus.innerText = currentIndex !== -1
-                            ? `${data.isPaused ? 'Yayın duraklatıldı. ' : ''}Şu anda ${currentIndex + 1} / ${data.selectedImages.length} görsel gösteriliyor.`
-                            : 'Şu anda gösterilen görsel yayın listesinde değil.';
-                    }
                 } else {
                     streamCurrentImg.style.display = 'none';
                     streamPlaceholder.style.display = 'grid';
                     streamActiveBadge.style.display = 'none';
                     streamActiveBadge.classList.remove('is-paused', 'is-pinned');
-                    streamSlideInterval.innerText = data.slideInterval;
-                    streamTotalSelected.innerText = `${data.totalSelected || 0}`;
-                    streamInfoStatus.innerText = hasImages
-                        ? 'Görseller yayın döngüsünde.'
-                        : 'Galeri panelinden yayına görsel ekleyebilirsiniz.';
+                    if (streamPillarAmbient) {
+                        streamPillarAmbient.classList.remove('is-visible');
+                    }
                 }
 
                 document.getElementById('streamSelectedCount').innerText = data.totalSelected || 0;
 
-                // 3. Yayındaki görseller tablosu
+                // 3. Yayındaki görseller tablosu & carousel
                 renderStreamGrid(data.selectedImages || [], data.currentImage);
+                renderStreamCarousel(data.selectedImages || [], data.currentImage);
             } catch (err) {
                 console.error('Yayın durumu yüklenemedi:', err);
             }
@@ -3071,18 +3443,134 @@
 
         function updateStreamActiveCard(activeImage) {
             const grid = document.getElementById('streamGrid');
-            if (!grid) return;
-            const cards = grid.querySelectorAll('.stream-card');
-            cards.forEach(card => {
-                const isCurrent = card.dataset.filename === activeImage;
-                card.classList.toggle('is-active', isCurrent);
-                card.style.borderColor = isCurrent ? '#2563eb' : '';
-                card.style.boxShadow = isCurrent ? '0 0 0 2px rgba(37,99,235,0.2)' : '';
-                const badge = card.querySelector('.stream-active-badge');
-                if (badge) {
-                    badge.style.display = isCurrent ? 'inline-block' : 'none';
+            if (grid) {
+                const cards = grid.querySelectorAll('.stream-card');
+                cards.forEach(card => {
+                    const isCurrent = card.dataset.filename === activeImage;
+                    card.classList.toggle('is-active', isCurrent);
+                    card.style.borderColor = isCurrent ? '#2563eb' : '';
+                    card.style.boxShadow = isCurrent ? '0 0 0 2px rgba(37,99,235,0.2)' : '';
+                    const badge = card.querySelector('.stream-active-badge');
+                    if (badge) {
+                        badge.style.display = isCurrent ? 'inline-block' : 'none';
+                    }
+                });
+            }
+            updateStreamCarouselActive(activeImage);
+        }
+
+        let lastRenderedCarouselImages = null;
+
+        function renderStreamCarousel(selectedImages, activeImage) {
+            const track = document.getElementById('streamCarouselTrack');
+            const countBadge = document.getElementById('streamCarouselCount');
+            if (countBadge) {
+                countBadge.innerText = Array.isArray(selectedImages) ? selectedImages.length : 0;
+            }
+            if (!track) return;
+
+            const listUnchanged = track.children.length > 0 &&
+                Array.isArray(lastRenderedCarouselImages) &&
+                lastRenderedCarouselImages.length === selectedImages.length &&
+                lastRenderedCarouselImages.every((val, idx) => val === selectedImages[idx]);
+
+            if (listUnchanged) {
+                updateStreamCarouselActive(activeImage);
+                return;
+            }
+
+            lastRenderedCarouselImages = [...selectedImages];
+            track.innerHTML = '';
+
+            if (!selectedImages || selectedImages.length === 0) {
+                track.innerHTML = `
+                    <div class="stream-carousel-empty">
+                        <span>Yayında henüz görsel bulunmuyor.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            selectedImages.forEach(fileName => {
+                const isCurrent = fileName === activeImage;
+                const item = document.createElement('div');
+                item.className = isCurrent ? 'stream-carousel-item is-active' : 'stream-carousel-item';
+                item.dataset.filename = fileName;
+                item.title = `${fileName} - Ekrana gönder`;
+                item.onclick = () => broadcastDirect(fileName);
+
+                const img = document.createElement('img');
+                img.src = `/thumbnails/${encodeURIComponent(fileName)}`;
+                img.alt = fileName;
+                img.loading = 'lazy';
+
+                if (isCurrent) {
+                    const badge = document.createElement('span');
+                    badge.className = 'carousel-item-badge';
+                    badge.innerHTML = '<span class="status-dot"></span> Yayında';
+                    item.appendChild(badge);
+                }
+
+                item.appendChild(img);
+                track.appendChild(item);
+            });
+
+            updateStreamCarouselActive(activeImage);
+        }
+
+        function updateStreamCarouselActive(activeImage) {
+            const track = document.getElementById('streamCarouselTrack');
+            if (!track) return;
+            const items = track.querySelectorAll('.stream-carousel-item[data-filename]');
+            items.forEach(item => {
+                const isCurrent = item.dataset.filename === activeImage;
+                item.classList.toggle('is-active', isCurrent);
+                let badge = item.querySelector('.carousel-item-badge');
+                if (isCurrent) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'carousel-item-badge';
+                        badge.innerHTML = '<span class="status-dot"></span> Yayında';
+                        item.insertBefore(badge, item.firstChild);
+                    }
+                    badge.style.display = 'inline-flex';
+                    item.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                } else if (badge) {
+                    badge.remove();
                 }
             });
+        }
+
+        function scrollStreamCarousel(direction) {
+            const trackWrap = document.getElementById('streamCarouselTrackWrap');
+            if (!trackWrap) return;
+            const scrollAmount = Math.min(312, Math.max(160, Math.floor(trackWrap.clientWidth * 0.75)));
+            trackWrap.scrollBy({ left: scrollAmount * direction, behavior: 'smooth' });
+        }
+
+        function toggleStreamFullList(show) {
+            const panel = document.getElementById('streamSelectedPanel');
+            const carousel = document.getElementById('streamCarouselSection');
+            const wrap = document.getElementById('streamLargeImgWrap');
+            if (!panel) return;
+            if (show === undefined) {
+                show = panel.style.display === 'none';
+            }
+            if (show) {
+                panel.style.display = 'block';
+                if (carousel) carousel.style.display = 'none';
+                if (wrap) wrap.classList.add('has-carousel-hidden');
+                setTimeout(() => {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 60);
+            } else {
+                panel.style.display = 'none';
+                if (carousel) carousel.style.display = '';
+                if (wrap) wrap.classList.remove('has-carousel-hidden');
+                if (carousel) {
+                    carousel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
 
         async function togglePlayback() {
