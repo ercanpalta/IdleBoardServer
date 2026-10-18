@@ -18,6 +18,25 @@ app.use((req, res, next) => {
     next();
 });
 
+const AUTH_COOKIE_NAME = 'idleboard_admin_token';
+
+// Çerez (Cookie) Ayrıştırma Ara Katmanı
+app.use((req, res, next) => {
+    req.cookies = {};
+    const cookieHeader = req.headers.cookie;
+    if (cookieHeader) {
+        cookieHeader.split(';').forEach(c => {
+            const parts = c.split('=');
+            if (parts.length >= 2) {
+                const name = parts[0].trim();
+                const value = parts.slice(1).join('=').trim();
+                req.cookies[name] = decodeURIComponent(value);
+            }
+        });
+    }
+    next();
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -89,6 +108,32 @@ function registerToken() {
         lastActivityAt: Date.now()
     });
     return token;
+}
+
+function setAdminTokenCookie(req, res, token) {
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const secureFlag = isHttps ? '; Secure' : '';
+    res.setHeader('Set-Cookie', `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secureFlag}`);
+}
+
+function clearAdminTokenCookie(req, res) {
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const secureFlag = isHttps ? '; Secure' : '';
+    res.setHeader('Set-Cookie', `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secureFlag}`);
+}
+
+function getRequestAuthToken(req) {
+    if (req.cookies && req.cookies[AUTH_COOKIE_NAME]) {
+        return req.cookies[AUTH_COOKIE_NAME];
+    }
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        return authHeader.slice(7);
+    }
+    if (req.headers['x-admin-token']) {
+        return req.headers['x-admin-token'];
+    }
+    return null;
 }
 
 // Süresi dolan oturumları periyodik olarak temizleme (5 dakikada bir)
@@ -226,10 +271,7 @@ function savePassword(password) {
 }
 
 function requireAuth(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = (authHeader && authHeader.startsWith('Bearer ')) 
-        ? authHeader.slice(7) 
-        : req.headers['x-admin-token'];
+    const token = getRequestAuthToken(req);
 
     if (!token || !activeTokens.has(token)) {
         return res.status(401).json({ error: 'Yetkisiz erişim. Lütfen giriş yapın.' });
@@ -239,6 +281,7 @@ function requireAuth(req, res, next) {
     const now = Date.now();
     if (now - tokenData.lastActivityAt > INACTIVITY_TIMEOUT_MS) {
         activeTokens.delete(token);
+        clearAdminTokenCookie(req, res);
         return res.status(401).json({
             error: 'Oturum zaman aşımına uğradı (30 dakika hareketsizlik). Lütfen tekrar giriş yapın.',
             sessionExpired: true
@@ -246,6 +289,7 @@ function requireAuth(req, res, next) {
     }
     if (now - tokenData.createdAt > MAX_SESSION_TTL_MS) {
         activeTokens.delete(token);
+        clearAdminTokenCookie(req, res);
         return res.status(401).json({
             error: 'Oturum geçerlilik süresi doldu (24 saat). Lütfen tekrar giriş yapın.',
             sessionExpired: true
@@ -906,6 +950,7 @@ app.post('/api/auth/setup', (req, res) => {
     savePassword(password);
     activeTokens.clear();
     const token = registerToken();
+    setAdminTokenCookie(req, res, token);
     res.json({ success: true, token });
 });
 
@@ -944,6 +989,7 @@ app.post('/api/auth/password', requireAuth, (req, res) => {
     savePassword(newPassword);
     activeTokens.clear();
     const token = registerToken();
+    setAdminTokenCookie(req, res, token);
     logActivity('security', 'Yönetici parolası değiştirildi', 'Tüm aktif oturumlar sonlandırıldı ve yeni parola kaydedildi');
     res.json({ success: true, token });
 });
@@ -979,15 +1025,13 @@ app.post('/api/login', (req, res) => {
 
     recordSuccessfulLogin(clientIp);
     const token = registerToken();
+    setAdminTokenCookie(req, res, token);
     console.log(`[🔐 Auth] Yönetim paneline başarılı giriş yapıldı (IP: ${clientIp}).`);
     res.json({ success: true, token });
 });
 
 app.get('/api/auth/check', (req, res) => {
-    const authHeader = req.headers['authorization'];
-    const token = (authHeader && authHeader.startsWith('Bearer ')) 
-        ? authHeader.slice(7) 
-        : req.headers['x-admin-token'];
+    const token = getRequestAuthToken(req);
 
     if (token && activeTokens.has(token)) {
         const tokenData = activeTokens.get(token);
@@ -997,20 +1041,19 @@ app.get('/api/auth/check', (req, res) => {
             return res.json({ authenticated: true });
         }
         activeTokens.delete(token);
+        clearAdminTokenCookie(req, res);
     }
     res.status(401).json({ authenticated: false });
 });
 
 app.post('/api/logout', (req, res) => {
-    const authHeader = req.headers['authorization'];
-    const token = (authHeader && authHeader.startsWith('Bearer ')) 
-        ? authHeader.slice(7) 
-        : req.headers['x-admin-token'];
+    const token = getRequestAuthToken(req);
 
     if (token) {
         activeTokens.delete(token);
-        console.log(`[🔒 Auth] Yönetim panelinden çıkış yapıldı.`);
     }
+    clearAdminTokenCookie(req, res);
+    console.log(`[🔒 Auth] Yönetim panelinden çıkış yapıldı.`);
     res.json({ success: true });
 });
 
@@ -1554,6 +1597,7 @@ app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
     // 6. Aktif oturum anahtarlarını ve kilit kayıtlarını temizle
     activeTokens.clear();
     loginAttemptMap.clear();
+    clearAdminTokenCookie(req, res);
 
     // 7. Bağlı tüm istemcilere ve ekranlara bildirim gönder
     broadcastToAll({ tip: 'factory_reset' });

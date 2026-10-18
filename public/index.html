@@ -1998,12 +1998,6 @@
                     return;
                 }
 
-                const token = localStorage.getItem(TOKEN_KEY);
-                if (!token) {
-                    showLogin();
-                    return;
-                }
-
                 const res = await fetch('/api/auth/check', {
                     headers: getAuthHeaders()
                 });
@@ -2077,8 +2071,8 @@
                 });
 
                 const data = await res.json();
-                if (res.ok && data.success && data.token) {
-                    localStorage.setItem(TOKEN_KEY, data.token);
+                if (res.ok && data.success) {
+                    localStorage.removeItem(TOKEN_KEY);
                     passInput.value = '';
                     showDashboard();
                 } else {
@@ -2667,7 +2661,7 @@
                     return;
                 }
 
-                localStorage.setItem(TOKEN_KEY, data.token);
+                localStorage.removeItem(TOKEN_KEY);
                 currentPasswordInput.value = '';
                 newPasswordInput.value = '';
                 confirmationInput.value = '';
