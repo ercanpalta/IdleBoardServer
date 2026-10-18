@@ -455,7 +455,7 @@
             pointer-events: auto;
             transform: translateY(0);
         }
-        .stream-control-buttons { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; margin: 0; }
+        .stream-control-buttons { position: relative; display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; margin: 0; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { width: 36px; height: 36px; min-width: 0; min-height: 36px; padding: 0; gap: 0; font-size: 0; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { border: 1px solid rgba(255,255,255,0.38); border-radius: 50%; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.18); backdrop-filter: blur(12px) saturate(160%); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-stream-nav { background: var(--color-neutral); color: white; border: 1px solid var(--color-neutral); cursor: pointer; transition: background 0.2s; box-shadow: none; }
@@ -468,7 +468,35 @@
         .btn-playback.paused:hover { background: var(--color-success-hover); border-color: var(--color-success-hover); }
         .stream-control-bar .btn-stream-nav { background: rgba(255,255,255,0.16); }
         .stream-control-bar .btn-stream-nav:hover:not(:disabled) { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.58); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 14px rgba(0,0,0,0.24); transform: translateY(-1px); }
-        .stream-control-bar .btn-stream-nav:disabled { opacity: 0.4; }
+        .stream-control-bar .btn-stream-shuffle {
+            position: absolute;
+            right: calc(100% + 14px);
+            top: 50%;
+            transform: translateY(-50%);
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+        }
+        .stream-control-bar .btn-stream-shuffle:hover:not(:disabled) {
+            transform: translateY(-50%) scale(1.08);
+        }
+        .stream-control-bar .btn-stream-shuffle:active:not(:disabled) {
+            transform: translateY(-50%) scale(0.95);
+        }
+        .stream-control-bar .btn-stream-shuffle.is-active {
+            background: rgba(37, 99, 235, 0.85);
+            border-color: rgba(147, 197, 253, 0.9);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.55);
+        }
+        .stream-control-bar .btn-stream-shuffle.is-active:hover:not(:disabled) {
+            background: rgba(29, 78, 216, 0.95);
+            border-color: #ffffff;
+            box-shadow: 0 0 16px rgba(59, 130, 246, 0.75);
+        }
+        .stream-control-bar .btn-stream-shuffle:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
         .stream-control-bar .btn-playback.playing { background: rgba(220,38,38,0.82); border-color: rgba(252,165,165,0.78); }
         .stream-control-bar .btn-playback.playing:hover { background: rgba(185,28,28,0.92); border-color: rgba(254,202,202,0.9); transform: translateY(-1px); }
         .stream-control-bar .btn-playback.paused { background: rgba(21,128,61,0.82); border-color: rgba(134,239,172,0.78); }
@@ -612,6 +640,9 @@
             .btn-player-action .icon {
                 width: 12px;
                 height: 12px;
+            }
+            .stream-control-bar .btn-stream-shuffle {
+                right: calc(100% + 8px);
             }
         }
 
@@ -1523,6 +1554,9 @@
                                 </div>
                             </div>
                             <div class="stream-control-buttons">
+                                <button id="btnStreamShuffle" class="btn-player-action btn-stream-shuffle" type="button" onclick="toggleStreamShuffle()" title="Slayt Sıralaması: Sıralı (Karıştırmak için tıkla) - S" aria-label="Slayt sıralamasını karıştır">
+                                    <svg class="icon"><use href="#icon-shuffle"></use></svg>
+                                </button>
                                 <button id="btnStreamPrev" class="btn-stream-nav" type="button" onclick="streamPrev()" title="Önceki Resim (Sol Ok)">
                                     <svg class="icon"><use href="#icon-chevron-left"></use></svg> Önceki Resim
                                 </button>
@@ -2354,6 +2388,9 @@
                 if (summaryOrder && stats.slideshowOrder) {
                     summaryOrder.innerText = stats.slideshowOrder === 'random' ? 'Rastgele' : 'Sıralı';
                 }
+                if (stats.slideshowOrder) {
+                    updateStreamShuffleButton(stats.slideshowOrder);
+                }
                 const summaryEffect = document.getElementById('dashboardSummaryEffect');
                 if (summaryEffect && stats.transitionEffect) {
                     summaryEffect.innerText = stats.transitionEffect === 'none' ? 'Anında' : 'Yumuşak (Fade)';
@@ -2763,10 +2800,46 @@
                     for (const r of radios) {
                         r.checked = (r.value === data.slideshowOrder);
                     }
+                    updateStreamShuffleButton(data.slideshowOrder);
                 }
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
             }
+        }
+
+        function updateStreamShuffleButton(order) {
+            const btnShuffle = document.getElementById('btnStreamShuffle');
+            if (!btnShuffle) return;
+            const isRandom = order === 'random';
+            btnShuffle.classList.toggle('is-active', isRandom);
+            btnShuffle.title = isRandom
+                ? 'Slayt Sıralaması: Rastgele (Sıralı yapmak için tıkla) - S'
+                : 'Slayt Sıralaması: Sıralı (Karıştırmak için tıkla) - S';
+            btnShuffle.setAttribute('aria-label', isRandom
+                ? 'Slayt sıralamasını sıralı yap'
+                : 'Slayt sıralamasını karıştır'
+            );
+            btnShuffle.setAttribute('aria-pressed', isRandom ? 'true' : 'false');
+        }
+
+        async function toggleStreamShuffle() {
+            let currentOrder = 'sequential';
+            if (currentStreamData && currentStreamData.slideshowOrder) {
+                currentOrder = currentStreamData.slideshowOrder;
+            } else {
+                const checkedRadio = document.querySelector('input[name="slideshowOrder"]:checked');
+                if (checkedRadio) {
+                    currentOrder = checkedRadio.value;
+                }
+            }
+            const nextOrder = currentOrder === 'random' ? 'sequential' : 'random';
+
+            if (currentStreamData) {
+                currentStreamData.slideshowOrder = nextOrder;
+            }
+            updateStreamShuffleButton(nextOrder);
+
+            await updateSlideshowOrder(nextOrder);
         }
 
         async function updateSlideshowOrder(val) {
@@ -2784,17 +2857,37 @@
 
                 const data = await res.json();
                 if (data.success) {
-                    status.style.color = '#15803d';
-                    status.innerText = 'Slayt sıralaması güncellendi';
+                    if (status) {
+                        status.style.color = '#15803d';
+                        status.innerText = 'Slayt sıralaması güncellendi';
+                        setTimeout(() => status.innerText = '', 3000);
+                    }
+                    const radios = document.getElementsByName('slideshowOrder');
+                    for (const r of radios) {
+                        r.checked = (r.value === val);
+                    }
+                    if (currentStreamData) {
+                        currentStreamData.slideshowOrder = val;
+                    }
+                    updateStreamShuffleButton(val);
                     loadDashboardStats();
-                    setTimeout(() => status.innerText = '', 3000);
                 } else {
-                    status.style.color = '#dc2626';
-                    status.innerText = data.error || 'Hata oluştu';
+                    if (status) {
+                        status.style.color = '#dc2626';
+                        status.innerText = data.error || 'Hata oluştu';
+                    }
+                    if (currentStreamData) {
+                        loadStreamStatus();
+                    }
                 }
             } catch (e) {
-                status.style.color = '#dc2626';
-                status.innerText = 'Hata oluştu';
+                if (status) {
+                    status.style.color = '#dc2626';
+                    status.innerText = 'Hata oluştu';
+                }
+                if (currentStreamData) {
+                    loadStreamStatus();
+                }
             }
         }
 
@@ -3171,6 +3264,13 @@
                 const hasImages = Array.isArray(data.selectedImages) && data.selectedImages.length > 0;
                 btnPrev.disabled = !hasImages;
                 btnNext.disabled = !hasImages;
+                const btnShuffle = document.getElementById('btnStreamShuffle');
+                if (btnShuffle) {
+                    btnShuffle.disabled = !hasImages;
+                }
+                if (data.slideshowOrder) {
+                    updateStreamShuffleButton(data.slideshowOrder);
+                }
                 if (btnPin) {
                     btnPin.disabled = !hasImages;
                     btnPin.classList.toggle('is-pinned', Boolean(data.isPinned));
@@ -3737,6 +3837,9 @@
             } else if (e.key === 'p' || e.key === 'P') {
                 e.preventDefault();
                 toggleStreamPin();
+            } else if (e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                toggleStreamShuffle();
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 streamPrev();
@@ -3783,6 +3886,12 @@
                         if (data.slideInterval) {
                             streamCountdownDurationMs = Number(data.slideInterval) * 1000;
                         }
+                        if (data.slideshowOrder) {
+                            if (currentStreamData) {
+                                currentStreamData.slideshowOrder = data.slideshowOrder;
+                            }
+                            updateStreamShuffleButton(data.slideshowOrder);
+                        }
                         updateStreamCountdownTick();
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {
@@ -3824,6 +3933,10 @@
                             for (const r of radios) {
                                 r.checked = (r.value === data.slideshowOrder);
                             }
+                            if (currentStreamData) {
+                                currentStreamData.slideshowOrder = data.slideshowOrder;
+                            }
+                            updateStreamShuffleButton(data.slideshowOrder);
                         }
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {

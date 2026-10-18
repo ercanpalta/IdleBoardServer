@@ -1008,6 +1008,7 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
             totalSelected: selectedList.length,
             selectedImages: selectedList,
             slideInterval: getSlideIntervalSec(),
+            slideshowOrder: getSlideshowOrder(),
             connectedClients: getConnectedClientCount(),
             latestBroadcastAt: lastBroadcast.time || null
         });
