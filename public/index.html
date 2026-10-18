@@ -2089,7 +2089,7 @@
             }
         }
 
-        async function logout() {
+        async function logout(msg = '') {
             try {
                 await fetch('/api/logout', {
                     method: 'POST',
@@ -2104,10 +2104,10 @@
                 sseSource.close();
                 sseSource = null;
             }
-            showLogin();
+            showLogin(msg);
         }
 
-        function showLogin() {
+        function showLogin(msg = '') {
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('setupSection').style.display = 'none';
@@ -2116,6 +2116,15 @@
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('settingsSection').style.display = 'none';
+            const errDiv = document.getElementById('loginError');
+            if (errDiv) {
+                if (msg) {
+                    errDiv.style.color = '#d97706';
+                    errDiv.innerText = msg;
+                } else {
+                    errDiv.innerText = '';
+                }
+            }
             document.getElementById('passwordInput').focus();
         }
 
@@ -2850,7 +2859,16 @@
 
         function handleApiError(res) {
             if (res.status === 401) {
-                logout();
+                try {
+                    res.clone().json().then(data => {
+                        const msg = (data && data.sessionExpired)
+                            ? (data.error || 'Oturum zaman aşımına uğradı. Lütfen tekrar giriş yapın.')
+                            : '';
+                        logout(msg);
+                    }).catch(() => logout());
+                } catch (e) {
+                    logout();
+                }
                 return true;
             }
             return false;

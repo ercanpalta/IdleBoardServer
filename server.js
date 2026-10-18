@@ -8,6 +8,16 @@ const chokidar = require('chokidar');
 const sharp = require('sharp');
 
 const app = express();
+
+// HTTP Güvenlik Başlıkları
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -59,14 +69,114 @@ app.get('/thumbnails/:name', async (req, res) => {
     res.sendFile(origPath);
 });
 
-// Kimlik Doğrulama (Auth) Yapılandırması
+// Kimlik Doğrulama (Auth) ve Oturum Güvenliği Yapılandırması
 const PASSWORD_FILE = path.join(__dirname, 'admin-password.json');
 const MIN_PASSWORD_LENGTH = 6;
-const activeTokens = new Set();
+
+// Oturum Zaman Aşımı Kuralları (TTL)
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 dakika hareketsizlik zaman aşımı
+const MAX_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 saat mutlak oturum süresi
+const activeTokens = new Map(); // token -> { createdAt, lastActivityAt }
 
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
+
+function registerToken() {
+    const token = generateToken();
+    activeTokens.set(token, {
+        createdAt: Date.now(),
+        lastActivityAt: Date.now()
+    });
+    return token;
+}
+
+// Süresi dolan oturumları periyodik olarak temizleme (5 dakikada bir)
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, data] of activeTokens.entries()) {
+        if (now - data.lastActivityAt > INACTIVITY_TIMEOUT_MS || now - data.createdAt > MAX_SESSION_TTL_MS) {
+            activeTokens.delete(token);
+        }
+    }
+}, 5 * 60 * 1000).unref();
+
+// Kaba Kuvvet (Brute-Force) Koruması & Hız Sınırlaması
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_WINDOW_MS = 5 * 60 * 1000; // 5 dakika kilit
+const MAX_REQUESTS_PER_MINUTE = 30; // Dakikada maks 30 istek
+
+const loginAttemptMap = new Map(); // ip -> { failedCount, lockedUntil, reqCount, windowStart }
+
+function getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded && typeof forwarded === 'string') {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : req.ip || 'unknown';
+}
+
+function checkBruteForceLock(ip) {
+    const now = Date.now();
+    const record = loginAttemptMap.get(ip);
+    if (!record) return { isLocked: false };
+
+    // 1. Kilit süresi kontrolü
+    if (record.lockedUntil > now) {
+        const remainingSec = Math.ceil((record.lockedUntil - now) / 1000);
+        return { isLocked: true, remainingSec, reason: 'lockout' };
+    } else if (record.lockedUntil > 0) {
+        record.lockedUntil = 0;
+        record.failedCount = 0;
+    }
+
+    // 2. Dakikalık istek sınırı kontrolü (Flood koruması)
+    if (now - record.windowStart > 60000) {
+        record.windowStart = now;
+        record.reqCount = 1;
+    } else {
+        record.reqCount++;
+        if (record.reqCount > MAX_REQUESTS_PER_MINUTE) {
+            const remainingSec = Math.ceil((record.windowStart + 60000 - now) / 1000);
+            return { isLocked: true, remainingSec, reason: 'rate_limit' };
+        }
+    }
+
+    return { isLocked: false };
+}
+
+function recordFailedLogin(ip) {
+    const now = Date.now();
+    let record = loginAttemptMap.get(ip);
+    if (!record) {
+        record = { failedCount: 0, lockedUntil: 0, reqCount: 1, windowStart: now };
+        loginAttemptMap.set(ip, record);
+    }
+    record.failedCount++;
+    const remainingTries = Math.max(0, MAX_FAILED_ATTEMPTS - record.failedCount);
+
+    if (record.failedCount >= MAX_FAILED_ATTEMPTS) {
+        record.lockedUntil = now + LOCKOUT_WINDOW_MS;
+        console.warn(`[⚠️ Güvenlik] IP ${ip} için hatalı giriş limiti aşıldı! Erişim 5 dakika kilitlendi.`);
+        logActivity('security', 'Hatalı giriş limiti aşıldı', `IP: ${ip} adresinden ${record.failedCount} kez başarısız deneme yapıldı. 5 dakika geçici kilit uygulandı.`);
+        return { isLocked: true, remainingSec: Math.ceil(LOCKOUT_WINDOW_MS / 1000), remainingTries: 0 };
+    }
+    return { isLocked: false, remainingTries };
+}
+
+function recordSuccessfulLogin(ip) {
+    loginAttemptMap.delete(ip);
+}
+
+// Eski IP kayıtlarını periyodik olarak temizleme (10 dakikada bir)
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of loginAttemptMap.entries()) {
+        if (record.lockedUntil < now && now - record.windowStart > 10 * 60 * 1000) {
+            loginAttemptMap.delete(ip);
+        }
+    }
+}, 10 * 60 * 1000).unref();
 
 function readPasswordHash() {
     if (fs.existsSync(PASSWORD_FILE)) {
@@ -124,6 +234,25 @@ function requireAuth(req, res, next) {
     if (!token || !activeTokens.has(token)) {
         return res.status(401).json({ error: 'Yetkisiz erişim. Lütfen giriş yapın.' });
     }
+
+    const tokenData = activeTokens.get(token);
+    const now = Date.now();
+    if (now - tokenData.lastActivityAt > INACTIVITY_TIMEOUT_MS) {
+        activeTokens.delete(token);
+        return res.status(401).json({
+            error: 'Oturum zaman aşımına uğradı (30 dakika hareketsizlik). Lütfen tekrar giriş yapın.',
+            sessionExpired: true
+        });
+    }
+    if (now - tokenData.createdAt > MAX_SESSION_TTL_MS) {
+        activeTokens.delete(token);
+        return res.status(401).json({
+            error: 'Oturum geçerlilik süresi doldu (24 saat). Lütfen tekrar giriş yapın.',
+            sessionExpired: true
+        });
+    }
+
+    tokenData.lastActivityAt = now;
     next();
 }
 
@@ -775,14 +904,30 @@ app.post('/api/auth/setup', (req, res) => {
     }
 
     savePassword(password);
-    res.json({ success: true });
+    activeTokens.clear();
+    const token = registerToken();
+    res.json({ success: true, token });
 });
 
 app.post('/api/auth/password', requireAuth, (req, res) => {
+    const clientIp = getClientIp(req);
+    const lock = checkBruteForceLock(clientIp);
+    if (lock.isLocked) {
+        return res.status(429).json({
+            success: false,
+            error: `Çok fazla deneme yapıldı. Lütfen ${lock.remainingSec} saniye bekleyin.`,
+            retryAfter: lock.remainingSec
+        });
+    }
+
     const { currentPassword, newPassword, passwordConfirmation } = req.body || {};
     if (typeof currentPassword !== 'string' || !verifyPassword(currentPassword)) {
-        return res.status(400).json({ success: false, error: 'Mevcut parola hatalı.' });
+        const failResult = recordFailedLogin(clientIp);
+        const hint = failResult.remainingTries > 0 ? ` (${failResult.remainingTries} deneme hakkı kaldı)` : '';
+        return res.status(400).json({ success: false, error: `Mevcut parola hatalı.${hint}` });
     }
+    recordSuccessfulLogin(clientIp);
+
     if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
         return res.status(400).json({
             success: false,
@@ -798,23 +943,43 @@ app.post('/api/auth/password', requireAuth, (req, res) => {
 
     savePassword(newPassword);
     activeTokens.clear();
-    const token = generateToken();
-    activeTokens.add(token);
+    const token = registerToken();
+    logActivity('security', 'Yönetici parolası değiştirildi', 'Tüm aktif oturumlar sonlandırıldı ve yeni parola kaydedildi');
     res.json({ success: true, token });
 });
 
 app.post('/api/login', (req, res) => {
+    const clientIp = getClientIp(req);
+    const lock = checkBruteForceLock(clientIp);
+    if (lock.isLocked) {
+        const msg = lock.reason === 'lockout'
+            ? `Çok fazla hatalı deneme yapıldı. Lütfen ${lock.remainingSec} saniye sonra tekrar deneyin.`
+            : `Çok fazla istek gönderildi. Lütfen ${lock.remainingSec} saniye bekleyin.`;
+        return res.status(429).json({ success: false, error: msg, retryAfter: lock.remainingSec });
+    }
+
     const { password } = req.body || {};
     if (!isPasswordConfigured()) {
         return res.status(428).json({ success: false, error: 'Önce yönetici parolasını belirleyin.' });
     }
     if (typeof password !== 'string' || !verifyPassword(password)) {
-        return res.status(401).json({ success: false, error: 'Hatalı parola!' });
+        const failResult = recordFailedLogin(clientIp);
+        if (failResult.isLocked) {
+            return res.status(429).json({
+                success: false,
+                error: `Çok fazla hatalı deneme yapıldı. Lütfen ${failResult.remainingSec} saniye sonra tekrar deneyin.`,
+                retryAfter: failResult.remainingSec
+            });
+        }
+        const hint = failResult.remainingTries > 0
+            ? ` (${failResult.remainingTries} deneme hakkı kaldı)`
+            : '';
+        return res.status(401).json({ success: false, error: `Hatalı parola!${hint}` });
     }
 
-    const token = generateToken();
-    activeTokens.add(token);
-    console.log(`[🔐 Auth] Yönetim paneline başarılı giriş yapıldı.`);
+    recordSuccessfulLogin(clientIp);
+    const token = registerToken();
+    console.log(`[🔐 Auth] Yönetim paneline başarılı giriş yapıldı (IP: ${clientIp}).`);
     res.json({ success: true, token });
 });
 
@@ -825,7 +990,13 @@ app.get('/api/auth/check', (req, res) => {
         : req.headers['x-admin-token'];
 
     if (token && activeTokens.has(token)) {
-        return res.json({ authenticated: true });
+        const tokenData = activeTokens.get(token);
+        const now = Date.now();
+        if (now - tokenData.lastActivityAt <= INACTIVITY_TIMEOUT_MS && now - tokenData.createdAt <= MAX_SESSION_TTL_MS) {
+            tokenData.lastActivityAt = now;
+            return res.json({ authenticated: true });
+        }
+        activeTokens.delete(token);
     }
     res.status(401).json({ authenticated: false });
 });
@@ -1270,10 +1441,23 @@ app.post('/api/settings/slideshow-order', requireAuth, (req, res) => {
 
 // Fabrika Ayarlarına Sıfırlama Endpoint'i
 app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
+    const clientIp = getClientIp(req);
+    const lock = checkBruteForceLock(clientIp);
+    if (lock.isLocked) {
+        return res.status(429).json({
+            success: false,
+            error: `Çok fazla hatalı deneme yapıldı. Lütfen ${lock.remainingSec} saniye sonra tekrar deneyin.`,
+            retryAfter: lock.remainingSec
+        });
+    }
+
     const { password } = req.body || {};
     if (typeof password !== 'string' || !verifyPassword(password)) {
-        return res.status(400).json({ success: false, error: 'Yönetici şifresi hatalı.' });
+        const failResult = recordFailedLogin(clientIp);
+        const hint = failResult.remainingTries > 0 ? ` (${failResult.remainingTries} deneme hakkı kaldı)` : '';
+        return res.status(400).json({ success: false, error: `Yönetici şifresi hatalı.${hint}` });
     }
+    recordSuccessfulLogin(clientIp);
 
     console.log('[⚠️ Sistem] Fabrika ayarlarına sıfırlama işlemi başlatıldı...');
 
@@ -1367,8 +1551,9 @@ app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
         time: Date.now()
     }];
 
-    // 6. Aktif oturum anahtarlarını temizle
+    // 6. Aktif oturum anahtarlarını ve kilit kayıtlarını temizle
     activeTokens.clear();
+    loginAttemptMap.clear();
 
     // 7. Bağlı tüm istemcilere ve ekranlara bildirim gönder
     broadcastToAll({ tip: 'factory_reset' });
