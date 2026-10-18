@@ -97,13 +97,20 @@
         .metric-card:hover { transform: none; box-shadow: none; }
         .metric-card::after { position: absolute; right: -24px; bottom: -42px; width: 90px; height: 90px; border-radius: 50%; background: var(--metric-tint); content: ''; }
         .metric-card.clients { --metric-tint: #dbeafe; --metric-color: #2563eb; }
-        .metric-card.images { --metric-tint: #dcfce7; --metric-color: #059669; }
-        .metric-card.selected { --metric-tint: #fef3c7; --metric-color: #d97706; }
         .metric-card.interval { --metric-tint: #ede9fe; --metric-color: #7c3aed; }
+        .metric-card.playback { --metric-tint: #dcfce7; --metric-color: #16a34a; }
+        .metric-card.playback.is-paused { --metric-tint: #fee2e2; --metric-color: #dc2626; }
+        .metric-card.mode { --metric-tint: #e0e7ff; --metric-color: #4f46e5; }
+        .metric-card.mode.is-pinned { --metric-tint: #fef3c7; --metric-color: #d97706; }
         .metric-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 12px; font-weight: 600; }
-        .metric-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: var(--metric-tint); color: var(--metric-color); }
+        .metric-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: var(--metric-tint); color: var(--metric-color); transition: background 0.2s ease, color 0.2s ease; }
         .metric-icon .icon { width: 16px; height: 16px; }
         .metric-value { position: relative; z-index: 1; margin-top: 6px; color: #0f172a; font-size: 24px; font-weight: 750; letter-spacing: -0.04em; line-height: 1; }
+        .metric-value.status-text { font-size: 20px; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; margin-top: 4px; }
+        .metric-value.text-active { color: #16a34a; }
+        .metric-value.text-paused { color: #dc2626; }
+        .metric-value.text-loop { color: #2563eb; }
+        .metric-value.text-pinned { color: #d97706; }
         .metric-caption { position: relative; z-index: 1; margin-top: 4px; color: #94a3b8; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         /* Genel Bakış Üst Bölüm: Son Yayınlanan Görsel & Yan Sütun */
@@ -1073,8 +1080,17 @@
         html[data-theme="dark"] .upload-card > p { color: #e2e8f0 !important; }
         html[data-theme="dark"] .card img { background: #0b1220; }
         html[data-theme="dark"] .empty-state { border-color: #334155; background: #0f1929; }
-        html[data-theme="dark"] .empty-state-icon { background: #1e293b; color: #93c5fd; }
         html[data-theme="dark"] .latest-image-wrap { background: linear-gradient(135deg, #111c2e, #1e293b); }
+        html[data-theme="dark"] .metric-card.clients { --metric-tint: rgba(37, 99, 235, 0.18); --metric-color: #60a5fa; }
+        html[data-theme="dark"] .metric-card.interval { --metric-tint: rgba(124, 58, 237, 0.18); --metric-color: #a78bfa; }
+        html[data-theme="dark"] .metric-card.playback { --metric-tint: rgba(22, 163, 74, 0.18); --metric-color: #4ade80; }
+        html[data-theme="dark"] .metric-card.playback.is-paused { --metric-tint: rgba(220, 38, 38, 0.2); --metric-color: #f87171; }
+        html[data-theme="dark"] .metric-card.mode { --metric-tint: rgba(79, 70, 229, 0.18); --metric-color: #818cf8; }
+        html[data-theme="dark"] .metric-card.mode.is-pinned { --metric-tint: rgba(217, 119, 6, 0.2); --metric-color: #fbbf24; }
+        html[data-theme="dark"] .metric-value.text-active { color: #4ade80; }
+        html[data-theme="dark"] .metric-value.text-paused { color: #f87171; }
+        html[data-theme="dark"] .metric-value.text-loop { color: #60a5fa; }
+        html[data-theme="dark"] .metric-value.text-pinned { color: #fbbf24; }
         html[data-theme="dark"] .selection-track { background: #26364f; }
         html[data-theme="dark"] .admin-sidebar { border-right: 1px solid #26364f; }
         html[data-theme="dark"] .settings-minimal-header { border-bottom-color: #1e293b; }
@@ -1381,15 +1397,15 @@
                         <div class="metric-value"><span id="dashboardInterval">—</span><span style="font-size: 16px; letter-spacing: 0;"> sn</span></div>
                         <div class="metric-caption">Her görsel arasındaki süre</div>
                     </article>
-                    <article class="metric-card images">
-                        <div class="metric-top"><span>Galerideki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-image"></use></svg></span></div>
-                        <div id="dashboardImageCount" class="metric-value">—</div>
-                        <div class="metric-caption">Sunucuda yüklü toplam görsel</div>
+                    <article class="metric-card playback" id="metricCardPlayback" onclick="showStream()" role="button" tabindex="0" title="Yayın akışını yönetmek için tıkla" style="cursor: pointer;">
+                        <div class="metric-top"><span>Yayın durumu</span><span class="metric-icon"><svg class="icon"><use id="dashboardPlaybackIcon" href="#icon-play"></use></svg></span></div>
+                        <div id="dashboardPlaybackStatus" class="metric-value status-text text-active">Aktif</div>
+                        <div id="dashboardPlaybackCaption" class="metric-caption">Canlı yayın akışı sürüyor</div>
                     </article>
-                    <article class="metric-card selected">
-                        <div class="metric-top"><span>Yayındaki görseller</span><span class="metric-icon"><svg class="icon"><use href="#icon-check"></use></svg></span></div>
-                        <div id="dashboardSelectedCount" class="metric-value">—</div>
-                        <div class="metric-caption">Slayt döngüsüne dahil edilen görseller</div>
+                    <article class="metric-card mode" id="metricCardMode" onclick="showStream()" role="button" tabindex="0" title="Yayın akışını yönetmek için tıkla" style="cursor: pointer;">
+                        <div class="metric-top"><span>Akış modu</span><span class="metric-icon"><svg class="icon"><use id="dashboardModeIcon" href="#icon-radio"></use></svg></span></div>
+                        <div id="dashboardModeStatus" class="metric-value status-text text-loop">Döngüde</div>
+                        <div id="dashboardModeCaption" class="metric-caption">Görseller sırayla geçiyor</div>
                     </article>
                 </section>
             </div>
@@ -2278,12 +2294,52 @@
 
                 const stats = await res.json();
                 document.getElementById('connectedClientCount').innerText = stats.connectedClients;
-                document.getElementById('dashboardImageCount').innerText = stats.imageCount;
-                document.getElementById('dashboardSelectedCount').innerText = stats.selectedImageCount;
                 document.getElementById('dashboardInterval').innerText = stats.slideInterval;
                 const slideInput = document.getElementById('slideInterval');
                 if (slideInput) slideInput.value = stats.slideInterval;
                 renderSlideIntervalDisplay(stats.slideInterval);
+
+                // Alt Sıra: Yayın Durumu (Aktif / Duraklatıldı)
+                const playbackCard = document.getElementById('metricCardPlayback');
+                const playbackStatus = document.getElementById('dashboardPlaybackStatus');
+                const playbackCaption = document.getElementById('dashboardPlaybackCaption');
+                const playbackIcon = document.getElementById('dashboardPlaybackIcon');
+                const isPaused = Boolean(stats.isPaused);
+
+                if (playbackStatus) {
+                    playbackStatus.innerText = isPaused ? 'Duraklatıldı' : 'Aktif';
+                    playbackStatus.className = `metric-value status-text ${isPaused ? 'text-paused' : 'text-active'}`;
+                }
+                if (playbackCaption) {
+                    playbackCaption.innerText = isPaused ? 'Yayın geçici olarak durduruldu' : 'Canlı yayın akışı sürüyor';
+                }
+                if (playbackIcon) {
+                    playbackIcon.setAttribute('href', isPaused ? '#icon-pause' : '#icon-play');
+                }
+                if (playbackCard) {
+                    playbackCard.classList.toggle('is-paused', isPaused);
+                }
+
+                // Alt Sıra: Akış Modu (Döngüde / Sabitlendi)
+                const modeCard = document.getElementById('metricCardMode');
+                const modeStatus = document.getElementById('dashboardModeStatus');
+                const modeCaption = document.getElementById('dashboardModeCaption');
+                const modeIcon = document.getElementById('dashboardModeIcon');
+                const isPinned = Boolean(stats.isPinned);
+
+                if (modeStatus) {
+                    modeStatus.innerText = isPinned ? 'Sabitlendi' : 'Döngüde';
+                    modeStatus.className = `metric-value status-text ${isPinned ? 'text-pinned' : 'text-loop'}`;
+                }
+                if (modeCaption) {
+                    modeCaption.innerText = isPinned ? 'Görsel ekranda sabit tutuluyor' : 'Görseller sırayla geçiyor';
+                }
+                if (modeIcon) {
+                    modeIcon.setAttribute('href', isPinned ? '#icon-pin' : '#icon-radio');
+                }
+                if (modeCard) {
+                    modeCard.classList.toggle('is-pinned', isPinned);
+                }
 
                 const ratio = stats.imageCount === 0
                     ? 0
