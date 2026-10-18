@@ -1009,6 +1009,17 @@ app.get('/events', (req, res) => {
     });
 });
 
+// SSE Canlı Bağlantı Kalp Atışı (Keep-Alive / Heartbeat) Zamanlayıcısı (Her 15 saniyede bir)
+setInterval(() => {
+    if (clients.length === 0) return;
+    const heartbeatComment = ': keep-alive\n\n';
+    for (const client of clients) {
+        try {
+            client.res.write(heartbeatComment);
+        } catch (err) {}
+    }
+}, 15000);
+
 // Belirtilen Resmi Tüm Bağlı İstemcilere Gönderen Fonksiyon
 function broadcastImage(fileName) {
     if (!selectedImageFiles.has(fileName)) return;
