@@ -377,7 +377,7 @@
             top: 0;
             left: 0;
             right: 0;
-            bottom: 62px;
+            bottom: 0;
             overflow: hidden;
             pointer-events: none;
             z-index: 1;
@@ -410,15 +410,46 @@
 
         .stream-large-img-wrap { position: relative; z-index: 1; width: 100%; aspect-ratio: 2 / 1; min-height: 280px; box-sizing: border-box; border-radius: 12px 12px 0 0; overflow: hidden; background: #000000; border: 1px solid #1e293b; border-bottom: 1px solid rgba(255, 255, 255, 0.08); box-shadow: none; }
         .stream-large-img-wrap.has-carousel-hidden { border-radius: 12px !important; border-bottom: 1px solid #1e293b !important; }
-        .stream-large-img { position: absolute; top: 0; left: 0; right: 0; bottom: 66px; width: 100%; height: calc(100% - 66px); object-fit: contain; background: transparent; z-index: 2; filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.65)); transition: opacity 0.25s ease; }
-        .stream-large-placeholder { position: absolute; top: 0; left: 0; right: 0; bottom: 66px; width: 100%; height: calc(100% - 66px); display: grid; place-items: center; place-content: center; color: #94a3b8; background: #000000; z-index: 2; }
+        .stream-large-img { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; object-fit: contain; background: transparent; z-index: 2; filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.65)); transition: opacity 0.25s ease; }
+        .stream-large-placeholder { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; display: grid; place-items: center; place-content: center; color: #94a3b8; background: #000000; z-index: 2; }
         .stream-card { position: relative; }
         .stream-card .stream-active-badge { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2; }
 
         .stream-panel-heading-copy { display: grid; gap: var(--space-1); }
         .stream-panel-description { margin: 0; color: #64748b; font-size: 13px; line-height: 1.4; }
-        .stream-control-bar { position: absolute; right: 0; bottom: 0; left: 0; height: 62px; z-index: 3; display: flex; justify-content: center; align-items: center; box-sizing: border-box; width: 100%; margin: 0; padding: 15px 16px 11px; border-top: 1px solid rgba(255, 255, 255, 0.14); border-radius: 0; background: rgba(15, 23, 42, 0.42); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
-        .stream-control-buttons { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; margin-top: 2px; }
+        .stream-control-bar {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 64px;
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            width: 100%;
+            margin: 0;
+            padding: 0 16px;
+            border-top: none;
+            border-radius: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.55) 28%, rgba(15, 23, 42, 0.92) 100%);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px) saturate(160%);
+            -webkit-backdrop-filter: blur(10px) saturate(160%);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(6px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .stream-large-img-wrap:hover .stream-control-bar,
+        .stream-large-img-wrap:focus-within .stream-control-bar,
+        .stream-control-bar.is-initial-visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        .stream-control-buttons { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 6px; margin: 0; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { width: 36px; height: 36px; min-width: 0; min-height: 36px; padding: 0; gap: 0; font-size: 0; }
         .stream-control-bar .btn-stream-nav, .stream-control-bar .btn-playback { border: 1px solid rgba(255,255,255,0.38); border-radius: 50%; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.18); backdrop-filter: blur(12px) saturate(160%); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-stream-nav { background: var(--color-neutral); color: white; border: 1px solid var(--color-neutral); cursor: pointer; transition: background 0.2s; box-shadow: none; }
@@ -440,7 +471,14 @@
         .stream-overlay-badge { position: absolute; top: 12px; left: 12px; z-index: 2; transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease; }
         .stream-overlay-badge.is-paused { background: #fef3c7; color: #92400e; }
         .stream-overlay-badge.is-pinned { background: #d97706; color: white; }
-        .stream-overlay-pin { position: absolute; top: 12px; right: 12px; z-index: 4; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.18); color: #f1f5f9; cursor: pointer; backdrop-filter: blur(10px) saturate(160%); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, opacity 0.3s ease; }
+        .stream-overlay-pin { position: absolute; top: 12px; right: 12px; z-index: 4; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.18); color: #f1f5f9; cursor: pointer; backdrop-filter: blur(10px) saturate(160%); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); opacity: 0; pointer-events: none; transition: opacity 0.35s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease; }
+        .stream-large-img-wrap:hover .stream-overlay-pin,
+        .stream-large-img-wrap:focus-within .stream-overlay-pin,
+        .stream-overlay-pin.is-pinned,
+        .stream-overlay-pin.is-initial-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
         .stream-overlay-pin .icon { width: 15px; height: 15px; }
         .stream-overlay-pin:hover:not(:disabled) { background: rgba(15, 23, 42, 0.75); border-color: rgba(255, 255, 255, 0.45); color: white; transform: scale(1.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
         .stream-overlay-pin:active:not(:disabled) { transform: scale(0.95); }
@@ -455,7 +493,7 @@
         .stream-control-left {
             position: absolute;
             left: 14px;
-            top: calc(50% + 2px);
+            top: 50%;
             transform: translateY(-50%);
             display: inline-flex;
             align-items: center;
@@ -464,7 +502,7 @@
         .stream-control-right {
             position: absolute;
             right: 14px;
-            top: calc(50% + 2px);
+            top: 50%;
             transform: translateY(-50%);
             display: inline-flex;
             align-items: center;
@@ -535,7 +573,7 @@
             width: 14px;
             height: 14px;
         }
-        .stream-control-bar:hover .stream-progress-track {
+        .stream-large-img-wrap:hover .stream-progress-track {
             height: 4px;
         }
         @media (max-width: 480px) {
@@ -680,13 +718,15 @@
 
         .stream-progress-track {
             position: absolute;
-            top: 0;
+            bottom: 0;
             left: 0;
             right: 0;
             height: 3px;
-            background: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.22);
             overflow: hidden;
             cursor: default;
+            z-index: 5;
+            transition: height 0.15s ease;
         }
         .stream-progress-fill {
             width: 0%;
@@ -1260,10 +1300,7 @@
         }
         @media (max-width: 640px) {
             .stream-large-img-wrap { aspect-ratio: 16 / 10; min-height: 240px; }
-            .stream-pillar-ambient { bottom: 58px; }
-            .stream-large-img { bottom: 62px; height: calc(100% - 62px); }
-            .stream-large-placeholder { bottom: 62px; height: calc(100% - 62px); }
-            .stream-control-bar { height: 58px; padding: 13px 10px 9px; background: rgba(15, 23, 42, 0.52); }
+            .stream-control-bar { height: 56px; padding: 0 10px; }
             .stream-control-left { left: 8px; }
             .stream-control-right { right: 8px; }
         }
@@ -1618,11 +1655,13 @@
                             <svg class="icon"><use id="streamPinIconUse" href="#icon-pin"></use></svg>
                         </button>
                         
-                        <div class="stream-control-bar">
-                            <!-- Canlı Geçiş İlerleme Çubuğu -->
-                            <div class="stream-progress-track" id="streamProgressTrack" title="Sonraki görsel geçişine kalan süre">
-                                <div id="streamProgressBar" class="stream-progress-fill"></div>
-                            </div>
+                        <!-- Canlı Geçiş İlerleme Çubuğu (Her Zaman Görünür) -->
+                        <div class="stream-progress-track" id="streamProgressTrack" title="Sonraki görsel geçişine kalan süre">
+                            <div id="streamProgressBar" class="stream-progress-fill"></div>
+                        </div>
+                        
+                        <!-- Üzerine Gelince Görünür Olan Kontrol Çubuğu -->
+                        <div class="stream-control-bar" id="streamControlBar">
                             <div class="stream-control-left">
                                 <!-- Medya Oynatıcı Süre / Geri Sayım Göstergesi -->
                                 <div class="stream-player-time" id="streamPlayerTime" onclick="toggleStreamTimeMode()" title="Süre görünümünü değiştir (Geçen / Kalan)">
@@ -2077,6 +2116,7 @@
             clearInterval(dashboardRefreshTimer);
             dashboardRefreshTimer = setInterval(refreshActiveView, 10000);
             connectLiveUpdates();
+            triggerStreamControlsInitialPeek();
         }
 
         function refreshActiveView() {
@@ -3131,6 +3171,48 @@
             }
             if (typeof isStreamFullscreen === 'function' && isStreamFullscreen()) {
                 exitStreamFullscreen();
+            }
+            clearStreamControlsInitialPeek();
+        }
+
+        let streamControlsPeekTimer = null;
+
+        function triggerStreamControlsInitialPeek() {
+            const controlBar = document.getElementById('streamControlBar') || document.querySelector('.stream-control-bar');
+            const pinBtn = document.getElementById('btnStreamPin');
+            if (!controlBar) return;
+
+            if (streamControlsPeekTimer) {
+                clearTimeout(streamControlsPeekTimer);
+                streamControlsPeekTimer = null;
+            }
+
+            controlBar.classList.add('is-initial-visible');
+            if (pinBtn) {
+                pinBtn.classList.add('is-initial-visible');
+            }
+
+            streamControlsPeekTimer = setTimeout(() => {
+                controlBar.classList.remove('is-initial-visible');
+                if (pinBtn) {
+                    pinBtn.classList.remove('is-initial-visible');
+                }
+                streamControlsPeekTimer = null;
+            }, 3000);
+        }
+
+        function clearStreamControlsInitialPeek() {
+            if (streamControlsPeekTimer) {
+                clearTimeout(streamControlsPeekTimer);
+                streamControlsPeekTimer = null;
+            }
+            const controlBar = document.getElementById('streamControlBar') || document.querySelector('.stream-control-bar');
+            const pinBtn = document.getElementById('btnStreamPin');
+            if (controlBar) {
+                controlBar.classList.remove('is-initial-visible');
+            }
+            if (pinBtn) {
+                pinBtn.classList.remove('is-initial-visible');
             }
         }
 
