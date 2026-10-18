@@ -90,7 +90,39 @@ app.get('/thumbnails/:name', async (req, res) => {
 
 // Kimlik Doğrulama (Auth) ve Oturum Güvenliği Yapılandırması
 const PASSWORD_FILE = path.join(__dirname, 'admin-password.json');
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
+
+// Yaygın zayıf parolalar kara listesi
+const COMMON_WEAK_PASSWORDS = new Set([
+    '12345678', '123456789', '1234567890', 'password', 'password123',
+    'admin123', 'administrator', 'admin2026', 'idleboard', 'idleboard123',
+    'qwerty123', 'welcome1', 'letmein1', 'changeme', 'iloveyou'
+]);
+
+function validatePasswordStrength(password) {
+    if (typeof password !== 'string') {
+        return { valid: false, error: 'Parola geçersiz bir veri tipinde.' };
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+        return { valid: false, error: `Parola en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.` };
+    }
+    if (password.length > MAX_PASSWORD_LENGTH) {
+        return { valid: false, error: `Parola en fazla ${MAX_PASSWORD_LENGTH} karakter olabilir.` };
+    }
+    const hasLetter = /[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(password);
+    const hasDigit = /[0-9]/.test(password);
+    if (!hasLetter || !hasDigit) {
+        return { valid: false, error: 'Parola en az bir harf ve bir rakam içermelidir.' };
+    }
+    if (COMMON_WEAK_PASSWORDS.has(password.toLowerCase())) {
+        return { valid: false, error: 'Bu parola çok yaygın ve tahmin edilmesi kolaydır. Lütfen daha güvenli bir parola seçin.' };
+    }
+    if (/^(.)\1+$/.test(password)) {
+        return { valid: false, error: 'Parola yalnızca aynı karakterin tekrarından oluşamaz.' };
+    }
+    return { valid: true };
+}
 
 // Oturum Zaman Aşımı Kuralları (TTL)
 const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 dakika hareketsizlik zaman aşımı
@@ -979,10 +1011,11 @@ app.post('/api/auth/setup', (req, res) => {
     if (isPasswordConfigured()) {
         return res.status(409).json({ success: false, error: 'Yönetici parolası zaten belirlenmiş.' });
     }
-    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    const validation = validatePasswordStrength(password);
+    if (!validation.valid) {
         return res.status(400).json({
             success: false,
-            error: `Parola en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`
+            error: validation.error
         });
     }
     if (password !== passwordConfirmation) {
@@ -1015,17 +1048,18 @@ app.post('/api/auth/password', requireAuth, (req, res) => {
     }
     recordSuccessfulLogin(clientIp);
 
-    if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+    if (newPassword === currentPassword) {
+        return res.status(400).json({ success: false, error: 'Yeni parola mevcut paroladan farklı olmalıdır.' });
+    }
+    const validation = validatePasswordStrength(newPassword);
+    if (!validation.valid) {
         return res.status(400).json({
             success: false,
-            error: `Yeni parola en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`
+            error: validation.error
         });
     }
     if (newPassword !== passwordConfirmation) {
         return res.status(400).json({ success: false, error: 'Yeni parola tekrarı eşleşmiyor.' });
-    }
-    if (newPassword === currentPassword) {
-        return res.status(400).json({ success: false, error: 'Yeni parola mevcut paroladan farklı olmalıdır.' });
     }
 
     savePassword(newPassword);

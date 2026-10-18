@@ -236,12 +236,151 @@
         .btn-password-toggle.active { background: #0f172a; color: white; border-color: #0f172a; }
         .password-collapse { width: 100%; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; }
         .password-fields-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-        .minimal-input { flex: 1 1 170px; height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 7px; background: #f8fafc; font-size: 13px; color: #0f172a; outline: none; transition: border-color 0.15s, background 0.15s; }
+        .minimal-input-wrapper { position: relative; flex: 1 1 170px; height: 34px; display: flex; align-items: center; }
+        .minimal-input { width: 100%; height: 100%; box-sizing: border-box; padding: 0 34px 0 10px; border: 1px solid #cbd5e1; border-radius: 7px; background: #f8fafc; font-size: 13px; color: #0f172a; outline: none; transition: border-color 0.15s, background 0.15s; }
         .minimal-input:focus { border-color: var(--color-primary); background: white; }
         .btn-minimal-save { height: 34px; padding: 0 16px; font-size: 12.5px; border-radius: 7px; background: #0f172a; color: white; border: none; cursor: pointer; font-weight: 600; transition: background 0.15s; }
         .btn-minimal-save:hover { background: var(--color-primary); }
         .btn-password-cancel { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 7px; }
         .password-collapse .login-error { margin-top: 6px; font-size: 12px; }
+
+        /* Şifre Gösterme / Gizleme Butonları ve Kapsayıcıları */
+        .password-field-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+        .password-field-wrapper .login-input {
+            margin-bottom: 0;
+            padding-right: 40px;
+        }
+        .btn-toggle-password {
+            position: absolute;
+            right: 8px;
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+        .btn-toggle-password:hover {
+            color: #334155;
+            background: #f1f5f9;
+        }
+        .btn-toggle-password .icon {
+            width: 16px;
+            height: 16px;
+        }
+        .minimal-input-wrapper .btn-toggle-password {
+            right: 4px;
+            width: 26px;
+            height: 26px;
+            border-radius: 5px;
+        }
+        .minimal-input-wrapper .btn-toggle-password:hover {
+            background: #e2e8f0;
+        }
+        .minimal-input-wrapper .btn-toggle-password .icon {
+            width: 15px;
+            height: 15px;
+        }
+
+        /* Parola Güvenlik Ölçer & Eşleşme Bildirimleri */
+        .password-strength-container {
+            width: 100%;
+            margin: -6px 0 14px 0;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .password-collapse .password-strength-container {
+            margin: 10px 0 6px 0;
+            max-width: 540px;
+        }
+        .strength-bar-track {
+            display: flex;
+            gap: 4px;
+            height: 5px;
+            width: 100%;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #e2e8f0;
+            margin-bottom: 6px;
+        }
+        .strength-bar-segment {
+            flex: 1;
+            height: 100%;
+            background: transparent;
+            border-radius: 999px;
+            transition: background 0.25s ease;
+        }
+        .strength-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+            line-height: 1.3;
+            gap: 8px;
+        }
+        .strength-label {
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .strength-text {
+            font-weight: 600;
+        }
+        .strength-hint {
+            color: #94a3b8;
+            text-align: right;
+            font-size: 11px;
+        }
+
+        /* Renk Seviyeleri */
+        .strength-lvl-1 .strength-bar-segment:nth-child(1) { background: #ef4444; }
+        .strength-lvl-1 .strength-text { color: #ef4444; }
+
+        .strength-lvl-2 .strength-bar-segment:nth-child(1),
+        .strength-lvl-2 .strength-bar-segment:nth-child(2) { background: #f97316; }
+        .strength-lvl-2 .strength-text { color: #f97316; }
+
+        .strength-lvl-3 .strength-bar-segment:nth-child(1),
+        .strength-lvl-3 .strength-bar-segment:nth-child(2),
+        .strength-lvl-3 .strength-bar-segment:nth-child(3) { background: #f59e0b; }
+        .strength-lvl-3 .strength-text { color: #d97706; }
+
+        .strength-lvl-4 .strength-bar-segment:nth-child(1),
+        .strength-lvl-4 .strength-bar-segment:nth-child(2),
+        .strength-lvl-4 .strength-bar-segment:nth-child(3),
+        .strength-lvl-4 .strength-bar-segment:nth-child(4) { background: #10b981; }
+        .strength-lvl-4 .strength-text { color: #059669; }
+
+        /* Parola Eşleşme Bildirimi */
+        .password-match-notice {
+            font-size: 11.5px;
+            font-weight: 500;
+            margin: -6px 0 12px 0;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .password-collapse .password-match-notice {
+            margin: 4px 0 6px 0;
+            max-width: 540px;
+        }
+        .password-match-notice.match-success {
+            color: #16a34a;
+        }
+        .password-match-notice.match-error {
+            color: #dc2626;
+        }
 
         /* Fabrika Ayarlarına Sıfırlama ve Tehlike Bölgesi */
         .text-danger { color: #dc2626 !important; }
@@ -1242,6 +1381,16 @@
         html[data-theme="dark"] .settings-summary-item:hover .settings-summary-icon { background: #2563eb; color: white; }
         html[data-theme="dark"] .settings-summary-label { color: #94a3b8; }
         html[data-theme="dark"] .settings-summary-value { color: #f1f5f9; }
+        html[data-theme="dark"] .strength-bar-track { background: #1e293b; }
+        html[data-theme="dark"] .strength-label { color: #94a3b8; }
+        html[data-theme="dark"] .strength-hint { color: #64748b; }
+        html[data-theme="dark"] .strength-lvl-3 .strength-text { color: #fbbf24; }
+        html[data-theme="dark"] .strength-lvl-4 .strength-text { color: #34d399; }
+        html[data-theme="dark"] .password-match-notice.match-success { color: #4ade80; }
+        html[data-theme="dark"] .password-match-notice.match-error { color: #f87171; }
+        html[data-theme="dark"] .btn-toggle-password { color: #64748b; }
+        html[data-theme="dark"] .password-field-wrapper .btn-toggle-password:hover,
+        html[data-theme="dark"] .minimal-input-wrapper .btn-toggle-password:hover { color: #cbd5e1; background: #1e293b; }
 
 
         @media (max-width: 1150px) {
@@ -1279,9 +1428,12 @@
             .settings-item-header-row { flex-direction: column; align-items: flex-start; gap: 8px; }
             .btn-password-toggle { width: auto; align-self: flex-start; height: 30px; font-size: 12px; padding: 0 12px; border-radius: 6px; }
             .password-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; max-width: 340px; }
-            .minimal-input { grid-column: 1 / -1; height: 30px; font-size: 12px; padding: 0 8px; border-radius: 6px; }
+            .minimal-input-wrapper { grid-column: 1 / -1; height: 30px; }
+            .minimal-input { height: 30px; font-size: 12px; padding: 0 30px 0 8px; border-radius: 6px; }
             .btn-minimal-save { grid-column: 1; width: 100%; height: 30px; font-size: 12px; padding: 0; border-radius: 6px; }
             .btn-password-cancel { grid-column: 2; width: 100%; height: 30px; font-size: 12px; padding: 0; border-radius: 6px; }
+            .password-collapse .password-strength-container,
+            .password-collapse .password-match-notice { max-width: 340px; }
             .dashboard-updated { font-size: 11px; width: auto; text-align: left; margin-top: 3px; }
         }
         @media (max-width: 640px) {
@@ -1324,9 +1476,12 @@
             .btn-password-toggle { width: auto; align-self: flex-start; height: 28px; font-size: 11.5px; padding: 0 11px; border-radius: 6px; }
             .password-collapse { margin-top: 8px; padding-top: 8px; }
             .password-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 100%; max-width: 320px; }
-            .minimal-input { grid-column: 1 / -1; height: 29px; font-size: 12px; padding: 0 8px; border-radius: 6px; }
+            .minimal-input-wrapper { grid-column: 1 / -1; height: 29px; }
+            .minimal-input { height: 29px; font-size: 12px; padding: 0 28px 0 8px; border-radius: 6px; }
             .btn-minimal-save { grid-column: 1; width: 100%; height: 28px; font-size: 11.5px; padding: 0; border-radius: 6px; }
             .btn-password-cancel { grid-column: 2; width: 100%; height: 28px; font-size: 11.5px; padding: 0; border-radius: 6px; }
+            .password-collapse .password-strength-container,
+            .password-collapse .password-match-notice { max-width: 320px; }
             .password-collapse .login-error { font-size: 11px; margin-top: 4px; }
             .dashboard-updated { font-size: 11px; width: auto; text-align: left; }
         }
@@ -1401,7 +1556,13 @@
             <svg class="icon auth-icon"><use href="#icon-lock"></use></svg>
             <h2>Yönetici Girişi</h2>
             <p>IdleBoard ayarlarını yönetmek için lütfen parolanızı girin.</p>
-            <input type="password" id="passwordInput" class="login-input" placeholder="Yönetici parolası..." autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+            <div class="password-field-wrapper">
+                <input type="password" id="passwordInput" class="login-input" placeholder="Yönetici parolası..." autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('passwordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                    <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                    <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                </button>
+            </div>
             <button class="btn btn-login" onclick="login()">Giriş Yap</button>
             <div id="loginError" class="login-error"></div>
         </div>
@@ -1412,9 +1573,34 @@
         <div class="login-card">
             <svg class="icon auth-icon"><use href="#icon-lock"></use></svg>
             <h2>Yönetici Parolası Belirleyin</h2>
-            <p class="setup-note">Yönetim panelini korumak için en az 6 karakterden oluşan bir parola oluşturun.</p>
-            <input type="password" id="newPasswordInput" class="login-input" placeholder="Yeni parola..." autocomplete="new-password">
-            <input type="password" id="passwordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı..." autocomplete="new-password" onkeydown="if(event.key==='Enter') setupPassword()">
+            <p class="setup-note">Yönetim panelini korumak için en az 8 karakterden oluşan bir parola oluşturun (en az 1 harf ve 1 rakam gereklidir).</p>
+            <div class="password-field-wrapper">
+                <input type="password" id="newPasswordInput" class="login-input" placeholder="Yeni parola..." autocomplete="new-password" oninput="updateSetupPasswordStrength()">
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('newPasswordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                    <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                    <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                </button>
+            </div>
+            <div id="setupStrengthMeter" class="password-strength-container" style="display: none;">
+                <div class="strength-bar-track">
+                    <div class="strength-bar-segment"></div>
+                    <div class="strength-bar-segment"></div>
+                    <div class="strength-bar-segment"></div>
+                    <div class="strength-bar-segment"></div>
+                </div>
+                <div class="strength-meta">
+                    <span class="strength-label">Güç: <strong class="strength-text">-</strong></span>
+                    <span class="strength-hint"></span>
+                </div>
+            </div>
+            <div class="password-field-wrapper">
+                <input type="password" id="passwordConfirmationInput" class="login-input" placeholder="Yeni parola tekrarı..." autocomplete="new-password" oninput="updateSetupPasswordMatch()" onkeydown="if(event.key==='Enter') setupPassword()">
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('passwordConfirmationInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                    <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                    <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                </button>
+            </div>
+            <div id="setupMatchNotice" class="password-match-notice" style="display: none;"></div>
             <button class="btn btn-login" onclick="setupPassword()">Parolayı Belirle</button>
             <div id="setupError" class="login-error"></div>
         </div>
@@ -1880,12 +2066,43 @@
                         </div>
                         <div id="passwordFormCollapse" class="password-collapse" style="display: none;">
                             <div class="password-fields-row">
-                                <input type="password" id="currentPasswordInput" class="minimal-input" placeholder="Mevcut parola" autocomplete="current-password">
-                                <input type="password" id="changedPasswordInput" class="minimal-input" placeholder="Yeni parola (en az 6 karakter)" autocomplete="new-password">
-                                <input type="password" id="changedPasswordConfirmationInput" class="minimal-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" onkeydown="if(event.key==='Enter') changePassword()">
+                                <div class="minimal-input-wrapper">
+                                    <input type="password" id="currentPasswordInput" class="minimal-input" placeholder="Mevcut parola" autocomplete="current-password">
+                                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('currentPasswordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                                        <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                                        <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                                    </button>
+                                </div>
+                                <div class="minimal-input-wrapper">
+                                    <input type="password" id="changedPasswordInput" class="minimal-input" placeholder="Yeni parola (en az 8 karakter)" autocomplete="new-password" oninput="updateChangePasswordStrength()">
+                                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('changedPasswordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                                        <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                                        <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                                    </button>
+                                </div>
+                                <div class="minimal-input-wrapper">
+                                    <input type="password" id="changedPasswordConfirmationInput" class="minimal-input" placeholder="Yeni parola tekrarı" autocomplete="new-password" oninput="updateChangePasswordMatch()" onkeydown="if(event.key==='Enter') changePassword()">
+                                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('changedPasswordConfirmationInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                                        <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                                        <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                                    </button>
+                                </div>
                                 <button class="btn btn-minimal-save" type="button" onclick="changePassword()">Kaydet</button>
                                 <button class="btn-back btn-password-cancel" type="button" onclick="togglePasswordForm(false)">Vazgeç</button>
                             </div>
+                            <div id="changeStrengthMeter" class="password-strength-container" style="display: none;">
+                                <div class="strength-bar-track">
+                                    <div class="strength-bar-segment"></div>
+                                    <div class="strength-bar-segment"></div>
+                                    <div class="strength-bar-segment"></div>
+                                    <div class="strength-bar-segment"></div>
+                                </div>
+                                <div class="strength-meta">
+                                    <span class="strength-label">Güç: <strong class="strength-text">-</strong></span>
+                                    <span class="strength-hint"></span>
+                                </div>
+                            </div>
+                            <div id="changeMatchNotice" class="password-match-notice" style="display: none;"></div>
                             <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
                         </div>
                     </div>
@@ -2012,6 +2229,213 @@
             }
         }
 
+        // Şifre Gösterme / Gizleme Fonksiyonları
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            if (btn) {
+                const showIcon = btn.querySelector('.icon-eye-show');
+                const hideIcon = btn.querySelector('.icon-eye-hide');
+                if (showIcon) showIcon.style.display = isPassword ? 'none' : 'block';
+                if (hideIcon) hideIcon.style.display = isPassword ? 'block' : 'none';
+                btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+            }
+            input.focus();
+        }
+
+        function resetPasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.type = 'password';
+            const wrapper = input.closest('.password-field-wrapper, .minimal-input-wrapper, .reset-input-wrapper');
+            if (wrapper) {
+                const showIcon = wrapper.querySelector('.icon-eye-show');
+                const hideIcon = wrapper.querySelector('.icon-eye-hide');
+                if (showIcon) showIcon.style.display = 'block';
+                if (hideIcon) hideIcon.style.display = 'none';
+                const btn = wrapper.querySelector('.btn-toggle-password, .btn-toggle-reset-password');
+                if (btn) btn.setAttribute('aria-pressed', 'false');
+            }
+        }
+
+        // Parola Politikası ve Güvenlik Güç Ölçer
+        const COMMON_WEAK_PASSWORDS = [
+            '12345678', '123456789', '1234567890', 'password', 'password123',
+            'admin123', 'administrator', 'admin2026', 'idleboard', 'idleboard123',
+            'qwerty123', 'welcome1', 'letmein1', 'changeme', 'iloveyou'
+        ];
+
+        function evaluatePasswordStrength(password) {
+            if (!password || password.length === 0) {
+                return { level: 0, text: '', hint: '', valid: false };
+            }
+
+            const len = password.length;
+            const hasLower = /[a-zçğıöşü]/.test(password);
+            const hasUpper = /[A-ZÇĞİÖŞÜ]/.test(password);
+            const hasDigit = /[0-9]/.test(password);
+            const hasSpecial = /[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]/.test(password);
+            const isRepetitive = /^(.)\1+$/.test(password);
+            const isCommon = COMMON_WEAK_PASSWORDS.includes(password.toLowerCase());
+
+            if (len < 8) {
+                return {
+                    level: 1,
+                    text: 'Çok Zayıf',
+                    hint: `En az 8 karakter olmalıdır (${len}/8)`,
+                    valid: false
+                };
+            }
+
+            if (isRepetitive) {
+                return {
+                    level: 1,
+                    text: 'Çok Zayıf',
+                    hint: 'Tekrarlayan karakterlerden oluşamaz',
+                    valid: false
+                };
+            }
+
+            if (isCommon) {
+                return {
+                    level: 1,
+                    text: 'Çok Zayıf',
+                    hint: 'Tahmin edilmesi çok kolay bir parola',
+                    valid: false
+                };
+            }
+
+            const hasLetter = hasLower || hasUpper;
+            if (!hasLetter || !hasDigit) {
+                return {
+                    level: 2,
+                    text: 'Zayıf',
+                    hint: 'En az 1 harf ve 1 rakam içermelidir',
+                    valid: false
+                };
+            }
+
+            let varietyCount = 0;
+            if (hasLower) varietyCount++;
+            if (hasUpper) varietyCount++;
+            if (hasDigit) varietyCount++;
+            if (hasSpecial) varietyCount++;
+
+            if (len >= 12 && varietyCount >= 3) {
+                return {
+                    level: 4,
+                    text: 'Çok Güçlü',
+                    hint: 'Mükemmel! Üst düzey güvenlik.',
+                    valid: true
+                };
+            }
+
+            if ((len >= 10 && varietyCount >= 3) || (len >= 8 && varietyCount >= 4)) {
+                return {
+                    level: 4,
+                    text: 'Güçlü',
+                    hint: 'Harika, oldukça güvenli parola.',
+                    valid: true
+                };
+            }
+
+            if (varietyCount >= 3 || len >= 10) {
+                return {
+                    level: 3,
+                    text: 'Orta',
+                    hint: 'Geçerli parola. Özel karakter ekleyerek güçlendirebilirsiniz.',
+                    valid: true
+                };
+            }
+
+            return {
+                level: 3,
+                text: 'Geçerli',
+                hint: 'Kabul edilebilir. Büyük harf veya sembol ekleyebilirsiniz.',
+                valid: true
+            };
+        }
+
+        function renderStrengthMeter(meterEl, result) {
+            if (!meterEl) return;
+            if (result.level === 0) {
+                meterEl.style.display = 'none';
+                meterEl.className = 'password-strength-container';
+                return;
+            }
+
+            meterEl.style.display = 'block';
+            meterEl.className = `password-strength-container strength-lvl-${result.level}`;
+            const textEl = meterEl.querySelector('.strength-text');
+            const hintEl = meterEl.querySelector('.strength-hint');
+            if (textEl) textEl.textContent = result.text;
+            if (hintEl) hintEl.textContent = result.hint;
+        }
+
+        function updateSetupPasswordStrength() {
+            const val = document.getElementById('newPasswordInput')?.value || '';
+            const meterEl = document.getElementById('setupStrengthMeter');
+            const result = evaluatePasswordStrength(val);
+            renderStrengthMeter(meterEl, result);
+            updateSetupPasswordMatch();
+        }
+
+        function updateSetupPasswordMatch() {
+            const passVal = document.getElementById('newPasswordInput')?.value || '';
+            const confVal = document.getElementById('passwordConfirmationInput')?.value || '';
+            const noticeEl = document.getElementById('setupMatchNotice');
+            if (!noticeEl) return;
+
+            if (!confVal) {
+                noticeEl.style.display = 'none';
+                noticeEl.textContent = '';
+                noticeEl.className = 'password-match-notice';
+                return;
+            }
+
+            noticeEl.style.display = 'flex';
+            if (passVal === confVal) {
+                noticeEl.className = 'password-match-notice match-success';
+                noticeEl.textContent = '✓ Parolalar eşleşiyor';
+            } else {
+                noticeEl.className = 'password-match-notice match-error';
+                noticeEl.textContent = '✕ Parolalar eşleşmiyor';
+            }
+        }
+
+        function updateChangePasswordStrength() {
+            const val = document.getElementById('changedPasswordInput')?.value || '';
+            const meterEl = document.getElementById('changeStrengthMeter');
+            const result = evaluatePasswordStrength(val);
+            renderStrengthMeter(meterEl, result);
+            updateChangePasswordMatch();
+        }
+
+        function updateChangePasswordMatch() {
+            const passVal = document.getElementById('changedPasswordInput')?.value || '';
+            const confVal = document.getElementById('changedPasswordConfirmationInput')?.value || '';
+            const noticeEl = document.getElementById('changeMatchNotice');
+            if (!noticeEl) return;
+
+            if (!confVal) {
+                noticeEl.style.display = 'none';
+                noticeEl.textContent = '';
+                noticeEl.className = 'password-match-notice';
+                return;
+            }
+
+            noticeEl.style.display = 'flex';
+            if (passVal === confVal) {
+                noticeEl.className = 'password-match-notice match-success';
+                noticeEl.textContent = '✓ Parolalar eşleşiyor';
+            } else {
+                noticeEl.className = 'password-match-notice match-error';
+                noticeEl.textContent = '✕ Parolalar eşleşmiyor';
+            }
+        }
+
         async function setupPassword() {
             const passwordInput = document.getElementById('newPasswordInput');
             const confirmationInput = document.getElementById('passwordConfirmationInput');
@@ -2020,8 +2444,14 @@
 
             const password = passwordInput.value;
             const passwordConfirmation = confirmationInput.value;
-            if (password.length < 6) {
-                errDiv.innerText = 'Parola en az 6 karakter olmalıdır.';
+            if (password.length < 8) {
+                errDiv.innerText = 'Parola en az 8 karakter olmalıdır.';
+                return;
+            }
+            const hasLetter = /[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(password);
+            const hasDigit = /[0-9]/.test(password);
+            if (!hasLetter || !hasDigit) {
+                errDiv.innerText = 'Parola en az bir harf ve bir rakam içermelidir.';
                 return;
             }
             if (password !== passwordConfirmation) {
@@ -2043,6 +2473,10 @@
 
                 passwordInput.value = '';
                 confirmationInput.value = '';
+                resetPasswordVisibility('newPasswordInput');
+                resetPasswordVisibility('passwordConfirmationInput');
+                updateSetupPasswordStrength();
+                updateSetupPasswordMatch();
                 showLogin();
                 const loginError = document.getElementById('loginError');
                 loginError.innerText = 'Parolanız oluşturuldu. Giriş yapabilirsiniz.';
@@ -2120,6 +2554,7 @@
                     errDiv.innerText = '';
                 }
             }
+            resetPasswordVisibility('passwordInput');
             document.getElementById('passwordInput').focus();
         }
 
@@ -2132,6 +2567,8 @@
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('settingsSection').style.display = 'none';
+            resetPasswordVisibility('newPasswordInput');
+            resetPasswordVisibility('passwordConfirmationInput');
             document.getElementById('newPasswordInput').focus();
         }
 
@@ -2401,6 +2838,11 @@
                 if (nxt) nxt.value = '';
                 if (conf) conf.value = '';
                 if (status) status.innerText = '';
+                resetPasswordVisibility('currentPasswordInput');
+                resetPasswordVisibility('changedPasswordInput');
+                resetPasswordVisibility('changedPasswordConfirmationInput');
+                updateChangePasswordStrength();
+                updateChangePasswordMatch();
             } else {
                 const cur = document.getElementById('currentPasswordInput');
                 if (cur) cur.focus();
@@ -2636,12 +3078,26 @@
             const currentPassword = currentPasswordInput.value;
             const newPassword = newPasswordInput.value;
             const passwordConfirmation = confirmationInput.value;
-            if (newPassword.length < 6) {
-                status.innerText = 'Yeni parola en az 6 karakter olmalıdır.';
+            if (!currentPassword) {
+                status.innerText = 'Mevcut parolanızı girin.';
+                return;
+            }
+            if (newPassword.length < 8) {
+                status.innerText = 'Yeni parola en az 8 karakter olmalıdır.';
+                return;
+            }
+            const hasLetter = /[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(newPassword);
+            const hasDigit = /[0-9]/.test(newPassword);
+            if (!hasLetter || !hasDigit) {
+                status.innerText = 'Yeni parola en az bir harf ve bir rakam içermelidir.';
                 return;
             }
             if (newPassword !== passwordConfirmation) {
                 status.innerText = 'Yeni parola tekrarı eşleşmiyor.';
+                return;
+            }
+            if (newPassword === currentPassword) {
+                status.innerText = 'Yeni parola mevcut paroladan farklı olmalıdır.';
                 return;
             }
 
@@ -2666,6 +3122,11 @@
                 currentPasswordInput.value = '';
                 newPasswordInput.value = '';
                 confirmationInput.value = '';
+                resetPasswordVisibility('currentPasswordInput');
+                resetPasswordVisibility('changedPasswordInput');
+                resetPasswordVisibility('changedPasswordConfirmationInput');
+                updateChangePasswordStrength();
+                updateChangePasswordMatch();
                 status.style.color = '#15803d';
                 status.innerText = 'Parolanız başarıyla değiştirildi.';
                 setTimeout(() => {
