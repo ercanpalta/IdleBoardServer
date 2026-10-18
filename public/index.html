@@ -117,19 +117,19 @@
         .dashboard-latest-panel {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             padding: 16px 18px;
             box-sizing: border-box;
             min-width: 0;
+            gap: 12px;
         }
-        .dashboard-latest-panel .panel-heading { margin-bottom: 10px; }
+        .dashboard-latest-panel .panel-heading { margin-bottom: 0; }
         .dashboard-latest-panel .panel-heading h2 { font-size: 15px; font-weight: 700; margin: 0; }
         .latest-image-wrap {
             display: grid;
-            flex: 1;
+            flex: 1 1 auto;
+            width: 100%;
+            height: 100%;
             min-height: 180px;
-            max-height: 250px;
-            aspect-ratio: 16 / 9;
             place-items: center;
             overflow: hidden;
             border-radius: 12px;
@@ -138,9 +138,8 @@
             transition: opacity 0.15s ease;
         }
         .latest-image-wrap:hover { opacity: 0.94; }
-        #latestImagePreview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #latestImagePreview img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
         .latest-placeholder { padding: var(--space-4); color: #94a3b8; text-align: center; font-size: 13px; line-height: 1.4; }
-        .latest-image-name { margin-top: 10px; overflow: hidden; color: #334155; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; display: block; width: 100%; min-width: 0; box-sizing: border-box; }
 
         .dashboard-side-column {
             display: flex;
@@ -1054,7 +1053,6 @@
         html[data-theme="dark"] .selection-summary strong,
         html[data-theme="dark"] .settings-card h2,
         html[data-theme="dark"] .file-name,
-        html[data-theme="dark"] .latest-image-name,
         html[data-theme="dark"] .empty-state h3,
         html[data-theme="dark"] .login-card h2 { color: #f1f5f9; }
         html[data-theme="dark"] .metric-caption,
@@ -1115,147 +1113,6 @@
         html[data-theme="dark"] .settings-summary-item:hover .settings-summary-icon { background: #2563eb; color: white; }
         html[data-theme="dark"] .settings-summary-label { color: #94a3b8; }
         html[data-theme="dark"] .settings-summary-value { color: #f1f5f9; }
-
-        /* Mini Aktivite Akışı */
-        .dashboard-activity-panel { margin-top: var(--space-4); }
-        .activity-heading-left { display: flex; flex-direction: column; gap: 3px; }
-        .activity-title-wrap { display: flex; align-items: center; gap: 8px; }
-        .live-activity-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 8px;
-            border-radius: 9999px;
-            background: #dcfce7;
-            color: #166534;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-        }
-        .activity-pulse {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #16a34a;
-            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
-            animation: pulseDot 2s infinite;
-        }
-        @keyframes pulseDot {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-        }
-        .btn-subtle {
-            background: transparent;
-            border: 1px solid #e2e8f0;
-            color: #64748b;
-        }
-        .btn-subtle:hover {
-            background: #f1f5f9;
-            color: #0f172a;
-            border-color: #cbd5e1;
-        }
-        .activity-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 380px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-        .activity-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 10px 14px;
-            border: 1px solid #f1f5f9;
-            border-radius: 10px;
-            background: #f8fafc;
-            transition: background 0.15s ease, border-color 0.15s ease;
-        }
-        .activity-item:hover {
-            background: #f1f5f9;
-            border-color: #e2e8f0;
-        }
-        .activity-item-main {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 0;
-            flex: 1;
-        }
-        .activity-icon-badge {
-            display: grid;
-            place-items: center;
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            flex-shrink: 0;
-        }
-        .activity-icon-badge .icon {
-            width: 16px;
-            height: 16px;
-        }
-        .activity-icon-badge.client_connect { background: #dcfce7; color: #166534; }
-        .activity-icon-badge.client_disconnect { background: #f1f5f9; color: #64748b; }
-        .activity-icon-badge.upload { background: #dbeafe; color: #1e40af; }
-        .activity-icon-badge.delete { background: #fee2e2; color: #991b1b; }
-        .activity-icon-badge.gallery { background: #e0e7ff; color: #3730a3; }
-        .activity-icon-badge.stream { background: #fef3c7; color: #92400e; }
-        .activity-icon-badge.settings { background: #f3e8ff; color: #6b21a8; }
-        .activity-icon-badge.system { background: #ccfbf1; color: #115e59; }
-
-        .activity-text {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
-        }
-        .activity-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #0f172a;
-            line-height: 1.3;
-        }
-        .activity-detail {
-            font-size: 11.5px;
-            color: #64748b;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .activity-time {
-            font-size: 11px;
-            color: #94a3b8;
-            white-space: nowrap;
-            flex-shrink: 0;
-            font-weight: 500;
-        }
-        .activity-empty {
-            padding: 32px 16px;
-            text-align: center;
-            color: #94a3b8;
-            font-size: 13px;
-        }
-
-        /* Dark Mode Aktivite Stilleri */
-        html[data-theme="dark"] .btn-subtle { border-color: #26364f; color: #94a3b8; }
-        html[data-theme="dark"] .btn-subtle:hover { background: #1e293b; color: #f1f5f9; border-color: #334155; }
-        html[data-theme="dark"] .live-activity-badge { background: #14532d; color: #86efac; }
-        html[data-theme="dark"] .activity-item { background: #090e17; border-color: #1e293b; }
-        html[data-theme="dark"] .activity-item:hover { background: #152238; border-color: #334155; }
-        html[data-theme="dark"] .activity-title { color: #f1f5f9; }
-        html[data-theme="dark"] .activity-detail { color: #94a3b8; }
-        html[data-theme="dark"] .activity-time { color: #64748b; }
-        html[data-theme="dark"] .activity-icon-badge.client_connect { background: #064e3b; color: #6ee7b7; }
-        html[data-theme="dark"] .activity-icon-badge.client_disconnect { background: #1e293b; color: #94a3b8; }
-        html[data-theme="dark"] .activity-icon-badge.upload { background: #1e3a8a; color: #93c5fd; }
-        html[data-theme="dark"] .activity-icon-badge.delete { background: #7f1d1d; color: #fca5a5; }
-        html[data-theme="dark"] .activity-icon-badge.gallery { background: #312e81; color: #a5b4fc; }
-        html[data-theme="dark"] .activity-icon-badge.stream { background: #78350f; color: #fde68a; }
-        html[data-theme="dark"] .activity-icon-badge.settings { background: #581c87; color: #d8b4fe; }
-        html[data-theme="dark"] .activity-icon-badge.system { background: #134e4a; color: #5eead4; }
 
 
         @media (max-width: 1150px) {
@@ -1357,6 +1214,7 @@
         }
         @media (max-width: 960px) {
             .dashboard-upper-row { grid-template-columns: 1fr; }
+            .dashboard-latest-panel .latest-image-wrap { aspect-ratio: 16 / 9; min-height: 180px; max-height: 320px; }
         }
         @media (max-width: 480px) {
             .dashboard-side-column .dashboard-metrics { grid-template-columns: 1fr; }
@@ -1487,7 +1345,6 @@
                 <div id="latestImagePreview" class="latest-image-wrap" onclick="showStream()" title="Yayın akışını yönet">
                     <div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>
                 </div>
-                <div id="latestImageName" class="latest-image-name">Henüz görsel yayınlanmadı</div>
             </article>
 
             <div class="dashboard-side-column">
@@ -1595,27 +1452,6 @@
                         <strong id="dashboardSummaryInfoBar" class="settings-summary-value">—</strong>
                     </div>
                 </div>
-            </div>
-        </article>
-
-        <!-- Mini Aktivite Akışı -->
-        <article class="dashboard-panel dashboard-activity-panel">
-            <div class="panel-heading">
-                <div class="activity-heading-left">
-                    <div class="activity-title-wrap">
-                        <h2>Son Sistem Aktiviteleri</h2>
-                        <span class="live-activity-badge"><span class="activity-pulse"></span> Canlı</span>
-                    </div>
-                    <span class="panel-kicker">Sunucu, yayın ve ekran hareketleri</span>
-                </div>
-                <div class="activity-heading-actions">
-                    <button class="btn btn-sm btn-subtle" type="button" onclick="clearActivityLog()" title="Aktivite geçmişini temizle">
-                        <svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg> Temizle
-                    </button>
-                </div>
-            </div>
-            <div class="activity-list" id="dashboardActivityList">
-                <div class="activity-empty">Aktiviteler yükleniyor...</div>
             </div>
         </article>
     </div>
@@ -2495,7 +2331,6 @@
                 }
 
                 const preview = document.getElementById('latestImagePreview');
-                const imageName = document.getElementById('latestImageName');
                 const broadcastTime = document.getElementById('dashboardLastBroadcast');
                 if (stats.latestImage) {
                     preview.innerHTML = '';
@@ -2504,15 +2339,11 @@
                     image.alt = stats.latestImage;
                     preview.appendChild(image);
                     const timeStr = stats.latestBroadcastAt ? new Date(stats.latestBroadcastAt).toLocaleTimeString('tr-TR') : '';
-                    imageName.innerText = stats.latestImage;
-                    imageName.title = timeStr ? `${stats.latestImage} (Yayın saati: ${timeStr})` : stats.latestImage;
                     if (broadcastTime) {
                         broadcastTime.innerText = timeStr || 'Son yayın';
                     }
                 } else {
                     preview.innerHTML = '<div class="latest-placeholder">Bağlı bir istemci olduğunda seçili görseller burada yayınlanır.</div>';
-                    imageName.innerText = 'Henüz görsel yayınlanmadı';
-                    imageName.title = '';
                     if (broadcastTime) {
                         broadcastTime.innerText = 'Henüz yayın yok';
                     }
@@ -2520,9 +2351,6 @@
                 document.getElementById('dashboardUpdatedAt').innerText =
                     `Sunucu çalışma süresi: ${formatUptime(stats.uptimeSeconds)} · Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`;
 
-                if (stats.recentActivities) {
-                    renderActivityLog(stats.recentActivities);
-                }
             } catch (err) {
                 console.error('Dashboard istatistikleri yüklenemedi:', err);
                 document.getElementById('dashboardUpdatedAt').innerText = 'İstatistikler güncellenemedi.';
@@ -2537,73 +2365,6 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
-        }
-
-        function formatRelativeTime(ts) {
-            if (!ts) return '';
-            const diffSec = Math.max(0, Math.floor((Date.now() - Number(ts)) / 1000));
-            if (diffSec < 10) return 'Az önce';
-            if (diffSec < 60) return `${diffSec} sn önce`;
-            const diffMin = Math.floor(diffSec / 60);
-            if (diffMin < 60) return `${diffMin} dk önce`;
-            const diffHours = Math.floor(diffMin / 60);
-            if (diffHours < 24) return `${diffHours} sa önce`;
-            const d = new Date(Number(ts));
-            return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-        }
-
-        function renderActivityLog(activities) {
-            const list = document.getElementById('dashboardActivityList');
-            if (!list) return;
-            if (!Array.isArray(activities) || activities.length === 0) {
-                list.innerHTML = '<div class="activity-empty"><p style="margin:0;">Henüz kaydedilmiş bir sistem aktivitesi bulunmuyor.</p></div>';
-                return;
-            }
-            const iconMap = {
-                client_connect: 'icon-monitor',
-                client_disconnect: 'icon-minus-circle',
-                upload: 'icon-upload',
-                delete: 'icon-trash',
-                gallery: 'icon-image',
-                stream: 'icon-play',
-                settings: 'icon-settings',
-                system: 'icon-check'
-            };
-            list.innerHTML = activities.map(act => {
-                const iconId = iconMap[act.type] || 'icon-clock';
-                const relTime = formatRelativeTime(act.time);
-                const escapedTitle = escapeHtml(act.title || '');
-                const escapedDetail = act.detail ? `<span class="activity-detail">${escapeHtml(act.detail)}</span>` : '';
-                return `
-                    <div class="activity-item">
-                        <div class="activity-item-main">
-                            <div class="activity-icon-badge ${escapeHtml(act.type || 'system')}">
-                                <svg class="icon"><use href="#${iconId}"></use></svg>
-                            </div>
-                            <div class="activity-text">
-                                <span class="activity-title">${escapedTitle}</span>
-                                ${escapedDetail}
-                            </div>
-                        </div>
-                        <span class="activity-time">${relTime}</span>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function clearActivityLog() {
-            if (!confirm('Aktivite günlüğünü temizlemek istediğinizden emin misiniz?')) return;
-            try {
-                const res = await fetch('/api/activity-log/clear', {
-                    method: 'POST',
-                    headers: getAuthHeaders()
-                });
-                if (res.ok) {
-                    loadDashboardStats();
-                }
-            } catch (e) {
-                console.error('Aktivite günlüğü temizlenemedi:', e);
-            }
         }
 
         async function changePassword() {
