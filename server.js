@@ -139,15 +139,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const IMAGES_DIR = path.join(__dirname, 'images');
 const THUMBNAILS_DIR = path.join(__dirname, 'thumbnails');
-const SELECTED_IMAGES_FILE = path.join(__dirname, 'selected-images.json');
-const SETTINGS_FILE = path.join(__dirname, 'server-settings.json');
-const ACTIVITY_LOG_FILE = path.join(__dirname, 'activity-log.json');
+const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(IMAGES_DIR)) {
     fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
 if (!fs.existsSync(THUMBNAILS_DIR)) {
     fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
 }
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Eski konumdaki (kök dizin) verileri otomatik olarak data/ dizinine taşı (Geriye dönük uyumluluk)
+const legacyFilesToMigrate = [
+    { oldPath: path.join(__dirname, 'selected-images.json'), newName: 'selected-images.json' },
+    { oldPath: path.join(__dirname, 'server-settings.json'), newName: 'server-settings.json' },
+    { oldPath: path.join(__dirname, 'activity-log.json'), newName: 'activity-log.json' },
+    { oldPath: path.join(__dirname, 'admin-password.json'), newName: 'admin-password.json' }
+];
+for (const item of legacyFilesToMigrate) {
+    const targetPath = path.join(DATA_DIR, item.newName);
+    if (fs.existsSync(item.oldPath) && !fs.existsSync(targetPath)) {
+        try {
+            fs.renameSync(item.oldPath, targetPath);
+        } catch (e) {
+            try {
+                fs.copyFileSync(item.oldPath, targetPath);
+                fs.unlinkSync(item.oldPath);
+            } catch (err) {}
+        }
+    }
+}
+
+const SELECTED_IMAGES_FILE = path.join(DATA_DIR, 'selected-images.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'server-settings.json');
+const ACTIVITY_LOG_FILE = path.join(DATA_DIR, 'activity-log.json');
 
 app.use('/images', express.static(IMAGES_DIR));
 
@@ -183,7 +209,7 @@ app.get('/thumbnails/:name', async (req, res) => {
 });
 
 // Kimlik Doğrulama (Auth) ve Oturum Güvenliği Yapılandırması
-const PASSWORD_FILE = path.join(__dirname, 'admin-password.json');
+const PASSWORD_FILE = path.join(DATA_DIR, 'admin-password.json');
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
 
@@ -1792,6 +1818,14 @@ app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
 
     // 4. Kalan geçici dosyaları temizle
     try {
+        if (fs.existsSync(DATA_DIR)) {
+            const dataFiles = fs.readdirSync(DATA_DIR);
+            for (const df of dataFiles) {
+                if (df.endsWith('.tmp')) {
+                    try { fs.unlinkSync(path.join(DATA_DIR, df)); } catch (e) {}
+                }
+            }
+        }
         const rootFiles = fs.readdirSync(__dirname);
         for (const rf of rootFiles) {
             if (rf.endsWith('.tmp') && (rf.includes('settings') || rf.includes('activity') || rf.includes('selected') || rf.includes('password'))) {

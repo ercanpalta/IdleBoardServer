@@ -7,6 +7,10 @@ images/*
 # ...ama .gitkeep dosyasını istisna tut (klasör yapısı korunsun)
 !images/.gitkeep
 
+# Çalışma zamanı veri klasörü (.gitkeep hariç tüm dinamik verileri yoksay)
+data/*
+!data/.gitkeep
+
 # Çevre değişkenleri ve loglar
 .env
 *.log
