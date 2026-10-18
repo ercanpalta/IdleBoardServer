@@ -840,11 +840,19 @@ function loadSelectedImages() {
     selectedImageFiles = new Set(stored.filter(fileName => availableImages.has(fileName)));
 }
 
+function broadcastActiveImages() {
+    broadcastToAll({
+        tip: 'active_images',
+        activeImages: getActiveSelectedImages()
+    });
+}
+
 function saveSelectedImages(imageFiles) {
     const temporaryFile = `${SELECTED_IMAGES_FILE}.${process.pid}.tmp`;
     fs.writeFileSync(temporaryFile, JSON.stringify(imageFiles, null, 2), { mode: 0o600 });
     fs.renameSync(temporaryFile, SELECTED_IMAGES_FILE);
     selectedImageFiles = new Set(imageFiles);
+    broadcastActiveImages();
 }
 
 loadSelectedImages();
@@ -1045,6 +1053,7 @@ app.get('/events', (req, res) => {
         slideshowOrder: getSlideshowOrder(),
         showWatermark: getShowWatermark(),
         watermarkImage: getWatermarkBase64(),
+        activeImages: getActiveSelectedImages(),
         isPaused: isPlaybackPaused,
         isPinned: isImagePinned
     })}\n\n`);
@@ -1114,6 +1123,7 @@ function broadcastImage(fileName) {
             transitionEffect: getTransitionEffect(),
             slideshowOrder: getSlideshowOrder(),
             showWatermark: getShowWatermark(),
+            activeImages: getActiveSelectedImages(),
             broadcastAt: lastBroadcast.time,
             resimData: base64Image
         };
@@ -2078,6 +2088,7 @@ app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
         showInfoBar: showInfoBar,
         showWatermark: false,
         watermarkImage: null,
+        activeImages: [],
         transitionEffect: transitionEffect,
         slideshowOrder: slideshowOrder
     };
