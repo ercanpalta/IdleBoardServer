@@ -1708,7 +1708,8 @@
             </div>
         </section>
         <div class="upload-card" onclick="document.getElementById('fileInput').click()">
-            <p style="margin: 0 0 10px 0; font-size: 16px; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Bir veya birden fazla görsel seçip yükleyin</p>
+            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Bir veya birden fazla görsel seçip yükleyin</p>
+            <p style="margin: 0 0 12px 0; font-size: 12.5px; color: #64748b;">Desteklenen formatlar: JPG, PNG, WebP (Dosya başına maksimum 100 MB)</p>
             <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple onchange="uploadImage(event)" onclick="event.stopPropagation()">
             <button id="uploadButton" class="btn" type="button" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Görsel Seç & Yükle</button>
             <span id="uploadStatus" class="upload-status" role="status" aria-live="polite"></span>
@@ -3062,13 +3063,14 @@
 
                         const result = await res.json();
                         if (!res.ok || !result.success) {
-                            failedFiles.push(file.name);
+                            const errNote = result && result.error ? ` (${result.error})` : '';
+                            failedFiles.push(`${file.name}${errNote}`);
                         } else {
                             uploadedCount++;
                         }
                     } catch (err) {
                         console.error(`Görsel yüklenemedi (${file.name}):`, err);
-                        failedFiles.push(file.name);
+                        failedFiles.push(`${file.name} (Ağ/sunucu hatası)`);
                     }
                 }
 

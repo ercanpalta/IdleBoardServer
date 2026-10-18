@@ -301,6 +301,7 @@ function requireAuth(req, res, next) {
 }
 
 // Multer Dosya Yükleme Ayarları
+const MAX_UPLOAD_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB maksimum dosya boyutu
 const supportedImageTypes = {
     '.jpg': { mimeType: 'image/jpeg', format: 'jpeg' },
     '.jpeg': { mimeType: 'image/jpeg', format: 'jpeg' },
@@ -311,17 +312,58 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, IMAGES_DIR),
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
+        const ext = path.extname(file.originalname).toLowerCase();
         cb(null, `img-${uniqueSuffix}${ext}`);
     }
 });
 const upload = multer({
     storage,
+    limits: {
+        fileSize: MAX_UPLOAD_FILE_SIZE_BYTES,
+        files: 1
+    },
     fileFilter: (req, file, cb) => {
-        const type = supportedImageTypes[path.extname(file.originalname).toLowerCase()];
-        cb(null, Boolean(type && file.mimetype === type.mimeType));
+        const ext = path.extname(file.originalname).toLowerCase();
+        const type = supportedImageTypes[ext];
+        if (!type || file.mimetype !== type.mimeType) {
+            const err = new Error('INVALID_FILE_TYPE');
+            err.code = 'INVALID_FILE_TYPE';
+            return cb(err, false);
+        }
+        cb(null, true);
     }
 });
+
+// Magic Bytes (Dosya İmzası) Doğrulaması (< 0.1ms, sıfır işlemci/RAM yükü)
+function verifyImageMagicBytes(filePath, expectedFormat) {
+    let fd = null;
+    try {
+        fd = fs.openSync(filePath, 'r');
+        const buffer = Buffer.alloc(16);
+        const bytesRead = fs.readSync(fd, buffer, 0, 16, 0);
+        if (bytesRead < 12) return false;
+
+        if (expectedFormat === 'jpeg') {
+            return buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+        }
+        if (expectedFormat === 'png') {
+            return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47
+                && buffer[4] === 0x0D && buffer[5] === 0x0A && buffer[6] === 0x1A && buffer[7] === 0x0A;
+        }
+        if (expectedFormat === 'webp') {
+            const riff = buffer.toString('ascii', 0, 4);
+            const webp = buffer.toString('ascii', 8, 12);
+            return riff === 'RIFF' && webp === 'WEBP';
+        }
+        return false;
+    } catch (e) {
+        return false;
+    } finally {
+        if (fd !== null) {
+            try { fs.closeSync(fd); } catch (e) {}
+        }
+    }
+}
 
 // Aktif SSE İstemcileri
 let clients = [];
@@ -1145,31 +1187,81 @@ app.put('/api/gallery/selection', requireAuth, (req, res) => {
     });
 });
 
-// 2. Yeni Resim Yükle
-app.post('/api/upload', requireAuth, upload.single('image'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({
-            error: 'Yalnızca JPG, JPEG, PNG ve WebP görseller yüklenebilir.'
-        });
-    }
+// 2. Yeni Resim Yükle (100MB sınır, Magic Bytes doğrulaması, sıfır ağır işlemci yükü)
+app.post('/api/upload', requireAuth, (req, res) => {
+    upload.single('image')(req, res, async (err) => {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Dosya boyutu 100 MB sınırını aşıyor.'
+                });
+            }
+            if (err.code === 'INVALID_FILE_TYPE') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Yalnızca JPG, JPEG, PNG ve WebP formatında görseller yüklenebilir.'
+                });
+            }
+            return res.status(400).json({
+                success: false,
+                error: 'Yükleme hatası: ' + err.message
+            });
+        }
 
-    const expectedType = supportedImageTypes[path.extname(req.file.originalname).toLowerCase()];
-    let metadata;
-    try {
-        metadata = await sharp(req.file.path).metadata();
-    } catch (error) {
-        await fs.promises.unlink(req.file.path);
-        return res.status(400).json({ error: 'Dosya geçerli bir görsel değil.' });
-    }
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'Yüklenecek görsel bulunamadı.'
+            });
+        }
 
-    if (!expectedType || metadata.format !== expectedType.format) {
-        await fs.promises.unlink(req.file.path);
-        return res.status(400).json({ error: 'Dosya uzantısı ile görsel içeriği eşleşmiyor.' });
-    }
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const expectedType = supportedImageTypes[ext];
+        if (!expectedType) {
+            try { await fs.promises.unlink(req.file.path); } catch (e) {}
+            return res.status(400).json({ success: false, error: 'Desteklenmeyen dosya uzantısı.' });
+        }
 
-    generateThumbnail(req.file.filename).catch(() => {});
-    logActivity('upload', 'Yeni görsel yüklendi', req.file.originalname || req.file.filename);
-    res.json({ success: true, fileName: req.file.filename });
+        // 1. Magic Bytes (Dosya İmzası) Doğrulaması (< 0.1ms, sıfır CPU/RAM yükü)
+        const isValidMagic = verifyImageMagicBytes(req.file.path, expectedType.format);
+        if (!isValidMagic) {
+            try { await fs.promises.unlink(req.file.path); } catch (e) {}
+            return res.status(400).json({
+                success: false,
+                error: 'Dosya içeriği geçersiz veya sahte. Dosya başlık imzası görsel türüyle uyuşmuyor.'
+            });
+        }
+
+        // 2. Başlık ve Boyut Doğrulaması (Sharp metadata - piksel işlemez, son derece hafiftir)
+        let metadata;
+        try {
+            metadata = await sharp(req.file.path).metadata();
+        } catch (error) {
+            try { await fs.promises.unlink(req.file.path); } catch (e) {}
+            return res.status(400).json({ success: false, error: 'Görsel başlık bilgisi okunamadı veya dosya bozuk.' });
+        }
+
+        if (!metadata || metadata.format !== expectedType.format) {
+            try { await fs.promises.unlink(req.file.path); } catch (e) {}
+            return res.status(400).json({ success: false, error: 'Dosya uzantısı ile görsel formatı eşleşmiyor.' });
+        }
+
+        // 3. Decompression bomb (Piksel taşması) koruması: Maksimum 64 Megapiksel
+        if (metadata.width && metadata.height && (metadata.width * metadata.height > 64000000)) {
+            try { await fs.promises.unlink(req.file.path); } catch (e) {}
+            return res.status(400).json({
+                success: false,
+                error: 'Görsel çözünürlüğü aşırı yüksek (maksimum 64 megapiksel).'
+            });
+        }
+
+        // Orijinal dosya olduğu gibi korunur (ağır yeniden sıkıştırma yapılmaz, sistem yorulmaz)
+        // Arka planda küçük önizleme (thumbnail) oluşturulur
+        generateThumbnail(req.file.filename).catch(() => {});
+        logActivity('upload', 'Yeni görsel yüklendi', req.file.originalname || req.file.filename);
+        res.json({ success: true, fileName: req.file.filename });
+    });
 });
 
 // 3. Resim Sil
