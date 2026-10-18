@@ -1,14 +1,20 @@
 {
   "name": "idleboard",
   "version": "1.0.0",
-  "description": "",
+  "description": "Node.js and Express SSE streaming server with web administration panel for digital signage displays",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "digital-signage",
+    "sse",
+    "server-sent-events",
+    "slideshow",
+    "display-board"
+  ],
+  "author": "Ercan Palta",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

@@ -1,30 +1,48 @@
 # IdleBoard Server
 
-Node.js ve Express tabanlı, Server-Sent Events (SSE) ile istemci cihazlara görsel yayını yapan ve web yönetim paneli sunan sunucu uygulaması.
+A Node.js and Express backend service featuring Server-Sent Events (SSE) for real-time image broadcasting to connected display screens, accompanied by a comprehensive web administration dashboard.
 
-## 🚀 Özellikler
+## 🚀 Key Features
 
-- **Canlı Görsel Yayını (SSE):** Bağlı istemci ekranlara gerçek zamanlı Server-Sent Events üzerinden dinamik görsel aktarımı.
-- **Web Yönetim Paneli:** Görsel yükleme, galeri yönetimi, anlık yayına alma, yayın duraklatma ve sabitleme kontrolleri.
-- **Dinamik Slayt Gösterisi:** Yapılandırılabilir geçiş süreleri (interval), slayt sırası ve geçiş efektleri.
-- **Güçlü Güvenlik Katmanı:**
-  - Content Security Policy (CSP) & Permissions Policy
-  - Kaba kuvvet (Brute-force) koruması ve hız sınırlama (Rate limiting)
-  - HttpOnly, SameSite korumalı oturum çerezleri
-  - Parola politikası, scrypt karma ve güç ölçer
-  - Çapraz kaynak (Origin/Referer) koruması ve yerel ağ uyumlu CORS
-  - 100 MB yükleme sınırı, dosya imzası (Magic Bytes) doğrulama
+- **Real-Time Image Streaming (SSE):** Dynamic, unidirectional image streaming to client screens over Server-Sent Events with heartbeat monitoring and auto-reconnect handling.
+- **Web Administration Dashboard:** Modern, responsive control panel for uploading images, managing playlists, instant screen broadcasts, pausing playback, and pinning media.
+- **Dynamic Slideshow Engine:** Configurable slide transition intervals, customizable display order (sequential / randomized), and smooth transition effects.
+- **Robust Security Layer:**
+  - Content Security Policy (CSP) & Permissions Policy headers
+  - Brute-force mitigation and IP-based flood rate limiting
+  - Secure authentication via `HttpOnly`, `SameSite=Strict` session cookies
+  - Strong password policy validation with `scrypt` cryptographic key derivation and interactive strength meter
+  - Cross-Origin (Origin & Referer) protection and local-network-friendly CORS
+  - 100 MB maximum upload limit with magic bytes signature validation and decompression bomb protection
+- **Organized Storage:** Isolated runtime data storage (`data/` directory) with automated migration from legacy paths.
 
-## 📦 Kurulum ve Çalıştırma
+## 📦 Requirements & Installation
 
-Gereksinim: Node.js (v18+)
+- **Node.js:** v18.0.0 or higher
+- **npm:** v9.0.0 or higher
 
 ```bash
-# Bağımlılıkları yükleyin
+# Install dependencies
 npm install
 
-# Sunucuyu başlatın (varsayılan port: 3000)
+# Start the server (default port: 3000)
 npm start
 ```
 
-Sunucu başladığında tarayıcınızdan `http://localhost:3000` adresine giderek yönetim paneline erişebilirsiniz.
+Once running, navigate to `http://localhost:3000` in your web browser to access the administration dashboard.
+
+## ⚙️ Configuration & API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/events` | `GET` | SSE stream for real-time display image updates |
+| `/api/auth/status` | `GET` | Check administrative authentication setup status |
+| `/api/login` | `POST` | Authenticate administrator session |
+| `/api/gallery` | `GET` | Retrieve list of uploaded images and current broadcast status |
+| `/api/upload` | `POST` | Upload new media (JPG, PNG, WebP up to 100 MB) |
+| `/api/broadcast/:name` | `POST` | Instantly broadcast a specific image to all connected displays |
+| `/api/settings` | `GET` / `POST` | Read or update slideshow intervals, display modes, and preferences |
+
+## 🛡️ License
+
+ISC License
