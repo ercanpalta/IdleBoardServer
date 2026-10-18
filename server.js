@@ -535,6 +535,8 @@ const VALID_IMAGE_FITS = new Set(['uniform', 'uniformToFill', 'fill']);
 let imageFitMode = 'uniform';
 
 let showInfoBar = true;
+let showWatermark = false;
+let watermarkFileName = null;
 
 const VALID_TRANSITION_EFFECTS = new Set(['fade', 'none']);
 let transitionEffect = 'fade';
@@ -564,6 +566,31 @@ function getShowInfoBar() {
     return showInfoBar;
 }
 
+function getShowWatermark() {
+    return showWatermark;
+}
+
+function getWatermarkFileName() {
+    return watermarkFileName;
+}
+
+function getWatermarkFilePath() {
+    if (!watermarkFileName) return null;
+    const p = path.join(DATA_DIR, watermarkFileName);
+    return fs.existsSync(p) ? p : null;
+}
+
+function getWatermarkBase64() {
+    const p = getWatermarkFilePath();
+    if (!p) return null;
+    try {
+        const buf = fs.readFileSync(p);
+        return buf.toString('base64');
+    } catch (e) {
+        return null;
+    }
+}
+
 function getTransitionEffect() {
     return transitionEffect;
 }
@@ -589,6 +616,23 @@ function loadServerSettings() {
             if (typeof stored.showInfoBar === 'boolean') {
                 showInfoBar = stored.showInfoBar;
             }
+            if (typeof stored.showWatermark === 'boolean') {
+                showWatermark = stored.showWatermark;
+            }
+            if (typeof stored.watermarkFileName === 'string' && stored.watermarkFileName.trim()) {
+                const candidate = stored.watermarkFileName.trim();
+                if (fs.existsSync(path.join(DATA_DIR, candidate))) {
+                    watermarkFileName = candidate;
+                }
+            } else {
+                const defaultCandidates = ['watermark-logo.png', 'watermark-logo.jpg', 'watermark-logo.jpeg', 'watermark-logo.webp'];
+                for (const c of defaultCandidates) {
+                    if (fs.existsSync(path.join(DATA_DIR, c))) {
+                        watermarkFileName = c;
+                        break;
+                    }
+                }
+            }
             if (typeof stored.transitionEffect === 'string' && VALID_TRANSITION_EFFECTS.has(stored.transitionEffect)) {
                 transitionEffect = stored.transitionEffect;
             }
@@ -609,6 +653,8 @@ function saveServerSettings() {
             kioskIdleTimeout: kioskIdleTimeoutSec,
             imageFit: imageFitMode,
             showInfoBar: showInfoBar,
+            showWatermark: showWatermark,
+            watermarkFileName: watermarkFileName,
             transitionEffect: transitionEffect,
             slideshowOrder: slideshowOrder
         }, null, 2), { mode: 0o600 });
@@ -946,6 +992,23 @@ function setSlideshowOrder(order) {
     return true;
 }
 
+function setShowWatermark(visible) {
+    if (typeof visible !== 'boolean') {
+        return false;
+    }
+    showWatermark = visible;
+    saveServerSettings();
+    broadcastToAll({
+        tip: 'config',
+        showWatermark: showWatermark,
+        watermarkImage: getWatermarkBase64()
+    });
+    broadcastDashboardUpdate();
+    console.log(`[i] Filigran (marka logosu) görünürlüğü güncellendi: ${showWatermark}`);
+    logActivity('settings', 'Marka logosu filigranı güncellendi', showWatermark ? 'Açık' : 'Kapalı');
+    return true;
+}
+
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -980,6 +1043,8 @@ app.get('/events', (req, res) => {
         showInfoBar: getShowInfoBar(),
         transitionEffect: getTransitionEffect(),
         slideshowOrder: getSlideshowOrder(),
+        showWatermark: getShowWatermark(),
+        watermarkImage: getWatermarkBase64(),
         isPaused: isPlaybackPaused,
         isPinned: isImagePinned
     })}\n\n`);
@@ -1048,6 +1113,7 @@ function broadcastImage(fileName) {
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
             slideshowOrder: getSlideshowOrder(),
+            showWatermark: getShowWatermark(),
             broadcastAt: lastBroadcast.time,
             resimData: base64Image
         };
@@ -1678,7 +1744,10 @@ app.get('/api/settings', requireAuth, (req, res) => {
         imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
         transitionEffect: getTransitionEffect(),
-        slideshowOrder: getSlideshowOrder()
+        slideshowOrder: getSlideshowOrder(),
+        showWatermark: getShowWatermark(),
+        hasWatermark: Boolean(getWatermarkFilePath()),
+        watermarkUrl: getWatermarkFilePath() ? '/api/watermark/image' : null
     });
 });
 
@@ -1723,6 +1792,130 @@ app.post('/api/settings/info-bar', requireAuth, (req, res) => {
         });
     }
     res.json({ success: true, showInfoBar: getShowInfoBar() });
+});
+
+app.post('/api/settings/watermark', requireAuth, (req, res) => {
+    const show = req.body && typeof req.body.showWatermark === 'boolean'
+        ? req.body.showWatermark
+        : (req.body && req.body.showWatermark === 'true');
+    if (!setShowWatermark(show)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Geçersiz parametre. showWatermark boolean olmalıdır.'
+        });
+    }
+    res.json({
+        success: true,
+        showWatermark: getShowWatermark(),
+        hasWatermark: Boolean(getWatermarkFilePath())
+    });
+});
+
+app.get('/api/watermark/image', (req, res) => {
+    const p = getWatermarkFilePath();
+    if (!p) {
+        return res.status(404).send('Logo bulunamadı');
+    }
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(p);
+});
+
+const watermarkLogoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
+            cb(null, true);
+        } else {
+            const err = new Error('INVALID_LOGO_TYPE');
+            err.code = 'INVALID_LOGO_TYPE';
+            cb(err, false);
+        }
+    }
+});
+
+app.post('/api/watermark/upload', requireAuth, (req, res) => {
+    watermarkLogoUpload.single('logo')(req, res, async (err) => {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ success: false, error: 'Logo dosyası 10 MB sınırını aşamaz' });
+            }
+            return res.status(400).json({ success: false, error: 'Sadece PNG, JPG veya WEBP logo formatları desteklenmektedir' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'Lütfen bir logo görseli seçin' });
+        }
+
+        try {
+            if (watermarkFileName) {
+                const oldPath = path.join(DATA_DIR, watermarkFileName);
+                if (fs.existsSync(oldPath)) {
+                    try { fs.unlinkSync(oldPath); } catch (e) {}
+                }
+            }
+
+            const targetFileName = 'watermark-logo.png';
+            const targetPath = path.join(DATA_DIR, targetFileName);
+
+            await sharp(req.file.buffer)
+                .resize({ width: 600, height: 300, fit: 'inside', withoutEnlargement: true })
+                .png({ quality: 90 })
+                .toFile(targetPath);
+
+            watermarkFileName = targetFileName;
+            saveServerSettings();
+
+            const base64Data = getWatermarkBase64();
+            broadcastToAll({
+                tip: 'config',
+                showWatermark: showWatermark,
+                watermarkImage: base64Data,
+                watermarkVersion: Date.now()
+            });
+            broadcastDashboardUpdate();
+
+            console.log('[i] Yeni marka logosu başarıyla yüklendi.');
+            logActivity('settings', 'Marka logosu yüklendi', req.file.originalname);
+
+            res.json({
+                success: true,
+                showWatermark: showWatermark,
+                hasWatermark: true,
+                watermarkUrl: '/api/watermark/image?v=' + Date.now()
+            });
+        } catch (procErr) {
+            console.error('[!] Logo işleme hatası:', procErr.message);
+            res.status(500).json({ success: false, error: 'Logo kaydedilirken hata oluştu: ' + procErr.message });
+        }
+    });
+});
+
+app.delete('/api/watermark', requireAuth, (req, res) => {
+    if (watermarkFileName) {
+        const p = path.join(DATA_DIR, watermarkFileName);
+        if (fs.existsSync(p)) {
+            try { fs.unlinkSync(p); } catch (e) {}
+        }
+    }
+    watermarkFileName = null;
+    saveServerSettings();
+
+    broadcastToAll({
+        tip: 'config',
+        showWatermark: showWatermark,
+        watermarkImage: null
+    });
+    broadcastDashboardUpdate();
+
+    console.log('[i] Marka logosu kaldırıldı.');
+    logActivity('settings', 'Marka logosu kaldırıldı', 'Logo silindi');
+
+    res.json({
+        success: true,
+        showWatermark: showWatermark,
+        hasWatermark: false
+    });
 });
 
 app.post('/api/settings/transition-effect', requireAuth, (req, res) => {
@@ -1846,6 +2039,12 @@ app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
     } catch (e) {}
 
     // 5. Bellek içi durumları varsayılana sıfırla
+    if (watermarkFileName) {
+        const p = path.join(DATA_DIR, watermarkFileName);
+        try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (e) {}
+    }
+    showWatermark = false;
+    watermarkFileName = null;
     selectedImageFiles.clear();
     currentImageIndex = 0;
     slideIntervalSec = 5;
@@ -1877,6 +2076,8 @@ app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
         slideInterval: slideIntervalSec,
         imageFit: imageFitMode,
         showInfoBar: showInfoBar,
+        showWatermark: false,
+        watermarkImage: null,
         transitionEffect: transitionEffect,
         slideshowOrder: slideshowOrder
     };

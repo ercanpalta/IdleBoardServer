@@ -241,8 +241,66 @@
         .minimal-input:focus { border-color: var(--color-primary); background: white; }
         .btn-minimal-save { height: 34px; padding: 0 16px; font-size: 12.5px; border-radius: 7px; background: #0f172a; color: white; border: none; cursor: pointer; font-weight: 600; transition: background 0.15s; }
         .btn-minimal-save:hover { background: var(--color-primary); }
-        .btn-password-cancel { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 7px; }
         .password-collapse .login-error { margin-top: 6px; font-size: 12px; }
+
+        /* Marka Logosu (Filigran) Ayar Alanı */
+        .watermark-container {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: transparent;
+            border: 1px dashed #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .watermark-preview-wrap {
+            width: 140px;
+            height: 64px;
+            border-radius: 8px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px dashed #cbd5e1;
+        }
+        .watermark-preview-img {
+            max-width: 90%;
+            max-height: 80%;
+            object-fit: contain;
+            display: block;
+        }
+        .watermark-preview-empty {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 500;
+            text-align: center;
+            padding: 4px;
+        }
+        .watermark-actions-col {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            flex: 1;
+            min-height: 64px;
+        }
+        .watermark-btn-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #watermarkUploadStatus {
+            margin: 4px 0 0 0;
+            font-size: 11px;
+            min-height: 0;
+        }
+        #watermarkUploadStatus:empty {
+            display: none;
+        }
 
         /* Şifre Gösterme / Gizleme Butonları ve Kapsayıcıları */
         .password-field-wrapper {
@@ -1370,6 +1428,8 @@
         html[data-theme="dark"] .btn-password-toggle:hover { background: #26364f; color: #f1f5f9; }
         html[data-theme="dark"] .btn-password-toggle.active { background: #2563eb; border-color: #2563eb; color: white; }
         html[data-theme="dark"] .password-collapse { border-top-color: #1e293b; }
+        html[data-theme="dark"] .watermark-container { background: transparent; border-color: #1e293b; }
+        html[data-theme="dark"] .watermark-preview-wrap { border-color: #334155; background: transparent; }
         html[data-theme="dark"] .minimal-input { background: #090e17; border-color: #334155; color: #f1f5f9; }
         html[data-theme="dark"] .minimal-input:focus { background: #0f172a; border-color: #3b82f6; }
         html[data-theme="dark"] .btn-minimal-save { background: #2563eb; }
@@ -2040,6 +2100,43 @@
                                 <label class="theme-option"><input type="radio" name="showInfoBar" value="false" onchange="updateShowInfoBar(false)"><span>Gizle</span></label>
                             </div>
                             <span id="infoBarStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
+
+                    <!-- Marka Logosu (Filigran) -->
+                    <div class="settings-item settings-item-stacked">
+                        <div class="settings-item-header-row">
+                            <div class="settings-item-info">
+                                <span class="settings-item-title">Marka Logosu (Filigran)</span>
+                                <p class="settings-item-desc">Yayın ekranının sol üst köşesinde marka logonuzu filigran olarak gösterin.</p>
+                            </div>
+                            <div class="settings-item-controls">
+                                <div class="theme-options" role="radiogroup" aria-label="Filigran görünürlüğü">
+                                    <label class="theme-option"><input type="radio" name="showWatermark" value="true" onchange="updateShowWatermark(true)"><span>Açık</span></label>
+                                    <label class="theme-option"><input type="radio" name="showWatermark" value="false" onchange="updateShowWatermark(false)"><span>Kapalı</span></label>
+                                </div>
+                                <span id="watermarkToggleStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                            </div>
+                        </div>
+                        <div class="watermark-container">
+                            <div class="watermark-preview-wrap" id="watermarkPreviewWrap">
+                                <span class="watermark-preview-empty" id="watermarkEmptyText">Logo Yüklenmedi</span>
+                                <img id="watermarkPreviewImg" class="watermark-preview-img" style="display:none;" alt="Marka Logosu">
+                            </div>
+                            <div class="watermark-actions-col">
+                                <div class="watermark-btn-row">
+                                    <input type="file" id="watermarkFileInput" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="handleWatermarkUpload(this)">
+                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('watermarkFileInput').click()" style="padding: 6px 14px; font-size: 13px;">
+                                        <svg class="icon"><use href="#icon-upload"></use></svg>
+                                        <span id="btnWatermarkUploadLabel">Logo Yükle</span>
+                                    </button>
+                                    <button type="button" id="btnDeleteWatermark" class="btn btn-danger-soft" onclick="deleteWatermarkLogo()" style="display:none; padding: 6px 14px; font-size: 13px;">
+                                        <svg class="icon"><use href="#icon-trash"></use></svg>
+                                        <span>Logoyu Kaldır</span>
+                                    </button>
+                                </div>
+                                <span id="watermarkUploadStatus" class="dashboard-updated"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3614,6 +3711,13 @@
                     }
                     updateStreamShuffleButton(data.slideshowOrder);
                 }
+                if (typeof data.showWatermark === 'boolean') {
+                    const radios = document.getElementsByName('showWatermark');
+                    for (const r of radios) {
+                        r.checked = (r.value === String(data.showWatermark));
+                    }
+                }
+                renderWatermarkPreview(Boolean(data.hasWatermark), data.watermarkUrl);
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
             }
@@ -3758,6 +3862,127 @@
             } catch (e) {
                 status.style.color = '#dc2626';
                 status.innerText = 'Hata oluştu';
+            }
+        }
+
+        async function updateShowWatermark(val) {
+            const status = document.getElementById('watermarkToggleStatus');
+            try {
+                const res = await fetch('/api/settings/watermark', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ showWatermark: Boolean(val) })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Görünürlük güncellendi';
+                    loadDashboardStats();
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
+            }
+        }
+
+        async function handleWatermarkUpload(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('watermarkUploadStatus');
+            status.style.color = '#2563eb';
+            status.innerText = 'Logo yükleniyor...';
+
+            const formData = new FormData();
+            formData.append('logo', file);
+
+            try {
+                const res = await fetch('/api/watermark/upload', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: formData
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Marka logosu başarıyla yüklendi';
+                    renderWatermarkPreview(true, data.watermarkUrl);
+                    loadDashboardStats();
+                    setTimeout(() => status.innerText = '', 3500);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Logo yüklenemedi';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Bağlantı hatası oluştu';
+            } finally {
+                input.value = '';
+            }
+        }
+
+        async function deleteWatermarkLogo() {
+            if (!confirm('Marka logosunu kaldırmak istediğinize emin misiniz?')) return;
+
+            const status = document.getElementById('watermarkUploadStatus');
+            status.style.color = '#2563eb';
+            status.innerText = 'Logo siliniyor...';
+
+            try {
+                const res = await fetch('/api/watermark', {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (data.success) {
+                    status.style.color = '#15803d';
+                    status.innerText = 'Marka logosu kaldırıldı';
+                    renderWatermarkPreview(false);
+                    loadDashboardStats();
+                    setTimeout(() => status.innerText = '', 3000);
+                } else {
+                    status.style.color = '#dc2626';
+                    status.innerText = data.error || 'Silme işlemi başarısız';
+                }
+            } catch (e) {
+                status.style.color = '#dc2626';
+                status.innerText = 'Hata oluştu';
+            }
+        }
+
+        function renderWatermarkPreview(hasLogo, url) {
+            const img = document.getElementById('watermarkPreviewImg');
+            const emptyText = document.getElementById('watermarkEmptyText');
+            const btnDelete = document.getElementById('btnDeleteWatermark');
+            const btnLabel = document.getElementById('btnWatermarkUploadLabel');
+
+            if (hasLogo && (url || (img && img.src && !img.src.endsWith('/')))) {
+                if (url) img.src = url;
+                img.style.display = 'block';
+                if (emptyText) emptyText.style.display = 'none';
+                if (btnDelete) btnDelete.style.display = 'inline-flex';
+                if (btnLabel) btnLabel.innerText = 'Logoyu Değiştir';
+            } else {
+                if (img) {
+                    img.src = '';
+                    img.style.display = 'none';
+                }
+                if (emptyText) emptyText.style.display = 'block';
+                if (btnDelete) btnDelete.style.display = 'none';
+                if (btnLabel) btnLabel.innerText = 'Logo Yükle';
             }
         }
 
@@ -4763,6 +4988,19 @@
                                 currentStreamData.slideshowOrder = data.slideshowOrder;
                             }
                             updateStreamShuffleButton(data.slideshowOrder);
+                        }
+                        if (typeof data.showWatermark === 'boolean') {
+                            const radios = document.getElementsByName('showWatermark');
+                            for (const r of radios) {
+                                r.checked = (r.value === String(data.showWatermark));
+                            }
+                        }
+                        if (data.watermarkImage !== undefined) {
+                            if (data.watermarkImage) {
+                                renderWatermarkPreview(true, '/api/watermark/image?v=' + Date.now());
+                            } else {
+                                renderWatermarkPreview(false);
+                            }
                         }
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {
