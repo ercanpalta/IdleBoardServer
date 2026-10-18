@@ -9,12 +9,51 @@ const sharp = require('sharp');
 
 const app = express();
 
-// HTTP Güvenlik Başlıkları
+// Sunucu Teknolojisi İmzası Gizleme (Fingerprinting Koruması)
+app.disable('x-powered-by');
+
+// HTTP Güvenlik Başlıkları & İçerik Güvenlik Politikası (CSP)
 app.use((req, res, next) => {
+    // 1. Clickjacking ve Çerçeveleme Koruması
     res.setHeader('X-Frame-Options', 'DENY');
+
+    // 2. MIME-type Tahminini Önleme
     res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    // 3. Referrer Politikası
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+    // 4. Eski Tarayıcılar İçin XSS Filtresi
     res.setHeader('X-XSS-Protection', '1; mode=block');
+
+    // 5. İçerik Güvenlik Politikası (Content Security Policy - CSP)
+    res.setHeader(
+        'Content-Security-Policy',
+        [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "connect-src 'self'",
+            "font-src 'self'",
+            "media-src 'self'",
+            "object-src 'none'",
+            "frame-src 'none'",
+            "frame-ancestors 'none'",
+            "form-action 'self'",
+            "base-uri 'self'"
+        ].join('; ')
+    );
+
+    // 6. Tarayıcı Donanım İzinleri Kısıtlaması (Permissions Policy)
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+
+    // 7. HTTPS İletişiminde HSTS (Strict-Transport-Security)
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    if (isHttps) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+
     next();
 });
 
