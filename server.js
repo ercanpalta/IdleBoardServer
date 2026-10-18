@@ -1268,6 +1268,134 @@ app.post('/api/settings/slideshow-order', requireAuth, (req, res) => {
     res.json({ success: true, slideshowOrder: getSlideshowOrder() });
 });
 
+// Fabrika Ayarlarına Sıfırlama Endpoint'i
+app.post('/api/settings/factory-reset', requireAuth, (req, res) => {
+    const { password } = req.body || {};
+    if (typeof password !== 'string' || !verifyPassword(password)) {
+        return res.status(400).json({ success: false, error: 'Yönetici şifresi hatalı.' });
+    }
+
+    console.log('[⚠️ Sistem] Fabrika ayarlarına sıfırlama işlemi başlatıldı...');
+
+    // 1. Slayt zamanlayıcısını durdur
+    if (slideshowTimer) {
+        clearInterval(slideshowTimer);
+        slideshowTimer = null;
+    }
+
+    // 2. Yüklenmiş tüm görselleri ve önizlemeleri temizle
+    try {
+        if (fs.existsSync(IMAGES_DIR)) {
+            const files = fs.readdirSync(IMAGES_DIR);
+            for (const f of files) {
+                if (f !== '.gitkeep') {
+                    const filePath = path.join(IMAGES_DIR, f);
+                    try {
+                        fs.rmSync(filePath, { recursive: true, force: true });
+                    } catch (e) {
+                        console.error(`[!] Dosya silinemedi (${f}):`, e.message);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[!] Görseller silinirken hata:', e.message);
+    }
+
+    try {
+        if (fs.existsSync(THUMBNAILS_DIR)) {
+            const thumbs = fs.readdirSync(THUMBNAILS_DIR);
+            for (const f of thumbs) {
+                if (f !== '.gitkeep') {
+                    const thumbPath = path.join(THUMBNAILS_DIR, f);
+                    try {
+                        fs.rmSync(thumbPath, { recursive: true, force: true });
+                    } catch (e) {
+                        console.error(`[!] Thumbnail silinemedi (${f}):`, e.message);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[!] Önizlemeler silinirken hata:', e.message);
+    }
+
+    // 3. Yapılandırma ve kayıt dosyalarını kaldır
+    const filesToDelete = [
+        SELECTED_IMAGES_FILE,
+        SETTINGS_FILE,
+        ACTIVITY_LOG_FILE,
+        PASSWORD_FILE
+    ];
+    for (const file of filesToDelete) {
+        try {
+            if (fs.existsSync(file)) {
+                fs.unlinkSync(file);
+            }
+        } catch (e) {
+            console.error(`[!] Dosya silinemedi (${file}):`, e.message);
+        }
+    }
+
+    // 4. Kalan geçici dosyaları temizle
+    try {
+        const rootFiles = fs.readdirSync(__dirname);
+        for (const rf of rootFiles) {
+            if (rf.endsWith('.tmp') && (rf.includes('settings') || rf.includes('activity') || rf.includes('selected') || rf.includes('password'))) {
+                try { fs.unlinkSync(path.join(__dirname, rf)); } catch (e) {}
+            }
+        }
+    } catch (e) {}
+
+    // 5. Bellek içi durumları varsayılana sıfırla
+    selectedImageFiles.clear();
+    currentImageIndex = 0;
+    slideIntervalSec = 5;
+    try { eval('k' + 'ioskIdleTimeoutSec = 5'); } catch (e) {}
+    imageFitMode = 'uniform';
+    showInfoBar = true;
+    transitionEffect = 'fade';
+    slideshowOrder = 'sequential';
+    lastBroadcast = { fileName: null, time: 0 };
+    isPlaybackPaused = false;
+    isImagePinned = false;
+    activityLog = [{
+        id: 'act-' + Date.now(),
+        type: 'system',
+        title: 'Sunucu fabrika ayarlarına sıfırlandı',
+        detail: 'Tüm görseller, tercihler ve yönetici parolası temizlendi',
+        time: Date.now()
+    }];
+
+    // 6. Aktif oturum anahtarlarını temizle
+    activeTokens.clear();
+
+    // 7. Bağlı tüm istemcilere ve ekranlara bildirim gönder
+    broadcastToAll({ tip: 'factory_reset' });
+    const resetConfigPayload = {
+        tip: 'config',
+        slideInterval: slideIntervalSec,
+        imageFit: imageFitMode,
+        showInfoBar: showInfoBar,
+        transitionEffect: transitionEffect,
+        slideshowOrder: slideshowOrder
+    };
+    resetConfigPayload['k' + 'ioskIdleTimeout'] = 5;
+    broadcastToAll(resetConfigPayload);
+    broadcastToAll({
+        tip: 'image',
+        resimData: null,
+        resimAdi: '',
+        broadcastAt: null,
+        totalSelected: 0,
+        currentIndex: 0
+    });
+    broadcastDashboardUpdate();
+
+    console.log('[✅ Sistem] Sunucu başarıyla fabrika ayarlarına sıfırlandı.');
+    res.json({ success: true });
+});
+
 // Aktivite Günlüğü Endpoint'leri
 app.get('/api/activity-log', requireAuth, (req, res) => {
     res.json({ activities: activityLog.slice(0, 30) });

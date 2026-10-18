@@ -243,6 +243,88 @@
         .btn-password-cancel { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 7px; }
         .password-collapse .login-error { margin-top: 6px; font-size: 12px; }
 
+        /* Fabrika Ayarlarına Sıfırlama ve Tehlike Bölgesi */
+        .text-danger { color: #dc2626 !important; }
+        .settings-sheet-danger { border-color: #fecaca; }
+        .btn-danger-action { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+        .btn-danger-action .icon { width: 14px; height: 14px; }
+        .btn-danger-action:hover { background: #dc2626; color: white; border-color: #dc2626; box-shadow: 0 3px 8px rgba(220, 38, 38, 0.25); transform: translateY(-1px); }
+        .btn-danger { background: #dc2626 !important; border-color: #dc2626 !important; color: #ffffff !important; }
+        .btn-danger:hover { background: #b91c1c !important; border-color: #b91c1c !important; }
+
+        /* Fabrika Ayarlarına Sıfırlama Onay Modalı */
+        .modal-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-backdrop.is-open { opacity: 1; pointer-events: auto; }
+        .modal-dialog { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; max-width: 480px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
+        .modal-backdrop.is-open .modal-dialog { transform: scale(1); }
+        .modal-header { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #f1f5f9; }
+        .modal-icon-badge { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .modal-icon-badge .icon { width: 20px; height: 20px; }
+        .modal-header-copy { flex: 1; min-width: 0; }
+        .modal-header-copy h2 { margin: 0; font-size: 17px; font-weight: 700; color: #0f172a; line-height: 1.25; }
+        .modal-subtitle { margin: 2px 0 0 0; font-size: 12px; color: #64748b; }
+        .btn-modal-close { display: grid; place-items: center; width: 32px; height: 32px; border: none; background: transparent; border-radius: 6px; color: #94a3b8; cursor: pointer; transition: all 0.15s ease; }
+        .btn-modal-close:hover { background: #f1f5f9; color: #0f172a; }
+        .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+        .alert-box-danger { padding: 12px 14px; border-radius: 10px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 12.5px; line-height: 1.5; }
+        .alert-box-danger strong { display: block; font-weight: 700; margin-bottom: 6px; color: #b91c1c; }
+        .reset-impact-list { margin: 4px 0 0 0; padding-left: 18px; }
+        .reset-impact-list li { margin-bottom: 3px; }
+        .reset-password-group { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+        .reset-password-label { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: #334155; user-select: none; }
+        .reset-password-label-text { display: flex; align-items: center; gap: 6px; }
+        .reset-password-label-text .icon { width: 14px; height: 14px; color: #64748b; }
+        .reset-password-hint { font-size: 11.5px; font-weight: 400; color: #94a3b8; }
+        .reset-input-wrapper { position: relative; display: flex; align-items: center; width: 100%; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
+        .reset-input-wrapper:hover { border-color: #94a3b8; }
+        .reset-input-wrapper:focus-within { border-color: #ef4444; box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.15), 0 1px 2px rgba(15, 23, 42, 0.04); }
+        .reset-input-wrapper.has-error { border-color: #dc2626 !important; box-shadow: 0 0 0 3.5px rgba(220, 38, 38, 0.2) !important; }
+        .reset-input-wrapper.shake { animation: modal-shake 0.35s ease; }
+        @keyframes modal-shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .reset-input-icon { position: absolute; left: 12px; display: grid; place-items: center; width: 18px; height: 18px; color: #94a3b8; pointer-events: none; transition: color 0.18s ease; }
+        .reset-input-icon .icon { width: 16px; height: 16px; }
+        .reset-input-wrapper:focus-within .reset-input-icon { color: #ef4444; }
+        .reset-input-wrapper.has-error .reset-input-icon { color: #dc2626; }
+        .modal-password-input { width: 100%; height: 42px; box-sizing: border-box; padding: 0 38px 0 38px; border: none; outline: none; background: transparent; font-size: 13.5px; font-weight: 500; color: #0f172a; font-family: inherit; }
+        .modal-password-input::placeholder { color: #94a3b8; font-weight: 400; font-size: 13px; }
+        .btn-toggle-reset-password { position: absolute; right: 6px; display: grid; place-items: center; width: 30px; height: 30px; border: none; background: transparent; border-radius: 6px; color: #94a3b8; cursor: pointer; padding: 0; transition: color 0.15s ease, background 0.15s ease; }
+        .btn-toggle-reset-password:hover { color: #334155; background: #f1f5f9; }
+        .btn-toggle-reset-password .icon { width: 16px; height: 16px; }
+        .reset-modal-error { display: none; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 500; line-height: 1.4; background: #fef2f2; border: 1px solid #fee2e2; color: #b91c1c; }
+        .reset-modal-error.is-success { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 20px; background: #f8fafc; border-top: 1px solid #f1f5f9; }
+
+        /* Dark Mode */
+        html[data-theme="dark"] .settings-sheet-danger { border-color: rgba(239, 68, 68, 0.3); }
+        html[data-theme="dark"] .btn-danger-action { background: rgba(153, 27, 27, 0.2); border-color: rgba(239, 68, 68, 0.35); color: #f87171; }
+        html[data-theme="dark"] .btn-danger-action:hover { background: #dc2626; color: white; border-color: #dc2626; }
+        html[data-theme="dark"] .modal-dialog { background: #1e293b; border-color: #334155; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+        html[data-theme="dark"] .modal-header { border-bottom-color: #334155; }
+        html[data-theme="dark"] .modal-header-copy h2 { color: #f1f5f9; }
+        html[data-theme="dark"] .modal-subtitle { color: #94a3b8; }
+        html[data-theme="dark"] .btn-modal-close:hover { background: #334155; color: #f1f5f9; }
+        html[data-theme="dark"] .alert-box-danger { background: rgba(153, 27, 27, 0.25); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+        html[data-theme="dark"] .alert-box-danger strong { color: #f87171; }
+        html[data-theme="dark"] .reset-password-label { color: #cbd5e1; }
+        html[data-theme="dark"] .reset-password-label-text .icon { color: #94a3b8; }
+        html[data-theme="dark"] .reset-password-hint { color: #64748b; }
+        html[data-theme="dark"] .reset-input-wrapper { background: #0b1220; border-color: #334155; }
+        html[data-theme="dark"] .reset-input-wrapper:hover { border-color: #475569; }
+        html[data-theme="dark"] .reset-input-wrapper:focus-within { border-color: #ef4444; box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.25); }
+        html[data-theme="dark"] .reset-input-icon { color: #64748b; }
+        html[data-theme="dark"] .reset-input-wrapper:focus-within .reset-input-icon { color: #f87171; }
+        html[data-theme="dark"] .modal-password-input { color: #f8fafc; }
+        html[data-theme="dark"] .modal-password-input::placeholder { color: #64748b; }
+        html[data-theme="dark"] .btn-toggle-reset-password { color: #64748b; }
+        html[data-theme="dark"] .btn-toggle-reset-password:hover { color: #cbd5e1; background: #1e293b; }
+        html[data-theme="dark"] .reset-modal-error { background: rgba(185, 28, 28, 0.2); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+        html[data-theme="dark"] .reset-modal-error.is-success { background: rgba(22, 163, 74, 0.2); border-color: rgba(34, 197, 94, 0.3); color: #86efac; }
+        html[data-theme="dark"] .modal-footer { background: #0f172a; border-top-color: #334155; }
+
         /* Aktif Tercihler Özeti (Genel Bakış) */
         .dashboard-settings-summary { margin-bottom: var(--space-4); }
         .settings-summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); }
@@ -1311,6 +1393,7 @@
         <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></symbol>
         <symbol id="icon-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"></path></symbol>
         <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></symbol>
+        <symbol id="icon-alert-triangle" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -1807,9 +1890,87 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 4. Sistem ve Sıfırlama -->
+            <div class="settings-group-block">
+                <div class="settings-group-label" style="color: #dc2626;">
+                    <svg class="icon"><use href="#icon-alert-triangle"></use></svg>
+                    <span>Sistem ve Sıfırlama</span>
+                </div>
+                <div class="settings-sheet settings-sheet-danger">
+                    <div class="settings-item settings-item-stacked">
+                        <div class="settings-item-header-row">
+                            <div class="settings-item-info">
+                                <span class="settings-item-title text-danger">Sunucuyu Sıfırla (Fabrika Ayarları)</span>
+                                <p class="settings-item-desc">Tüm yüklenmiş görselleri, ayarları ve yönetici şifresini silerek sunucuyu ilk kurulum haline döndürür.</p>
+                            </div>
+                            <button id="btnOpenResetModal" class="btn-danger-action" type="button" onclick="openResetModal()">
+                                <svg class="icon"><use href="#icon-trash"></use></svg>
+                                <span>Sunucuyu Sıfırla</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
         </main>
+    </div>
+
+    <!-- Fabrika Ayarlarına Sıfırlama Onay Modalı -->
+    <div id="resetModal" class="modal-backdrop" style="display: none;" onclick="handleResetModalBackdropClick(event)">
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+            <div class="modal-header">
+                <div class="modal-icon-badge">
+                    <svg class="icon"><use href="#icon-alert-triangle"></use></svg>
+                </div>
+                <div class="modal-header-copy">
+                    <h2 id="resetModalTitle">Sunucuyu Sıfırla</h2>
+                    <p class="modal-subtitle">Fabrika ayarlarına dönme onayı</p>
+                </div>
+                <button type="button" class="btn-modal-close" onclick="closeResetModal()" aria-label="Kapat">
+                    <svg class="icon"><use href="#icon-minus-circle"></use></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-box-danger">
+                    <strong>Bu işlem geri alınamaz!</strong>
+                    <ul class="reset-impact-list">
+                        <li>Yüklenmiş tüm görseller ve önizlemeler kalıcı olarak silinir.</li>
+                        <li>Slayt süreleri, efektler ve tüm sistem ayarları varsayılana döner.</li>
+                        <li>Aktivite geçmişi ve yönetici parolası sıfırlanır.</li>
+                        <li>Mevcut oturumunuz kapatılır ve ilk kurulum ekranına yönlendirilirsiniz.</li>
+                    </ul>
+                </div>
+                <div class="form-group reset-password-group">
+                    <label for="resetPasswordInput" class="reset-password-label">
+                        <span class="reset-password-label-text">
+                            <svg class="icon"><use href="#icon-lock"></use></svg>
+                            <span>Yönetici Doğrulaması</span>
+                        </span>
+                        <span class="reset-password-hint">İşlemi onaylamak için şifreniz gereklidir</span>
+                    </label>
+                    <div class="reset-input-wrapper" id="resetInputWrapper">
+                        <span class="reset-input-icon" aria-hidden="true">
+                            <svg class="icon"><use href="#icon-key"></use></svg>
+                        </span>
+                        <input type="password" id="resetPasswordInput" class="modal-password-input" placeholder="Mevcut yönetici şifrenizi girin" autocomplete="current-password" oninput="handleResetPasswordInput()" onkeydown="if(event.key==='Enter') executeFactoryReset()">
+                        <button type="button" class="btn-toggle-reset-password" id="btnToggleResetPassword" onclick="toggleResetPasswordVisibility()" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                            <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                            <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                        </button>
+                    </div>
+                    <div id="resetModalError" class="reset-modal-error" role="status" aria-live="polite"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-back" onclick="closeResetModal()">Vazgeç</button>
+                <button type="button" id="btnConfirmReset" class="btn btn-danger" onclick="executeFactoryReset()">
+                    <svg class="icon"><use href="#icon-trash"></use></svg>
+                    <span>Fabrika Ayarlarına Sıfırla</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -2508,6 +2669,182 @@
                 }, 1500);
             } catch (err) {
                 status.innerText = 'Sunucuya bağlanılamadı.';
+            }
+        }
+
+        // Fabrika Ayarlarına Sıfırlama
+        function toggleResetPasswordVisibility() {
+            const passInput = document.getElementById('resetPasswordInput');
+            const btn = document.getElementById('btnToggleResetPassword');
+            if (!passInput || !btn) return;
+            const showIcon = btn.querySelector('.icon-eye-show');
+            const hideIcon = btn.querySelector('.icon-eye-hide');
+            const isPassword = passInput.type === 'password';
+            passInput.type = isPassword ? 'text' : 'password';
+            if (showIcon) showIcon.style.display = isPassword ? 'none' : 'block';
+            if (hideIcon) hideIcon.style.display = isPassword ? 'block' : 'none';
+            passInput.focus();
+        }
+
+        function handleResetPasswordInput() {
+            const wrapper = document.getElementById('resetInputWrapper');
+            const errorDiv = document.getElementById('resetModalError');
+            if (wrapper) {
+                wrapper.classList.remove('has-error', 'shake');
+            }
+            if (errorDiv && errorDiv.style.display !== 'none' && !errorDiv.classList.contains('is-success')) {
+                errorDiv.style.display = 'none';
+                errorDiv.innerText = '';
+            }
+        }
+
+        function showResetError(msg) {
+            const wrapper = document.getElementById('resetInputWrapper');
+            const errorDiv = document.getElementById('resetModalError');
+            const passInput = document.getElementById('resetPasswordInput');
+            if (wrapper) {
+                wrapper.classList.remove('shake');
+                void wrapper.offsetWidth;
+                wrapper.classList.add('has-error', 'shake');
+            }
+            if (errorDiv) {
+                errorDiv.classList.remove('is-success');
+                errorDiv.innerText = msg;
+                errorDiv.style.display = 'flex';
+            }
+            if (passInput) passInput.focus();
+        }
+
+        function openResetModal() {
+            const modal = document.getElementById('resetModal');
+            const passInput = document.getElementById('resetPasswordInput');
+            const wrapper = document.getElementById('resetInputWrapper');
+            const errorDiv = document.getElementById('resetModalError');
+            const confirmBtn = document.getElementById('btnConfirmReset');
+            const toggleBtn = document.getElementById('btnToggleResetPassword');
+            if (!modal) return;
+
+            if (passInput) {
+                passInput.value = '';
+                passInput.type = 'password';
+            }
+            if (toggleBtn) {
+                const showIcon = toggleBtn.querySelector('.icon-eye-show');
+                const hideIcon = toggleBtn.querySelector('.icon-eye-hide');
+                if (showIcon) showIcon.style.display = 'block';
+                if (hideIcon) hideIcon.style.display = 'none';
+            }
+            if (wrapper) {
+                wrapper.classList.remove('has-error', 'shake');
+            }
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.innerText = '';
+                errorDiv.classList.remove('is-success');
+            }
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<svg class="icon"><use href="#icon-trash"></use></svg> <span>Fabrika Ayarlarına Sıfırla</span>';
+            }
+            modal.style.display = 'flex';
+            requestAnimationFrame(() => {
+                modal.classList.add('is-open');
+                if (passInput) passInput.focus();
+            });
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('resetModal');
+            if (!modal) return;
+            modal.classList.remove('is-open');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                const passInput = document.getElementById('resetPasswordInput');
+                const wrapper = document.getElementById('resetInputWrapper');
+                const errorDiv = document.getElementById('resetModalError');
+                const toggleBtn = document.getElementById('btnToggleResetPassword');
+                if (passInput) {
+                    passInput.value = '';
+                    passInput.type = 'password';
+                }
+                if (toggleBtn) {
+                    const showIcon = toggleBtn.querySelector('.icon-eye-show');
+                    const hideIcon = toggleBtn.querySelector('.icon-eye-hide');
+                    if (showIcon) showIcon.style.display = 'block';
+                    if (hideIcon) hideIcon.style.display = 'none';
+                }
+                if (wrapper) {
+                    wrapper.classList.remove('has-error', 'shake');
+                }
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                    errorDiv.innerText = '';
+                    errorDiv.classList.remove('is-success');
+                }
+            }, 200);
+        }
+
+        function handleResetModalBackdropClick(event) {
+            if (event.target && event.target.id === 'resetModal') {
+                closeResetModal();
+            }
+        }
+
+        async function executeFactoryReset() {
+            const passInput = document.getElementById('resetPasswordInput');
+            const errorDiv = document.getElementById('resetModalError');
+            const confirmBtn = document.getElementById('btnConfirmReset');
+            if (!passInput) return;
+
+            const password = passInput.value;
+            if (!password) {
+                showResetError('Lütfen yönetici şifrenizi girin.');
+                return;
+            }
+
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<svg class="icon"><use href="#icon-trash"></use></svg> <span>Sıfırlanıyor...</span>';
+            }
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
+
+            try {
+                const res = await fetch('/api/settings/factory-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showResetError(data.error || 'Şifre doğrulanamadı veya sıfırlama yapılamadı.');
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = '<svg class="icon"><use href="#icon-trash"></use></svg> <span>Fabrika Ayarlarına Sıfırla</span>';
+                    }
+                    return;
+                }
+
+                if (errorDiv) {
+                    errorDiv.classList.add('is-success');
+                    errorDiv.innerText = 'Sunucu fabrika ayarlarına sıfırlandı. Çıkış yapılıyor...';
+                    errorDiv.style.display = 'flex';
+                }
+                localStorage.removeItem(TOKEN_KEY);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            } catch (err) {
+                showResetError('Sunucuya bağlanılamadı.');
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<svg class="icon"><use href="#icon-trash"></use></svg> <span>Fabrika Ayarlarına Sıfırla</span>';
+                }
             }
         }
 
@@ -3820,6 +4157,15 @@
 
         // Medya Oynatıcı & Tam Ekran Klavye Kısayolları (Space, Sol/Sağ Ok, F)
         document.addEventListener('keydown', (e) => {
+            const resetModal = document.getElementById('resetModal');
+            if (resetModal && resetModal.classList.contains('is-open')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeResetModal();
+                    return;
+                }
+            }
+
             const streamSec = document.getElementById('streamSection');
             const isStreamVisible = streamSec && streamSec.style.display === 'block';
             if (!isStreamVisible && !isStreamFullscreen()) return;
@@ -3862,6 +4208,11 @@
             sseSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
+                    if (data.tip === 'factory_reset') {
+                        localStorage.removeItem(TOKEN_KEY);
+                        window.location.reload();
+                        return;
+                    }
                     if (data.tip === 'gallery_update') {
                         clearTimeout(debounceTimer);
                         loadDashboardStats();
