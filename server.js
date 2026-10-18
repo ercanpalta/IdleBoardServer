@@ -37,7 +37,62 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(cors());
+// İzin Verilen Kaynak (Origin) Denetimi: Yerel ağ, localhost ve aynı kaynak
+function isAllowedOrigin(origin, req) {
+    if (!origin || origin === 'null') return true;
+    try {
+        const parsed = new URL(origin);
+        const hostname = parsed.hostname.toLowerCase();
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1') return true;
+        if (hostname.startsWith('[fe80:') || hostname.startsWith('[fc') || hostname.startsWith('[fd')) return true;
+        const reqHost = (req && req.headers && req.headers.host) ? req.headers.host.split(':')[0].toLowerCase() : null;
+        if (reqHost && hostname === reqHost) return true;
+        if (hostname.endsWith('.local') || !hostname.includes('.')) return true;
+        if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+        if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+        if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+        if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+        if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    } catch {
+        return false;
+    }
+    return false;
+}
+
+// Güvenli CORS Yapılandırması: Yerel ağ cihazlarına tam izin, harici genel ağlara blokaj
+app.use((req, res, next) => {
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || isAllowedOrigin(origin, req)) {
+                callback(null, true);
+            } else {
+                callback(null, false);
+            }
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Admin-Token']
+    })(req, res, next);
+});
+
+// Harici Çapraz Kaynak (Cross-Origin / Referer) Engelleme Ara Katmanı
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && !isAllowedOrigin(origin, req)) {
+        console.warn(`[⚠️ Güvenlik] Harici Origin isteği engellendi: ${origin} (Hedef: ${req.path})`);
+        return res.status(403).json({ success: false, error: 'Erişim engellendi: Harici web sitelerinden yerel sunucuya erişim izni bulunmamaktadır.' });
+    }
+
+    if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+        const referer = req.headers.referer;
+        if (referer && !isAllowedOrigin(referer, req)) {
+            console.warn(`[⚠️ Güvenlik] Harici Referer yönlendirmesi engellendi: ${referer} (Hedef: ${req.path})`);
+            return res.status(403).json({ success: false, error: 'Erişim engellendi: Harici yönlendirme tespit edildi.' });
+        }
+    }
+    next();
+});
+
 app.use(express.json());
 
 // Statik Web Paneli Dosyaları
@@ -831,10 +886,16 @@ app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    const origin = req.headers.origin;
+    if (origin && isAllowedOrigin(origin, req)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
 
     const clientId = crypto.randomUUID();
-    const isAdmin = req.query.source === 'admin';
+    const token = getRequestAuthToken(req);
+    const isAdmin = req.query.source === 'admin' && Boolean(token && activeTokens.has(token));
     const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').replace(/^.*:/, '');
     const newClient = { id: clientId, res, isAdmin };
     clients.push(newClient);
