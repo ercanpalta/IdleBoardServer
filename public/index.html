@@ -1454,6 +1454,134 @@
 
 
 
+        /* Bağlantı Adresi ve Ağ Kutusu */
+        .connection-url-container {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .connection-url-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 8px 12px;
+            gap: 12px;
+        }
+        .connection-url-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #0f172a;
+            word-break: break-all;
+            user-select: all;
+        }
+        .btn-copy-url {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s ease, transform 0.1s ease;
+        }
+        .btn-copy-url:hover {
+            background: #1d4ed8;
+        }
+        .btn-copy-url:active {
+            transform: scale(0.97);
+        }
+        .btn-copy-url.copied {
+            background: #16a34a !important;
+        }
+        .btn-copy-url .icon {
+            width: 14px;
+            height: 14px;
+        }
+        .network-ip-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .network-ip-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .network-ip-chip:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+            background: #eff6ff;
+        }
+        .network-ip-chip.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #1e40af;
+            font-weight: 600;
+        }
+        .network-ip-chip-badge {
+            font-size: 10px;
+            background: #e2e8f0;
+            padding: 1px 5px;
+            border-radius: 4px;
+            color: #475569;
+        }
+        .connection-url-hint {
+            margin: 0;
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* Koyu Tema Uyumları */
+        html[data-theme="dark"] .connection-url-box {
+            background: #090e17;
+            border-color: #1e293b;
+        }
+        html[data-theme="dark"] .connection-url-text {
+            color: #93c5fd;
+        }
+        html[data-theme="dark"] .network-ip-chip {
+            background: #111c2e;
+            border-color: #1e293b;
+            color: #94a3b8;
+        }
+        html[data-theme="dark"] .network-ip-chip:hover {
+            border-color: #3b82f6;
+            color: #60a5fa;
+            background: #172554;
+        }
+        html[data-theme="dark"] .network-ip-chip.active {
+            border-color: #3b82f6;
+            background: #172554;
+            color: #93c5fd;
+        }
+        html[data-theme="dark"] .network-ip-chip-badge {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+        html[data-theme="dark"] .connection-url-hint {
+            color: #64748b;
+        }
+
         /* Güncelleme Bildirim Çubuğu (Global Banner) */
         .update-banner {
             display: flex;
@@ -1757,6 +1885,7 @@
 </head>
 <body>
     <svg aria-hidden="true" focusable="false" style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></symbol>
         <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 1 1 8 0v3"></path><path d="M12 14v3"></path></symbol>
         <symbol id="icon-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></symbol>
         <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol>
@@ -2345,7 +2474,64 @@
                 </div>
             </div>
 
-            <!-- 3. Yönetim ve Güvenlik -->
+            <!-- 3. Ağ ve İstemci Bağlantısı -->
+            <div class="settings-group-block">
+                <div class="settings-group-label" style="color: #2563eb;">
+                    <svg class="icon"><use href="#icon-radio"></use></svg>
+                    <span>Ağ ve İstemci Bağlantısı</span>
+                </div>
+                <div class="settings-sheet">
+                    <!-- İstemci Bağlantı Adresi (SSE URL) -->
+                    <div class="settings-item settings-item-stacked">
+                        <div class="settings-item-header-row">
+                            <div class="settings-item-info">
+                                <span class="settings-item-title">Ekran İstemcisi Bağlantı Adresi</span>
+                                <p class="settings-item-desc">Ekran uygulamasının (IdleBoardClient) canlı yayın akışına bağlanması için gereken SSE adresi.</p>
+                            </div>
+                        </div>
+                        <div class="connection-url-container">
+                            <div class="connection-url-box">
+                                <span class="connection-url-text" id="displayClientUrl">IP adresi yükleniyor...</span>
+                                <button type="button" class="btn-copy-url" id="btnCopyClientUrl" onclick="copyClientConnectionUrl()" title="Adresi Kopyala">
+                                    <svg class="icon"><use href="#icon-copy"></use></svg>
+                                    <span id="copyUrlBtnText">Kopyala</span>
+                                </button>
+                            </div>
+                            <div id="networkIpList" class="network-ip-chips"></div>
+                            <p class="connection-url-hint">
+                                💡 Ekran istemcisi ayarlarında sunucu adresi alanına bu adresi yapıştırın.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Sunucu Port Numarası -->
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-title settings-clickable-title" onclick="startEditingServerPort()" title="Tıklayarak klavyeden değer girin">Sunucu Port Numarası</span>
+                            <p class="settings-item-desc">Sunucunun ve web yönetim panelinin ağda dinleme yaptığı port (Varsayılan: 3000).</p>
+                        </div>
+                        <div class="settings-item-controls">
+                            <div class="settings-click-group">
+                                <div class="stepper-capsule">
+                                    <button type="button" class="stepper-btn" onclick="adjustServerPort(-1)" aria-label="Port numarasını azalt" title="Azalt">−</button>
+                                    <div class="stepper-display-wrap" onclick="startEditingServerPort()" title="Tıklayarak klavyeden port girin">
+                                        <span id="serverPortDisplay" class="stepper-display">3000</span>
+                                        <input type="number" id="serverPortInlineInput" class="stepper-edit-input" min="1024" max="65535" style="display: none; width: 62px;" onkeydown="handleServerPortKey(event)" onblur="finishEditingServerPort()">
+                                    </div>
+                                    <button type="button" class="stepper-btn" onclick="adjustServerPort(1)" aria-label="Port numarasını artır" title="Artır">+</button>
+                                </div>
+                                <input type="hidden" id="serverPortInput" value="3000">
+                                <button type="button" class="btn btn-secondary btn-sm" id="btnSavePort" onclick="confirmSaveServerPort()" style="display: none; padding: 6px 12px; font-size: 12.5px;">
+                                    <span>Portu Güncelle</span>
+                                </button>
+                            </div>
+                            <span id="portStatus" class="dashboard-updated" role="status" aria-live="polite"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Yönetim ve Güvenlik -->
             <div class="settings-group-block">
                 <div class="settings-group-label">
                     <svg class="icon"><use href="#icon-lock"></use></svg>
@@ -2409,7 +2595,7 @@
                 </div>
             </div>
 
-            <!-- 4. Sistem ve Sürüm Güncellemeleri -->
+            <!-- 5. Sistem ve Sürüm Güncellemeleri -->
             <div class="settings-group-block" id="settingsUpdateBlock">
                 <div class="settings-group-label" style="color: #2563eb;">
                     <svg class="icon"><use href="#icon-upload"></use></svg>
@@ -2478,7 +2664,7 @@
                 </div>
             </div>
 
-            <!-- 5. Sistem ve Sıfırlama -->
+            <!-- 6. Sistem ve Sıfırlama -->
             <div class="settings-group-block">
                 <div class="settings-group-label" style="color: #dc2626;">
                     <svg class="icon"><use href="#icon-alert-triangle"></use></svg>
@@ -2599,6 +2785,8 @@
         let galleryDirty = false;
         let dashboardRefreshTimer = null;
         let uploadStatusTimer = null;
+        let currentServerPort = 3000;
+        let isEditingServerPort = false;
 
         function getAuthHeaders() {
             const token = localStorage.getItem(TOKEN_KEY);
@@ -4021,6 +4209,23 @@
                     }
                 }
                 renderWatermarkPreview(Boolean(data.hasWatermark), data.watermarkUrl);
+                const portVal = data.serverPort || 3000;
+                currentServerPort = portVal;
+                renderServerPortDisplay(portVal);
+
+                if (data.networkAddresses && data.clientConnectionUrl) {
+                    renderNetworkAddresses(data.clientConnectionUrl, data.networkAddresses);
+                } else {
+                    let fallbackHost = window.location.hostname;
+                    if (!fallbackHost || fallbackHost === 'localhost' || fallbackHost === '0.0.0.0') {
+                        fallbackHost = '127.0.0.1';
+                    }
+                    const fallbackPort = portVal || (window.location.port ? parseInt(window.location.port, 10) : 3000);
+                    const fallbackUrl = 'http://' + fallbackHost + ':' + fallbackPort + '/events';
+                    renderNetworkAddresses(fallbackUrl, [
+                        { name: 'Mevcut Bağlantı', ip: fallbackHost, url: fallbackUrl, isPrimary: true, isNetwork: fallbackHost !== 'localhost' && fallbackHost !== '127.0.0.1' }
+                    ]);
+                }
             } catch (err) {
                 console.error('Ayarlar okunamadı:', err);
             }
@@ -5336,6 +5541,243 @@
         document.documentElement.dataset.theme = savedTheme === 'dark' ? 'dark' : 'light';
         syncThemeOptions();
 
+
+        // ====================================================================
+        // Ağ Bilgileri & Sunucu Port Yönetimi
+        // ====================================================================
+
+        function renderServerPortDisplay(port) {
+            const display = document.getElementById('serverPortDisplay');
+            const hidden = document.getElementById('serverPortInput');
+            if (display) display.textContent = port;
+            if (hidden) hidden.value = port;
+        }
+
+        function startEditingServerPort() {
+            if (isEditingServerPort) return;
+            const display = document.getElementById('serverPortDisplay');
+            const editInput = document.getElementById('serverPortInlineInput');
+            const hidden = document.getElementById('serverPortInput');
+            if (!display || !editInput || !hidden) return;
+
+            isEditingServerPort = true;
+            editInput.value = hidden.value || currentServerPort;
+            display.style.display = 'none';
+            editInput.style.display = 'inline-block';
+            setTimeout(() => {
+                editInput.focus();
+                editInput.select();
+            }, 10);
+        }
+
+        function finishEditingServerPort() {
+            if (!isEditingServerPort) return;
+            isEditingServerPort = false;
+            const display = document.getElementById('serverPortDisplay');
+            const editInput = document.getElementById('serverPortInlineInput');
+            const hidden = document.getElementById('serverPortInput');
+            const btnSave = document.getElementById('btnSavePort');
+            if (!display || !editInput || !hidden) return;
+
+            let val = parseInt(editInput.value, 10);
+            if (isNaN(val) || val < 1024) val = 1024;
+            if (val > 65535) val = 65535;
+
+            editInput.style.display = 'none';
+            display.style.display = 'inline-block';
+            display.textContent = val;
+            hidden.value = val;
+
+            if (btnSave) {
+                btnSave.style.display = (val !== currentServerPort) ? 'inline-flex' : 'none';
+            }
+        }
+
+        function handleServerPortKey(event) {
+            if (event.key === 'Enter') {
+                finishEditingServerPort();
+                confirmSaveServerPort();
+            } else if (event.key === 'Escape') {
+                isEditingServerPort = false;
+                const display = document.getElementById('serverPortDisplay');
+                const editInput = document.getElementById('serverPortInlineInput');
+                if (editInput) editInput.style.display = 'none';
+                if (display) display.style.display = 'inline-block';
+            }
+        }
+
+        function adjustServerPort(delta) {
+            const hidden = document.getElementById('serverPortInput');
+            let val = parseInt(hidden ? hidden.value : currentServerPort, 10) || currentServerPort;
+            val = Math.max(1024, Math.min(65535, val + delta));
+            renderServerPortDisplay(val);
+            const btnSave = document.getElementById('btnSavePort');
+            if (btnSave) {
+                btnSave.style.display = (val !== currentServerPort) ? 'inline-flex' : 'none';
+            }
+        }
+
+        function confirmSaveServerPort() {
+            const hidden = document.getElementById('serverPortInput');
+            const newPort = parseInt(hidden ? hidden.value : currentServerPort, 10);
+
+            if (isNaN(newPort) || newPort < 1024 || newPort > 65535) {
+                alert('Lütfen 1024 ile 65535 arasında geçerli bir port numarası girin.');
+                return;
+            }
+
+            if (newPort === currentServerPort) {
+                const btnSave = document.getElementById('btnSavePort');
+                if (btnSave) btnSave.style.display = 'none';
+                return;
+            }
+
+            openUpdateModal(
+                'Sunucu Portunu Değiştir',
+                'Port Değişimi ve Yeniden Başlatma',
+                'Sunucu dinleme portunu <strong>' + currentServerPort + '</strong> yerine <strong>' + newPort + '</strong> olarak değiştirmek üzeresiniz.<br><br>' +
+                '<strong>Önemli Bilgiler:</strong><br>' +
+                '• Sunucu yeni port üzerinde anında yeniden başlatılacaktır.<br>' +
+                '• Web yönetim paneli otomatik olarak yeni adrese (<code>http://' + window.location.hostname + ':' + newPort + '</code>) yönlendirilecektir.<br>' +
+                '• <strong>Ekran istemcisi (IdleBoardClient)</strong> uygulamasının ayarlarındaki bağlantı adresini de bu yeni port ile güncellemeniz gerekecektir.<br><br>' +
+                'Onaylıyor musunuz?',
+                () => doExecutePortChange(newPort)
+            );
+        }
+
+        async function doExecutePortChange(newPort) {
+            const execBtn = document.getElementById('btnExecuteUpdate');
+            const cancelBtn = document.getElementById('btnCancelUpdate');
+            const statusEl = document.getElementById('updateModalStatus');
+            const btnText = document.getElementById('btnExecuteUpdateText');
+
+            execBtn.disabled = true;
+            cancelBtn.disabled = true;
+            btnText.innerText = 'Uygulanıyor...';
+
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#eff6ff';
+            statusEl.style.border = '1px solid #bfdbfe';
+            statusEl.style.color = '#1e40af';
+            statusEl.innerText = 'Sunucu portu güncelleniyor, lütfen bekleyin...';
+
+            try {
+                const res = await fetch('/api/settings/port', {
+                    method: 'POST',
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ port: newPort })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Port değiştirilemedi.');
+                }
+
+                statusEl.style.background = '#ecfdf5';
+                statusEl.style.border = '1px solid #a7f3d0';
+                statusEl.style.color = '#065f46';
+                statusEl.innerHTML = '<strong>' + (data.message || 'Port başarıyla değiştirildi!') + '</strong><br>Yeni adrese yönlendiriliyorsunuz...';
+
+                setTimeout(() => {
+                    const redirectHost = window.location.hostname;
+                    window.location.href = 'http://' + redirectHost + ':' + newPort;
+                }, 1600);
+            } catch (err) {
+                statusEl.style.background = '#fef2f2';
+                statusEl.style.border = '1px solid #fecaca';
+                statusEl.style.color = '#991b1b';
+                statusEl.innerText = 'Hata: ' + err.message;
+                execBtn.disabled = false;
+                cancelBtn.disabled = false;
+                btnText.innerText = 'Tekrar Dene';
+            }
+        }
+
+        function renderNetworkAddresses(primaryUrl, addresses) {
+            const urlText = document.getElementById('displayClientUrl');
+            if (urlText && primaryUrl) {
+                urlText.innerText = primaryUrl;
+            }
+
+            const chipContainer = document.getElementById('networkIpList');
+            if (!chipContainer || !Array.isArray(addresses)) return;
+
+            chipContainer.innerHTML = '';
+
+            // Sadece birden fazla farklı ağ kartı varsa (örn: hem Wi-Fi hem Ethernet) seçim çiplerini göster
+            if (addresses.length <= 1) {
+                chipContainer.style.display = 'none';
+                return;
+            }
+
+            chipContainer.style.display = 'flex';
+            addresses.forEach(addr => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'network-ip-chip' + (addr.isPrimary ? ' active' : '');
+                chip.innerHTML = '<strong>' + addr.ip + '</strong> <span class="network-ip-chip-badge">' + addr.name + '</span>';
+                chip.onclick = () => {
+                    selectNetworkIp(addr.ip, chip);
+                };
+                chipContainer.appendChild(chip);
+            });
+        }
+
+        function selectNetworkIp(ip, chipElement) {
+            const port = currentServerPort || 3000;
+            const urlText = document.getElementById('displayClientUrl');
+            if (urlText) {
+                urlText.innerText = 'http://' + ip + ':' + port + '/events';
+            }
+            document.querySelectorAll('.network-ip-chip').forEach(c => c.classList.remove('active'));
+            if (chipElement) chipElement.classList.add('active');
+        }
+
+        function copyClientConnectionUrl() {
+            const textEl = document.getElementById('displayClientUrl');
+            const btn = document.getElementById('btnCopyClientUrl');
+            const btnText = document.getElementById('copyUrlBtnText');
+            if (!textEl) return;
+            const url = textEl.innerText.trim();
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    setCopiedState(btn, btnText);
+                }).catch(() => {
+                    fallbackCopyText(url, btn, btnText);
+                });
+            } else {
+                fallbackCopyText(url, btn, btnText);
+            }
+        }
+
+        function fallbackCopyText(text, btn, btnText) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                setCopiedState(btn, btnText);
+            } catch (e) {
+                console.error('Kopyalama başarısız:', e);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function setCopiedState(btn, btnText) {
+            if (btn) btn.classList.add('copied');
+            if (btnText) btnText.innerText = 'Kopyalandı!';
+            setTimeout(() => {
+                if (btn) btn.classList.remove('copied');
+                if (btnText) btnText.innerText = 'Kopyala';
+            }, 2000);
+        }
 
         // ====================================================================
         // Otomatik Güncelleme (GitHub Releases) İstemci Mantığı

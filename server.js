@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
 const multer = require('multer');
 const chokidar = require('chokidar');
@@ -545,6 +546,69 @@ let transitionEffect = 'fade';
 const VALID_SLIDESHOW_ORDERS = new Set(['sequential', 'random']);
 let slideshowOrder = 'sequential';
 
+const DEFAULT_PORT = 3000;
+const MIN_PORT = 1024;
+const MAX_PORT = 65535;
+let serverPort = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
+
+function getServerPort() {
+    return serverPort;
+}
+
+function getNetworkAddresses(req) {
+    const port = getServerPort();
+    const addresses = [];
+    const interfaces = os.networkInterfaces();
+
+    // Sadece gerçek fiziksel/ağ bağdaştırıcılarının IPv4 adreslerini al
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                addresses.push({
+                    name,
+                    ip: iface.address,
+                    url: `http://${iface.address}:${port}/events`,
+                    isPrimary: false,
+                    isNetwork: true
+                });
+            }
+        }
+    }
+
+    // Yerel ağ IP'lerini (192.168.x, 10.x) başa al
+    addresses.sort((a, b) => {
+        const isLanA = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a.ip);
+        const isLanB = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(b.ip);
+        if (isLanA && !isLanB) return -1;
+        if (!isLanA && isLanB) return 1;
+        return 0;
+    });
+
+    // İstemci her zaman başka bir makinedeymiş gibi kabul edilir:
+    // İlk gerçek ağ kartı IP'si birincil adrestir.
+    if (addresses.length > 0) {
+        addresses[0].isPrimary = true;
+    } else {
+        // Yalnızca hiçbir ağ kartı bulunamazsa yerel 127.0.0.1 adresini ekle
+        addresses.push({
+            name: 'Yerel (127.0.0.1)',
+            ip: '127.0.0.1',
+            url: `http://127.0.0.1:${port}/events`,
+            isPrimary: true,
+            isNetwork: false
+        });
+    }
+
+    const primary = addresses.find(a => a.isPrimary) || addresses[0];
+
+    return {
+        port,
+        primaryUrl: primary.url,
+        primaryIp: primary.ip,
+        addresses
+    };
+}
+
 let slideshowTimer = null;
 let slideshowTickInFlight = false;
 let lastBroadcast = { fileName: null, time: 0 };
@@ -640,6 +704,9 @@ function loadServerSettings() {
             if (typeof stored.slideshowOrder === 'string' && VALID_SLIDESHOW_ORDERS.has(stored.slideshowOrder)) {
                 slideshowOrder = stored.slideshowOrder;
             }
+            if (!process.env.PORT && Number.isInteger(stored.serverPort) && stored.serverPort >= MIN_PORT && stored.serverPort <= MAX_PORT) {
+                serverPort = stored.serverPort;
+            }
         }
     } catch (err) {
         console.error('[!] Ayar dosyası okunamadı:', err.message);
@@ -657,7 +724,8 @@ function saveServerSettings() {
             showWatermark: showWatermark,
             watermarkFileName: watermarkFileName,
             transitionEffect: transitionEffect,
-            slideshowOrder: slideshowOrder
+            slideshowOrder: slideshowOrder,
+            serverPort: serverPort
         }, null, 2), { mode: 0o600 });
         fs.renameSync(temporaryFile, SETTINGS_FILE);
     } catch (err) {
@@ -1753,6 +1821,7 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
 });
 
 app.get('/api/settings', requireAuth, (req, res) => {
+    const net = getNetworkAddresses(req);
     res.json({
         interval: getSlideIntervalSec(),
         kioskIdleTimeout: getKioskIdleTimeoutSec(),
@@ -1762,8 +1831,56 @@ app.get('/api/settings', requireAuth, (req, res) => {
         slideshowOrder: getSlideshowOrder(),
         showWatermark: getShowWatermark(),
         hasWatermark: Boolean(getWatermarkFilePath()),
-        watermarkUrl: getWatermarkFilePath() ? '/api/watermark/image' : null
+        watermarkUrl: getWatermarkFilePath() ? '/api/watermark/image' : null,
+        serverPort: getServerPort(),
+        clientConnectionUrl: net.primaryUrl,
+        networkAddresses: net.addresses
     });
+});
+
+// Sunucu Port Numarasını Güncelleme Endpoint'i
+app.post('/api/settings/port', requireAuth, (req, res) => {
+    const rawPort = req.body && req.body.port;
+    const newPort = parseInt(rawPort, 10);
+
+    if (!Number.isInteger(newPort) || newPort < MIN_PORT || newPort > MAX_PORT) {
+        return res.status(400).json({
+            success: false,
+            error: `Geçersiz port numarası. Lütfen ${MIN_PORT} ile ${MAX_PORT} arasında bir değer girin.`
+        });
+    }
+
+    if (newPort === serverPort) {
+        return res.json({
+            success: true,
+            port: serverPort,
+            message: 'Port numarası değiştirilmedi.'
+        });
+    }
+
+    const oldPort = serverPort;
+    serverPort = newPort;
+    saveServerSettings();
+    logActivity('settings', 'Sunucu port numarası güncellendi', `${oldPort} -> ${newPort}`);
+
+    const reqHost = req.headers && req.headers.host ? req.headers.host.split(':')[0] : (req.hostname || 'localhost');
+    const redirectUrl = `http://${reqHost}:${newPort}`;
+
+    res.json({
+        success: true,
+        oldPort,
+        newPort,
+        redirectUrl,
+        message: `Sunucu portu ${newPort} olarak değiştirildi. Sunucu yeni port üzerinde yeniden başlatılıyor.`
+    });
+
+    setTimeout(() => {
+        try {
+            startHttpServer(newPort);
+        } catch (err) {
+            console.error('[!] Sunucu yeni portta başlatılırken hata:', err.message);
+        }
+    }, 400);
 });
 
 app.post('/api/settings/interval', requireAuth, (req, res) => {
@@ -2140,11 +2257,34 @@ updateManager.registerUpdateRoutes(app, {
     rootDir: __dirname
 });
 
-app.listen(3000, () => {
-    console.log('================================================');
-    console.log('🚀 Yönetim Paneli:       http://localhost:3000');
-    console.log('📡 SSE Stream Adresi:   http://localhost:3000/events');
-    console.log('👀 Chokidar Watcher:     Aktif (images/ izleniyor)');
-    console.log('🔒 Parola Koruması:      Aktif');
-    console.log('================================================');
-});
+let serverInstance = null;
+
+function startHttpServer(port) {
+    if (serverInstance) {
+        try {
+            serverInstance.close();
+            console.log('[i] Eski sunucu dinleyicisi kapatıldı.');
+        } catch (e) {}
+    }
+
+    serverInstance = app.listen(port, () => {
+        console.log('================================================');
+        console.log(`🚀 Yönetim Paneli:       http://localhost:${port}`);
+        console.log(`📡 SSE Stream Adresi:   http://localhost:${port}/events`);
+        console.log('👀 Chokidar Watcher:     Aktif (images/ izleniyor)');
+        console.log('🔒 Parola Koruması:      Aktif');
+        console.log('================================================');
+    });
+
+    serverInstance.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`[!] Port ${port} kullanımda! Başka bir uygulama tarafından kullanılıyor.`);
+        } else {
+            console.error(`[!] Sunucu dinleme hatası (${port}):`, err.message);
+        }
+    });
+
+    return serverInstance;
+}
+
+startHttpServer(serverPort);
