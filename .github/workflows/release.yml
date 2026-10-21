@@ -1,0 +1,43 @@
+name: Build and Release Server
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package and Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Verify Package
+        run: |
+          npm ci --omit=dev
+
+      - name: Prepare Release Archive
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
+          ZIP_NAME="IdleBoardServer-${TAG_NAME}.zip"
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+          zip -r "${ZIP_NAME}" server.js package.json package-lock.json public/ README.md -x "*.git*"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false

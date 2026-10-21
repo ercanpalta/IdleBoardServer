@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const chokidar = require('chokidar');
 const sharp = require('sharp');
+const updateManager = require('./updateManager');
 
 const app = express();
 
@@ -1033,7 +1034,11 @@ app.get('/events', (req, res) => {
     const token = getRequestAuthToken(req);
     const isAdmin = req.query.source === 'admin' && Boolean(token && activeTokens.has(token));
     const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').replace(/^.*:/, '');
-    const newClient = { id: clientId, res, isAdmin };
+    const clientVersion = req.query.clientVersion || null;
+    if (clientVersion) {
+        updateManager.setLastKnownClientVersion(clientVersion);
+    }
+    const newClient = { id: clientId, res, isAdmin, clientVersion, clientIp, connectedAt: Date.now() };
     clients.push(newClient);
 
     if (!isAdmin) {
@@ -2124,6 +2129,15 @@ app.post('/api/activity-log/clear', requireAuth, (req, res) => {
     saveActivityLog();
     broadcastDashboardUpdate();
     res.json({ success: true });
+});
+
+// GitHub Releases Güncelleme Yöneticisi Rotaları
+updateManager.registerUpdateRoutes(app, {
+    requireAuth,
+    getClients: () => clients,
+    getConnectedClientCount,
+    logActivity,
+    rootDir: __dirname
 });
 
 app.listen(3000, () => {
