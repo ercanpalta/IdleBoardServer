@@ -576,6 +576,7 @@
             .dashboard-view { max-width: none; }
             .gallery-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .gallery-toolbar > button { width: 100%; white-space: normal; }
+            #saveGallerySelectionButton { grid-column: 1 / -1; }
             .gallery-status { grid-column: 1 / -1; min-width: 0; }
             #imageGrid.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             #imageGrid .gallery-card { display: block; aspect-ratio: 16 / 9; }
@@ -2463,8 +2464,11 @@
         <div class="gallery-toolbar">
             <button class="btn btn-secondary" type="button" onclick="setAllGalleryImages(true)">Tümünü Seç</button>
             <button class="btn-back" type="button" onclick="setAllGalleryImages(false)">Seçimi Temizle</button>
+            <button id="saveGallerySelectionButton" class="btn" type="button" onclick="saveGallerySelection()" hidden>
+                <svg class="icon"><use href="#icon-check"></use></svg>
+                <span>Seçimi Kaydet</span>
+            </button>
             <span id="galleryStatus" class="gallery-status" role="status" aria-live="polite"></span>
-            <button id="saveGallerySelectionButton" class="btn" type="button" onclick="saveGallerySelection()" hidden>Seçimi Kaydet</button>
         </div>
         <div class="grid" id="imageGrid"></div>
     </div>
