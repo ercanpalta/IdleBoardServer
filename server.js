@@ -182,17 +182,38 @@ app.use('/images', express.static(IMAGES_DIR));
 // Küçük Önizleme (Thumbnail) Servisi
 app.get('/thumbnails/:name', async (req, res) => {
     const fileName = req.params.name;
-    if (path.basename(fileName) !== fileName || !isSupportedImage(fileName)) {
+    if (path.basename(fileName) !== fileName || !isSupportedMedia(fileName)) {
         return res.status(400).send('Geçersiz dosya');
     }
 
-    const thumbPath = path.join(THUMBNAILS_DIR, fileName);
     const origPath = path.join(IMAGES_DIR, fileName);
-
     if (!fs.existsSync(origPath)) {
-        return res.status(404).send('Görsel bulunamadı');
+        return res.status(404).send('Medya bulunamadı');
     }
 
+    if (isVideoFile(fileName)) {
+        const meta = mediaMetadata[fileName];
+        const durSec = meta && meta.duration ? Math.round(meta.duration) : null;
+        const durText = durSec ? `${Math.floor(durSec / 60)}:${(durSec % 60).toString().padStart(2, '0')}` : 'MP4';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="180" fill="url(#bg)"/>
+  <circle cx="160" cy="80" r="30" fill="#2563eb" fill-opacity="0.9"/>
+  <polygon points="153,68 173,80 153,92" fill="#ffffff"/>
+  <rect x="110" y="128" width="100" height="26" rx="13" fill="#020617" stroke="#334155"/>
+  <text x="160" y="145" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">▶ ${durText}</text>
+</svg>`.trim();
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(svg);
+    }
+
+    const thumbPath = path.join(THUMBNAILS_DIR, fileName);
     if (fs.existsSync(thumbPath)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.sendFile(thumbPath);
@@ -542,19 +563,145 @@ function requireAuth(req, res, next) {
 }
 
 // Multer Dosya Yükleme Ayarları
+// Medya Metadata Yönetimi (Video süreleri ve özellikleri)
+const MEDIA_METADATA_FILE = path.join(DATA_DIR, 'media-metadata.json');
+let mediaMetadata = {};
+
+function loadMediaMetadata() {
+    if (fs.existsSync(MEDIA_METADATA_FILE)) {
+        try {
+            mediaMetadata = JSON.parse(fs.readFileSync(MEDIA_METADATA_FILE, 'utf8'));
+        } catch (e) {
+            mediaMetadata = {};
+        }
+    }
+}
+
+function saveMediaMetadata() {
+    try {
+        fs.writeFileSync(MEDIA_METADATA_FILE, JSON.stringify(mediaMetadata, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+loadMediaMetadata();
+
+// MP4 Duration Parser (Harici kütüphane gerektirmeyen saf JS moov/mvhd atom ayrıştırıcı)
+function parseMp4Duration(filePath) {
+    let fd = null;
+    try {
+        const stats = fs.statSync(filePath);
+        fd = fs.openSync(filePath, 'r');
+
+        const readMoov = (buf) => {
+            let offset = 0;
+            while (offset < buf.length - 8) {
+                const size = buf.readUInt32BE(offset);
+                if (size <= 0) break;
+                const type = buf.toString('ascii', offset + 4, offset + 8);
+                if (type === 'moov') {
+                    let moovOffset = offset + 8;
+                    const moovEnd = Math.min(buf.length, offset + size);
+                    while (moovOffset < moovEnd - 8) {
+                        const subSize = buf.readUInt32BE(moovOffset);
+                        if (subSize <= 0) break;
+                        const subType = buf.toString('ascii', moovOffset + 4, moovOffset + 8);
+                        if (subType === 'mvhd') {
+                            const version = buf.readUInt8(moovOffset + 8);
+                            if (version === 0) {
+                                const timescale = buf.readUInt32BE(moovOffset + 20);
+                                const duration = buf.readUInt32BE(moovOffset + 24);
+                                if (timescale > 0) return duration / timescale;
+                            } else if (version === 1) {
+                                const timescale = buf.readUInt32BE(moovOffset + 28);
+                                const duration = Number(buf.readBigUInt64BE(moovOffset + 32));
+                                if (timescale > 0) return duration / timescale;
+                            }
+                        }
+                        moovOffset += subSize;
+                    }
+                }
+                offset += size;
+            }
+            return null;
+        };
+
+        const bufferSize = Math.min(stats.size, 4 * 1024 * 1024);
+        const headBuffer = Buffer.alloc(bufferSize);
+        fs.readSync(fd, headBuffer, 0, bufferSize, 0);
+        let duration = readMoov(headBuffer);
+        if (duration) return duration;
+
+        if (stats.size > bufferSize) {
+            const tailSize = Math.min(stats.size, 4 * 1024 * 1024);
+            const tailBuffer = Buffer.alloc(tailSize);
+            fs.readSync(fd, tailBuffer, 0, tailSize, stats.size - tailSize);
+            duration = readMoov(tailBuffer);
+            if (duration) return duration;
+        }
+    } catch (e) {
+    } finally {
+        if (fd !== null) {
+            try { fs.closeSync(fd); } catch (e) {}
+        }
+    }
+    return null;
+}
+
 const MAX_UPLOAD_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB maksimum dosya boyutu
-const supportedImageTypes = {
-    '.jpg': { mimeType: 'image/jpeg', format: 'jpeg' },
-    '.jpeg': { mimeType: 'image/jpeg', format: 'jpeg' },
-    '.png': { mimeType: 'image/png', format: 'png' },
-    '.webp': { mimeType: 'image/webp', format: 'webp' }
+const MAX_VIDEO_DURATION_SEC = 60; // Maksimum 60 saniye video süresi
+
+const supportedMediaTypes = {
+    '.jpg': { mimeType: 'image/jpeg', format: 'jpeg', isVideo: false },
+    '.jpeg': { mimeType: 'image/jpeg', format: 'jpeg', isVideo: false },
+    '.png': { mimeType: 'image/png', format: 'png', isVideo: false },
+    '.webp': { mimeType: 'image/webp', format: 'webp', isVideo: false },
+    '.mp4': { mimeType: 'video/mp4', format: 'mp4', isVideo: true }
 };
+const supportedImageTypes = supportedMediaTypes;
+
+function isVideoFile(fileNameOrPath) {
+    if (!fileNameOrPath || typeof fileNameOrPath !== 'string') return false;
+    return path.extname(fileNameOrPath).toLowerCase() === '.mp4';
+}
+
+function isSupportedMedia(fileNameOrPath) {
+    if (!fileNameOrPath || typeof fileNameOrPath !== 'string') return false;
+    const ext = path.extname(fileNameOrPath).toLowerCase();
+    return Boolean(supportedMediaTypes[ext]);
+}
+
+function isSupportedImage(fileNameOrPath) {
+    return isSupportedMedia(fileNameOrPath);
+}
+
+function getMediaDuration(fileName) {
+    if (!fileName) return slideIntervalSec;
+    if (isVideoFile(fileName)) {
+        if (mediaMetadata[fileName] && mediaMetadata[fileName].duration > 0) {
+            return Math.min(MAX_VIDEO_DURATION_SEC, Math.max(1, Math.round(mediaMetadata[fileName].duration)));
+        }
+        const filePath = path.join(IMAGES_DIR, fileName);
+        if (fs.existsSync(filePath)) {
+            const parsed = parseMp4Duration(filePath);
+            if (parsed && parsed > 0) {
+                const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(1, Math.round(parsed)));
+                mediaMetadata[fileName] = { duration: finalDur, isVideo: true, size: fs.statSync(filePath).size };
+                saveMediaMetadata();
+                return finalDur;
+            }
+        }
+        return 30; // 30 sn varsayılan video süresi fallback
+    }
+    return slideIntervalSec;
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, IMAGES_DIR),
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `img-${uniqueSuffix}${ext}`);
+        const prefix = ext === '.mp4' ? 'vid' : 'img';
+        cb(null, `${prefix}-${uniqueSuffix}${ext}`);
     }
 });
 const upload = multer({
@@ -565,7 +712,7 @@ const upload = multer({
     },
     fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase();
-        const type = supportedImageTypes[ext];
+        const type = supportedMediaTypes[ext];
         if (!type || file.mimetype !== type.mimeType) {
             const err = new Error('INVALID_FILE_TYPE');
             err.code = 'INVALID_FILE_TYPE';
@@ -582,7 +729,7 @@ function verifyImageMagicBytes(filePath, expectedFormat) {
         fd = fs.openSync(filePath, 'r');
         const buffer = Buffer.alloc(16);
         const bytesRead = fs.readSync(fd, buffer, 0, 16, 0);
-        if (bytesRead < 12) return false;
+        if (bytesRead < 8) return false;
 
         if (expectedFormat === 'jpeg') {
             return buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
@@ -595,6 +742,9 @@ function verifyImageMagicBytes(filePath, expectedFormat) {
             const riff = buffer.toString('ascii', 0, 4);
             const webp = buffer.toString('ascii', 8, 12);
             return riff === 'RIFF' && webp === 'WEBP';
+        }
+        if (expectedFormat === 'mp4') {
+            return buffer.toString('ascii', 4, 8) === 'ftyp';
         }
         return false;
     } catch (e) {
@@ -899,8 +1049,7 @@ function broadcastToAll(payload) {
 }
 
 function isSupportedImage(fileNameOrPath) {
-    const ext = path.extname(fileNameOrPath).toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+    return isSupportedMedia(fileNameOrPath);
 }
 
 function listImageFiles(files) {
@@ -908,6 +1057,7 @@ function listImageFiles(files) {
 }
 
 async function generateThumbnail(fileName) {
+    if (isVideoFile(fileName)) return false;
     const origPath = path.join(IMAGES_DIR, fileName);
     const thumbPath = path.join(THUMBNAILS_DIR, fileName);
 
@@ -1050,11 +1200,18 @@ function slideshowTick() {
 
 function restartSlideshowTimer() {
     if (slideshowTimer) {
+        clearTimeout(slideshowTimer);
         clearInterval(slideshowTimer);
         slideshowTimer = null;
     }
-    if (isPlaybackPaused || isImagePinned) return;
-    slideshowTimer = setInterval(slideshowTick, slideIntervalSec * 1000);
+    if (isPlaybackPaused || isImagePinned || selectedImageFiles.size === 0) return;
+
+    const currentFile = lastBroadcast.fileName;
+    const durationSec = getMediaDuration(currentFile);
+    const waitMs = (durationSec * 1000) + (isVideoFile(currentFile) ? 400 : 0);
+    slideshowTimer = setTimeout(() => {
+        slideshowTick();
+    }, waitMs);
 }
 
 function setSlideIntervalSec(seconds) {
@@ -1254,16 +1411,46 @@ setInterval(() => {
     }
 }, 15000);
 
-// Belirtilen Resmi Tüm Bağlı İstemcilere Gönderen Fonksiyon
+// Belirtilen Resmi veya Videoyu Tüm Bağlı İstemcilere Gönderen Fonksiyon
 function broadcastImage(fileName) {
     if (!selectedImageFiles.has(fileName)) return;
 
     const filePath = path.join(IMAGES_DIR, fileName);
     if (!fs.existsSync(filePath)) return;
 
+    const isVid = isVideoFile(fileName);
+    const mediaDuration = getMediaDuration(fileName);
+
     if (clients.length === 0) {
         lastBroadcast = { fileName, time: Date.now() };
         broadcastDashboardUpdate();
+        restartSlideshowTimer();
+        return;
+    }
+
+    if (isVid) {
+        lastBroadcast = { fileName, time: Date.now() };
+        const payload = {
+            tip: 'image',
+            mediaType: 'video',
+            dosyaAdi: fileName,
+            mediaUrl: '/images/' + encodeURIComponent(fileName),
+            videoDuration: mediaDuration,
+            zaman: new Date().toLocaleTimeString(),
+            slideInterval: mediaDuration,
+            kioskIdleTimeout: getKioskIdleTimeoutSec(),
+            imageFit: getImageFitMode(),
+            showInfoBar: getShowInfoBar(),
+            transitionEffect: getTransitionEffect(),
+            slideshowOrder: getSlideshowOrder(),
+            showWatermark: getShowWatermark(),
+            activeImages: getActiveSelectedImages(),
+            broadcastAt: lastBroadcast.time,
+            resimData: null
+        };
+        broadcastToAll(payload);
+        broadcastDashboardUpdate();
+        restartSlideshowTimer();
         return;
     }
 
@@ -1274,6 +1461,7 @@ function broadcastImage(fileName) {
         lastBroadcast = { fileName, time: Date.now() };
         const payload = {
             tip: 'image',
+            mediaType: 'image',
             dosyaAdi: fileName,
             zaman: new Date().toLocaleTimeString(),
             slideInterval: getSlideIntervalSec(),
@@ -1290,6 +1478,7 @@ function broadcastImage(fileName) {
 
         broadcastToAll(payload);
         broadcastDashboardUpdate();
+        restartSlideshowTimer();
     });
 }
 
@@ -1642,7 +1831,8 @@ app.get('/api/gallery', requireAuth, (req, res) => {
         const images = listImageFiles(files);
         res.json({
             images,
-            selectedImages: images.filter(fileName => selectedImageFiles.has(fileName))
+            selectedImages: images.filter(fileName => selectedImageFiles.has(fileName)),
+            metadata: mediaMetadata
         });
     });
 });
@@ -1743,7 +1933,7 @@ app.post('/api/upload', requireAuth, (req, res) => {
         }
 
         const ext = path.extname(req.file.originalname).toLowerCase();
-        const expectedType = supportedImageTypes[ext];
+        const expectedType = supportedMediaTypes[ext];
         if (!expectedType) {
             try { await fs.promises.unlink(req.file.path); } catch (e) {}
             return res.status(400).json({ success: false, error: 'Desteklenmeyen dosya uzantısı.' });
@@ -1755,31 +1945,56 @@ app.post('/api/upload', requireAuth, (req, res) => {
             try { await fs.promises.unlink(req.file.path); } catch (e) {}
             return res.status(400).json({
                 success: false,
-                error: 'Dosya içeriği geçersiz veya sahte. Dosya başlık imzası görsel türüyle uyuşmuyor.'
+                error: 'Dosya içeriği geçersiz veya sahte. Dosya başlık imzası medya türüyle uyuşmuyor.'
             });
         }
 
-        // 2. Başlık ve Boyut Doğrulaması (Sharp metadata - piksel işlemez, son derece hafiftir)
-        let metadata;
-        try {
-            metadata = await sharp(req.file.path).metadata();
-        } catch (error) {
-            try { await fs.promises.unlink(req.file.path); } catch (e) {}
-            return res.status(400).json({ success: false, error: 'Görsel başlık bilgisi okunamadı veya dosya bozuk.' });
-        }
+        if (expectedType.isVideo) {
+            // Video Süre Kontrolü (Maksimum 60 Saniye)
+            let duration = req.body && req.body.duration ? parseFloat(req.body.duration) : null;
+            if (!duration || isNaN(duration) || duration <= 0) {
+                duration = parseMp4Duration(req.file.path);
+            }
 
-        if (!metadata || metadata.format !== expectedType.format) {
-            try { await fs.promises.unlink(req.file.path); } catch (e) {}
-            return res.status(400).json({ success: false, error: 'Dosya uzantısı ile görsel formatı eşleşmiyor.' });
-        }
+            if (duration && duration > MAX_VIDEO_DURATION_SEC) {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({
+                    success: false,
+                    error: `Video süresi maksimum ${MAX_VIDEO_DURATION_SEC} saniye olabilir. (Yüklenen video: ${Math.round(duration)} sn)`
+                });
+            }
 
-        // 3. Decompression bomb (Piksel taşması) koruması: Maksimum 64 Megapiksel
-        if (metadata.width && metadata.height && (metadata.width * metadata.height > 64000000)) {
-            try { await fs.promises.unlink(req.file.path); } catch (e) {}
-            return res.status(400).json({
-                success: false,
-                error: 'Görsel çözünürlüğü aşırı yüksek (maksimum 64 megapiksel).'
-            });
+            const finalDuration = duration && duration > 0 ? Math.min(MAX_VIDEO_DURATION_SEC, Math.round(duration * 10) / 10) : 30;
+            mediaMetadata[req.file.filename] = {
+                duration: finalDuration,
+                isVideo: true,
+                size: req.file.size,
+                uploadedAt: new Date().toISOString()
+            };
+            saveMediaMetadata();
+        } else {
+            // Görsel Başlık ve Boyut Doğrulaması (Sharp metadata)
+            let metadata;
+            try {
+                metadata = await sharp(req.file.path).metadata();
+            } catch (error) {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({ success: false, error: 'Görsel başlık bilgisi okunamadı veya dosya bozuk.' });
+            }
+
+            if (!metadata || metadata.format !== expectedType.format) {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({ success: false, error: 'Dosya uzantısı ile görsel formatı eşleşmiyor.' });
+            }
+
+            // Decompression bomb (Piksel taşması) koruması: Maksimum 64 Megapiksel
+            if (metadata.width && metadata.height && (metadata.width * metadata.height > 64000000)) {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({
+                    success: false,
+                    error: 'Görsel çözünürlüğü aşırı yüksek (maksimum 64 megapiksel).'
+                });
+            }
         }
 
         // Orijinal dosya olduğu gibi korunur (ağır yeniden sıkıştırma yapılmaz, sistem yorulmaz)

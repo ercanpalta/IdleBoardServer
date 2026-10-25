@@ -2327,6 +2327,7 @@
                         </div>
 
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
+                        <video id="streamCurrentVideo" class="stream-large-img" style="display: none; background: transparent; z-index: 2;" autoplay muted loop playsinline></video>
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
                             <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
                         </div>
@@ -2414,7 +2415,7 @@
             <div>
                 <p class="dashboard-eyebrow">IdleBoard İçerik Yönetimi</p>
                 <h1>Galeri Paneli</h1>
-                <p>Görsellerinizi yükleyin ve istemcilere gönderilecek içerikleri yönetin.</p>
+                <p>Görsellerinizi ve videolarınızı yükleyin, istemcilere aktarılacak içerikleri yönetin.</p>
             </div>
             <div class="dashboard-live">
                 <svg class="icon"><use href="#icon-image"></use></svg>
@@ -2422,10 +2423,10 @@
             </div>
         </section>
         <div class="upload-card" onclick="document.getElementById('fileInput').click()">
-            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Bir veya birden fazla görsel seçip yükleyin</p>
-            <p style="margin: 0 0 12px 0; font-size: 12.5px; color: #64748b;">Desteklenen formatlar: JPG, PNG, WebP (Dosya başına maksimum 100 MB)</p>
-            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple onchange="uploadImage(event)" onclick="event.stopPropagation()">
-            <button id="uploadButton" class="btn" type="button" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Görsel Seç & Yükle</button>
+            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #334155;"><svg class="icon"><use href="#icon-upload"></use></svg> Bir veya birden fazla görsel veya video seçip yükleyin</p>
+            <p style="margin: 0 0 12px 0; font-size: 12.5px; color: #64748b;">Desteklenen formatlar: JPG, PNG, WebP, MP4 (Maksimum 100 MB, videolar en fazla 60 saniye)</p>
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,.mp4,image/jpeg,image/png,image/webp,video/mp4" multiple onchange="uploadImage(event)" onclick="event.stopPropagation()">
+            <button id="uploadButton" class="btn" type="button" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Görsel / Video Seç & Yükle</button>
             <span id="uploadStatus" class="upload-status" role="status" aria-live="polite"></span>
         </div>
         <div class="gallery-toolbar">
@@ -4401,6 +4402,7 @@
                 const data = await res.json();
                 galleryImages = data.images;
                 savedSelection = new Set(data.selectedImages);
+                window.galleryMetadata = data.metadata || {};
                 const currentSelection = previousSelection
                     ? new Set([...previousSelection].filter(fileName => galleryImages.includes(fileName)))
                     : savedSelection;
@@ -4435,6 +4437,18 @@
                 const card = document.createElement('div');
                 card.className = 'card gallery-card';
                 card.dataset.filename = fileName;
+                card.style.position = 'relative';
+
+                if (fileName.toLowerCase().endsWith('.mp4')) {
+                    const meta = (window.galleryMetadata && window.galleryMetadata[fileName]) || {};
+                    const durSec = meta.duration ? Math.round(meta.duration) : null;
+                    const durStr = durSec ? `${Math.floor(durSec / 60)}:${(durSec % 60).toString().padStart(2, '0')}` : 'MP4';
+                    const badge = document.createElement('span');
+                    badge.style.cssText = 'position: absolute; top: 8px; left: 8px; background: rgba(15, 23, 42, 0.85); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 3; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); pointer-events: none;';
+                    badge.innerText = '▶ ' + durStr;
+                    card.appendChild(badge);
+                }
+
                 const image = document.createElement('img');
                 image.src = `/thumbnails/${encodeURIComponent(fileName)}`;
                 image.alt = fileName;
@@ -4553,6 +4567,24 @@
         }
 
         // Resim Yükleme İşlemi
+        function getVideoDuration(file) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                const timeout = setTimeout(() => resolve(null), 5000);
+                video.onloadedmetadata = function() {
+                    clearTimeout(timeout);
+                    window.URL.revokeObjectURL(video.src);
+                    resolve(video.duration);
+                };
+                video.onerror = function() {
+                    clearTimeout(timeout);
+                    resolve(null);
+                };
+                video.src = URL.createObjectURL(file);
+            });
+        }
+
         async function uploadImage(event) {
             const files = Array.from(event.target.files || []);
             event.target.value = '';
@@ -4569,9 +4601,31 @@
             fileInput.disabled = true;
             try {
                 for (const [index, file] of files.entries()) {
-                    status.innerText = `${index + 1} / ${files.length} yükleniyor: ${file.name}`;
+                    if (file.size > 100 * 1024 * 1024) {
+                        failedFiles.push(`${file.name} (Dosya boyutu 100 MB sınırını aşıyor)`);
+                        continue;
+                    }
+
                     const formData = new FormData();
                     formData.append('image', file);
+
+                    if (file.name.toLowerCase().endsWith('.mp4')) {
+                        status.innerText = `${index + 1} / ${files.length} video süresi kontrol ediliyor: ${file.name}`;
+                        try {
+                            const dur = await getVideoDuration(file);
+                            if (dur && dur > 60) {
+                                failedFiles.push(`${file.name} (Video süresi maksimum 60 saniye olabilir: ${Math.round(dur)} sn)`);
+                                continue;
+                            }
+                            if (dur && dur > 0) {
+                                formData.append('duration', dur);
+                            }
+                        } catch (e) {
+                            console.warn('Video süresi okunamadı:', e);
+                        }
+                    }
+
+                    status.innerText = `${index + 1} / ${files.length} yükleniyor: ${file.name}`;
 
                     try {
                         const res = await fetch('/api/upload', {
@@ -5305,16 +5359,40 @@
                 const streamPillarAmbientImg = document.getElementById('streamPillarAmbientImg');
 
                 if (data.currentImage) {
-                    streamCurrentImg.style.display = 'block';
                     streamPlaceholder.style.display = 'none';
-                    if (streamCurrentImg.dataset.filename !== data.currentImage) {
-                        streamCurrentImg.dataset.filename = data.currentImage;
-                        streamCurrentImg.onerror = () => {
-                            if (streamCurrentImg.src && !streamCurrentImg.src.includes('/thumbnails/')) {
-                                streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                    const isVid = data.currentImage.toLowerCase().endsWith('.mp4');
+                    const streamVideo = document.getElementById('streamCurrentVideo');
+
+                    if (isVid) {
+                        if (streamCurrentImg) {
+                            streamCurrentImg.style.display = 'none';
+                        }
+                        if (streamVideo) {
+                            if (streamVideo.dataset.filename !== data.currentImage) {
+                                streamVideo.dataset.filename = data.currentImage;
+                                streamVideo.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                                streamVideo.play().catch(() => {});
                             }
-                        };
-                        streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                            streamVideo.style.display = 'block';
+                        }
+                    } else {
+                        if (streamVideo) {
+                            streamVideo.pause();
+                            streamVideo.style.display = 'none';
+                            streamVideo.dataset.filename = '';
+                        }
+                        if (streamCurrentImg) {
+                            if (streamCurrentImg.dataset.filename !== data.currentImage) {
+                                streamCurrentImg.dataset.filename = data.currentImage;
+                                streamCurrentImg.onerror = () => {
+                                    if (streamCurrentImg.src && !streamCurrentImg.src.includes('/thumbnails/')) {
+                                        streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                                    }
+                                };
+                                streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                            }
+                            streamCurrentImg.style.display = 'block';
+                        }
                     }
 
                     // Yan Alanlar Ortam Işığı (Ambilight) güncellemesi
