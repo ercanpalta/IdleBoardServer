@@ -651,6 +651,63 @@
         .btn-login { width: 100%; padding: var(--space-3); font-size: 15px; }
         .login-error { color: #b91c1c; font-size: 13px; margin-top: var(--space-3); min-height: 18px; font-weight: 500; }
         .setup-note { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 var(--space-6); }
+        .btn-forgot-password-link {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            transition: color 0.15s ease;
+            padding: 4px 8px;
+            display: inline-block;
+        }
+        .btn-forgot-password-link:hover {
+            color: var(--color-primary);
+        }
+        .security-question-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 14px;
+            text-align: left;
+            margin-bottom: var(--space-4);
+        }
+        .security-question-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-primary);
+            background: rgba(37, 99, 235, 0.08);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }
+        .security-question-title {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.4;
+        }
+        .security-question-card.alert-warning {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+        .security-question-card.alert-warning code {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #78350f;
+            display: inline-block;
+            margin-top: 4px;
+        }
 
         /* Yayın Akışı (Stream View) Stilleri */
         .stream-control-layout { display: flex; justify-content: center; width: 100%; margin: 0; }
@@ -1383,6 +1440,12 @@
         html[data-theme="dark"] .header-bar h1 { color: #f1f5f9; }
         html[data-theme="dark"] .settings-row input,
         html[data-theme="dark"] .login-input { border-color: #334155; background: #0b1220; color: #f1f5f9; }
+        html[data-theme="dark"] .btn-forgot-password-link { color: #94a3b8; }
+        html[data-theme="dark"] .btn-forgot-password-link:hover { color: #60a5fa; }
+        html[data-theme="dark"] .security-question-card { background: #0b1220; border-color: #334155; }
+        html[data-theme="dark"] .security-question-title { color: #f1f5f9; }
+        html[data-theme="dark"] .security-question-card.alert-warning { background: #1c1917; border-color: #78350f; color: #fde68a; }
+        html[data-theme="dark"] .security-question-card.alert-warning code { background: #292524; color: #fef3c7; }
         html[data-theme="dark"] .btn-back,
         html[data-theme="dark"] .btn-toggle-visibility { border-color: #334155; background: #1e293b; color: #e2e8f0; }
         html[data-theme="dark"] .btn-toggle-visibility.is-visible { border-color: #1d4ed8; background: #172554; color: #bfdbfe; }
@@ -1918,6 +1981,7 @@
         <symbol id="icon-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"></path></symbol>
         <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></symbol>
         <symbol id="icon-alert-triangle" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></symbol>
+        <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></symbol>
     </svg>
     <!-- 1. Giriş (Login) Ekranı -->
     <div id="loginSection" class="login-wrap">
@@ -1934,6 +1998,69 @@
             </div>
             <button class="btn btn-login" onclick="login()">Giriş Yap</button>
             <div id="loginError" class="login-error"></div>
+            <div style="margin-top: 14px; text-align: center;">
+                <button type="button" class="btn-forgot-password-link" onclick="showForgotPassword()">Parolamı Unuttum</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1.1 Parolamı Unuttum (Güvenlik Sorusu İle Sıfırlama) Ekranı -->
+    <div id="forgotPasswordSection" class="login-wrap" style="display: none;">
+        <div class="login-card">
+            <svg class="icon auth-icon"><use href="#icon-lock"></use></svg>
+            <h2>Parolamı Unuttum</h2>
+            <p class="setup-note" id="forgotQuestionPrompt">Güvenlik sorusunu yanıtlayarak yeni yönetici parolanızı belirleyebilirsiniz.</p>
+            
+            <div id="forgotQuestionNoConfig" class="security-question-card alert-warning" style="display: none;">
+                <p id="forgotQuestionNoConfigMsg">Bu sistemde henüz bir güvenlik sorusu tanımlanmamış. Sunucu terminalinde <code>npm run reset-password</code> komutunu çalıştırarak parolanızı doğrudan sıfırlayabilirsiniz.</p>
+            </div>
+
+            <form id="forgotPasswordForm" onsubmit="event.preventDefault(); submitResetPassword();" style="display: none;">
+                <div style="margin-bottom: var(--space-4); text-align: left;">
+                    <label for="forgotQuestionSelect" style="display: block; font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px;">Kurtarma Güvenlik Sorunuz:</label>
+                    <select id="forgotQuestionSelect" class="login-input" style="cursor: pointer; margin-bottom: 8px;">
+                        <option value="" disabled selected>Belirlediğiniz güvenlik sorusunu seçin...</option>
+                    </select>
+                    <input type="text" id="forgotAnswerInput" class="login-input" placeholder="Güvenlik sorusu yanıtınız..." autocomplete="off">
+                </div>
+                
+                <div class="password-field-wrapper">
+                    <input type="password" id="forgotNewPasswordInput" class="login-input" placeholder="Yeni parola..." autocomplete="new-password" oninput="updateForgotStrength()">
+                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('forgotNewPasswordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                        <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                        <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                    </button>
+                </div>
+                <div id="forgotStrengthMeter" class="password-strength-container" style="display: none;">
+                    <div class="strength-bar-track">
+                        <div class="strength-bar-segment"></div>
+                        <div class="strength-bar-segment"></div>
+                        <div class="strength-bar-segment"></div>
+                        <div class="strength-bar-segment"></div>
+                    </div>
+                    <div class="strength-meta">
+                        <span class="strength-label">Güç: <strong class="strength-text">-</strong></span>
+                        <span class="strength-hint"></span>
+                    </div>
+                </div>
+
+                <div class="password-field-wrapper">
+                    <input type="password" id="forgotConfirmPasswordInput" class="login-input" placeholder="Yeni parola tekrarı..." autocomplete="new-password" oninput="updateForgotMatch()">
+                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('forgotConfirmPasswordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                        <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                        <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                    </button>
+                </div>
+                <div id="forgotMatchNotice" class="password-match-notice" style="display: none;"></div>
+
+                <button type="submit" class="btn btn-login">Parolayı Sıfırla</button>
+            </form>
+
+            <div id="forgotPasswordError" class="login-error"></div>
+
+            <div style="margin-top: 14px; text-align: center;">
+                <button type="button" class="btn-forgot-password-link" onclick="showLogin()">← Giriş Ekranına Dön</button>
+            </div>
         </div>
     </div>
 
@@ -1970,6 +2097,15 @@
                 </button>
             </div>
             <div id="setupMatchNotice" class="password-match-notice" style="display: none;"></div>
+            
+            <div style="margin: 16px 0 12px; text-align: left;">
+                <label for="setupSecurityQuestion" style="display: block; font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px;">Kurtarma Güvenlik Sorusu:</label>
+                <select id="setupSecurityQuestion" class="login-input" style="cursor: pointer; margin-bottom: 8px;">
+                    <option value="" disabled selected>Bir güvenlik sorusu seçin...</option>
+                </select>
+                <input type="text" id="setupSecurityAnswer" class="login-input" placeholder="Güvenlik sorusu yanıtınız..." autocomplete="off">
+            </div>
+
             <button class="btn btn-login" onclick="setupPassword()">Parolayı Belirle</button>
             <div id="setupError" class="login-error"></div>
         </div>
@@ -2592,6 +2728,42 @@
                             <div id="passwordChangeStatus" class="login-error" role="status" aria-live="polite"></div>
                         </div>
                     </div>
+
+                    <!-- Kurtarma Güvenlik Sorusu -->
+                    <div class="settings-item settings-item-stacked">
+                        <div class="settings-item-header-row">
+                            <div class="settings-item-info">
+                                <span class="settings-item-title">Kurtarma Güvenlik Sorusu</span>
+                                <p class="settings-item-desc" id="currentSecurityQuestionDesc">Parolanızı unuttuğunuzda web arayüzünden sıfırlayabilmek için güvenlik sorusu belirleyin.</p>
+                            </div>
+                            <button id="btnToggleSecurityQuestionForm" class="btn-password-toggle" type="button" onclick="toggleSecurityQuestionForm()">
+                                <svg class="icon"><use href="#icon-shield"></use></svg>
+                                <span>Soruyu Güncelle</span>
+                            </button>
+                        </div>
+                        <div id="securityQuestionFormCollapse" class="password-collapse" style="display: none;">
+                            <div class="password-fields-row">
+                                <div class="minimal-input-wrapper">
+                                    <input type="password" id="sqCurrentPasswordInput" class="minimal-input" placeholder="Mevcut yönetici parolası" autocomplete="current-password">
+                                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('sqCurrentPasswordInput', this)" title="Şifreyi göster/gizle" aria-label="Şifreyi göster/gizle" tabindex="-1">
+                                        <svg class="icon icon-eye-show"><use href="#icon-eye"></use></svg>
+                                        <svg class="icon icon-eye-hide" style="display: none;"><use href="#icon-eye-off"></use></svg>
+                                    </button>
+                                </div>
+                                <div class="minimal-input-wrapper" style="flex: 2 1 240px;">
+                                    <select id="sqSelectInput" class="minimal-input" style="padding-right: 10px; cursor: pointer;">
+                                        <option value="" disabled selected>Güvenlik sorusu seçin...</option>
+                                    </select>
+                                </div>
+                                <div class="minimal-input-wrapper">
+                                    <input type="text" id="sqAnswerInput" class="minimal-input" placeholder="Sorunun yanıtı" autocomplete="off" onkeydown="if(event.key==='Enter') saveSecurityQuestionSettings()">
+                                </div>
+                                <button class="btn btn-minimal-save" type="button" onclick="saveSecurityQuestionSettings()">Kaydet</button>
+                                <button class="btn-back btn-password-cancel" type="button" onclick="toggleSecurityQuestionForm(false)">Vazgeç</button>
+                            </div>
+                            <div id="securityQuestionChangeStatus" class="login-error" role="status" aria-live="polite"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -3022,14 +3194,58 @@
             }
         }
 
+        let cachedSecurityQuestions = [];
+        async function loadSecurityQuestions() {
+            if (cachedSecurityQuestions.length > 0) return cachedSecurityQuestions;
+            try {
+                const res = await fetch('/api/auth/security-questions');
+                const data = await res.json();
+                if (data.questions && Array.isArray(data.questions)) {
+                    cachedSecurityQuestions = data.questions;
+                    populateQuestionDropdowns();
+                }
+            } catch (e) {
+                console.error('Güvenlik soruları yüklenemedi:', e);
+            }
+            return cachedSecurityQuestions;
+        }
+
+        function populateQuestionDropdowns() {
+            const setupSelect = document.getElementById('setupSecurityQuestion');
+            const settingsSelect = document.getElementById('sqSelectInput');
+            const forgotSelect = document.getElementById('forgotQuestionSelect');
+            const optionsHtml = cachedSecurityQuestions.map(q => `<option value="${q.id}">[${q.id}] ${escapeHtml(q.text)}</option>`).join('');
+            
+            if (setupSelect) {
+                const curVal = setupSelect.value;
+                setupSelect.innerHTML = '<option value="" disabled selected>Bir güvenlik sorusu seçin...</option>' + optionsHtml;
+                if (curVal) setupSelect.value = curVal;
+            }
+            if (settingsSelect) {
+                const curVal = settingsSelect.value;
+                settingsSelect.innerHTML = '<option value="" disabled selected>Güvenlik sorusu seçin...</option>' + optionsHtml;
+                if (curVal) settingsSelect.value = curVal;
+            }
+            if (forgotSelect) {
+                const curVal = forgotSelect.value;
+                forgotSelect.innerHTML = '<option value="" disabled selected>Belirlediğiniz güvenlik sorusunu seçin...</option>' + optionsHtml;
+                if (curVal) forgotSelect.value = curVal;
+            }
+        }
+
         async function setupPassword() {
             const passwordInput = document.getElementById('newPasswordInput');
             const confirmationInput = document.getElementById('passwordConfirmationInput');
+            const questionSelect = document.getElementById('setupSecurityQuestion');
+            const answerInput = document.getElementById('setupSecurityAnswer');
             const errDiv = document.getElementById('setupError');
             errDiv.innerText = '';
 
             const password = passwordInput.value;
             const passwordConfirmation = confirmationInput.value;
+            const securityQuestionId = questionSelect.value;
+            const securityAnswer = answerInput.value.trim();
+
             if (password.length < 8) {
                 errDiv.innerText = 'Parola en az 8 karakter olmalıdır.';
                 return;
@@ -3044,12 +3260,20 @@
                 errDiv.innerText = 'Parola tekrarı eşleşmiyor.';
                 return;
             }
+            if (!securityQuestionId) {
+                errDiv.innerText = 'Lütfen bir kurtarma güvenlik sorusu seçin.';
+                return;
+            }
+            if (securityAnswer.length < 2) {
+                errDiv.innerText = 'Güvenlik sorusu yanıtı en az 2 karakter olmalıdır.';
+                return;
+            }
 
             try {
                 const res = await fetch('/api/auth/setup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password, passwordConfirmation })
+                    body: JSON.stringify({ password, passwordConfirmation, securityQuestionId, securityAnswer })
                 });
                 const data = await res.json();
                 if (!res.ok || !data.success) {
@@ -3059,13 +3283,14 @@
 
                 passwordInput.value = '';
                 confirmationInput.value = '';
+                answerInput.value = '';
                 resetPasswordVisibility('newPasswordInput');
                 resetPasswordVisibility('passwordConfirmationInput');
                 updateSetupPasswordStrength();
                 updateSetupPasswordMatch();
                 showLogin();
                 const loginError = document.getElementById('loginError');
-                loginError.innerText = 'Parolanız oluşturuldu. Giriş yapabilirsiniz.';
+                loginError.innerText = 'Parolanız ve güvenlik sorunuz başarıyla oluşturuldu. Giriş yapabilirsiniz.';
                 loginError.style.color = '#15803d';
             } catch (err) {
                 errDiv.innerText = 'Sunucuya bağlanılamadı.';
@@ -3126,6 +3351,8 @@
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('setupSection').style.display = 'none';
+            const forgotEl = document.getElementById('forgotPasswordSection');
+            if (forgotEl) forgotEl.style.display = 'none';
             document.getElementById('adminLayout').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
@@ -3148,6 +3375,9 @@
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'flex';
+            const forgotEl = document.getElementById('forgotPasswordSection');
+            if (forgotEl) forgotEl.style.display = 'none';
+            loadSecurityQuestions();
             document.getElementById('adminLayout').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
@@ -3162,6 +3392,8 @@
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
+            const forgotEl = document.getElementById('forgotPasswordSection');
+            if (forgotEl) forgotEl.style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'block';
             document.getElementById('streamSection').style.display = 'none';
@@ -3440,11 +3672,14 @@
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
+            const forgotEl = document.getElementById('forgotPasswordSection');
+            if (forgotEl) forgotEl.style.display = 'none';
             document.getElementById('adminLayout').style.display = 'flex';
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('streamSection').style.display = 'none';
             document.getElementById('gallerySection').style.display = 'none';
             document.getElementById('settingsSection').style.display = 'block';
+            loadSecurityQuestionSettingsInfo();
             setActiveNavigation('settingsNav');
             closeMobileSidebar();
             clearInterval(dashboardRefreshTimer);
@@ -3719,6 +3954,242 @@
                 status.innerText = 'Parolanız başarıyla değiştirildi.';
                 setTimeout(() => {
                     togglePasswordForm(false);
+                }, 1500);
+            } catch (err) {
+                status.innerText = 'Sunucuya bağlanılamadı.';
+            }
+        }
+
+        async function showForgotPassword() {
+            stopStreamCountdown();
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('adminLayout').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('streamSection').style.display = 'none';
+            document.getElementById('gallerySection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
+            document.getElementById('forgotPasswordSection').style.display = 'flex';
+
+            document.getElementById('forgotPasswordError').innerText = '';
+            document.getElementById('forgotAnswerInput').value = '';
+            document.getElementById('forgotNewPasswordInput').value = '';
+            document.getElementById('forgotConfirmPasswordInput').value = '';
+            resetPasswordVisibility('forgotNewPasswordInput');
+            resetPasswordVisibility('forgotConfirmPasswordInput');
+            updateForgotStrength();
+            updateForgotMatch();
+
+            await loadSecurityQuestions();
+            const forgotSelect = document.getElementById('forgotQuestionSelect');
+            if (forgotSelect) forgotSelect.value = '';
+
+            const promptEl = document.getElementById('forgotQuestionPrompt');
+            const noConfigEl = document.getElementById('forgotQuestionNoConfig');
+            const formEl = document.getElementById('forgotPasswordForm');
+
+            promptEl.innerText = 'Güvenlik durumu kontrol ediliyor...';
+            noConfigEl.style.display = 'none';
+            formEl.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/reset-password/question');
+                const data = await res.json();
+                if (data.configured) {
+                    promptEl.innerText = 'Belirlediğiniz güvenlik sorusunu ve yanıtını girerek yeni bir yönetici parolası oluşturun:';
+                    formEl.style.display = 'block';
+                    if (forgotSelect) forgotSelect.focus();
+                } else {
+                    promptEl.innerText = 'Sıfırlama işlemi yapılamıyor.';
+                    document.getElementById('forgotQuestionNoConfigMsg').innerHTML = data.error || 'Bu sistemde henüz bir güvenlik sorusu tanımlanmamış. Sunucu terminalinde <code>npm run reset-password</code> komutunu kullanarak şifrenizi doğrudan sıfırlayabilirsiniz.';
+                    noConfigEl.style.display = 'block';
+                }
+            } catch (err) {
+                promptEl.innerText = 'Sunucuya bağlanılamadı.';
+                document.getElementById('forgotPasswordError').innerText = 'Güvenlik durumu sunucudan doğrulanamadı.';
+            }
+        }
+
+        function updateForgotStrength() {
+            const val = document.getElementById('forgotNewPasswordInput')?.value || '';
+            const meterEl = document.getElementById('forgotStrengthMeter');
+            const result = evaluatePasswordStrength(val);
+            renderStrengthMeter(meterEl, result);
+            updateForgotMatch();
+        }
+
+        function updateForgotMatch() {
+            const passVal = document.getElementById('forgotNewPasswordInput')?.value || '';
+            const confVal = document.getElementById('forgotConfirmPasswordInput')?.value || '';
+            const noticeEl = document.getElementById('forgotMatchNotice');
+            if (!noticeEl) return;
+
+            if (!confVal) {
+                noticeEl.style.display = 'none';
+                noticeEl.textContent = '';
+                return;
+            }
+            noticeEl.style.display = 'block';
+            if (passVal === confVal) {
+                noticeEl.className = 'password-match-notice match-success';
+                noticeEl.textContent = '✓ Parolalar eşleşiyor';
+            } else {
+                noticeEl.className = 'password-match-notice match-error';
+                noticeEl.textContent = '✕ Parolalar eşleşmiyor';
+            }
+        }
+
+        async function submitResetPassword() {
+            const questionSelect = document.getElementById('forgotQuestionSelect');
+            const answerInput = document.getElementById('forgotAnswerInput');
+            const newPasswordInput = document.getElementById('forgotNewPasswordInput');
+            const confirmPasswordInput = document.getElementById('forgotConfirmPasswordInput');
+            const errDiv = document.getElementById('forgotPasswordError');
+            errDiv.innerText = '';
+            errDiv.style.color = '#b91c1c';
+
+            const securityQuestionId = questionSelect ? questionSelect.value : '';
+            const answer = answerInput.value.trim();
+            const newPassword = newPasswordInput.value;
+            const passwordConfirmation = confirmPasswordInput.value;
+
+            if (!securityQuestionId) {
+                errDiv.innerText = 'Lütfen güvenlik sorunuzu seçin.';
+                return;
+            }
+            if (!answer) {
+                errDiv.innerText = 'Lütfen güvenlik sorusunun yanıtını girin.';
+                return;
+            }
+            if (newPassword.length < 8) {
+                errDiv.innerText = 'Yeni parola en az 8 karakter olmalıdır.';
+                return;
+            }
+            const hasLetter = /[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(newPassword);
+            const hasDigit = /[0-9]/.test(newPassword);
+            if (!hasLetter || !hasDigit) {
+                errDiv.innerText = 'Yeni parola en az bir harf ve bir rakam içermelidir.';
+                return;
+            }
+            if (newPassword !== passwordConfirmation) {
+                errDiv.innerText = 'Yeni parola tekrarı eşleşmiyor.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ securityQuestionId, answer, newPassword, passwordConfirmation })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    errDiv.innerText = data.error || 'Parola sıfırlanamadı.';
+                    return;
+                }
+
+                showLogin();
+                const loginError = document.getElementById('loginError');
+                loginError.style.color = '#15803d';
+                loginError.innerText = 'Parolanız başarıyla sıfırlandı. Yeni parolanızla giriş yapabilirsiniz.';
+            } catch (err) {
+                errDiv.innerText = 'Sunucuya bağlanılamadı.';
+            }
+        }
+
+        function toggleSecurityQuestionForm(show) {
+            const collapse = document.getElementById('securityQuestionFormCollapse');
+            const btn = document.getElementById('btnToggleSecurityQuestionForm');
+            const isCurrentlyOpen = collapse.style.display !== 'none';
+            const nextState = (typeof show === 'boolean') ? show : !isCurrentlyOpen;
+
+            if (nextState) {
+                collapse.style.display = 'block';
+                btn.classList.add('active');
+                loadSecurityQuestionSettingsInfo();
+                const cur = document.getElementById('sqCurrentPasswordInput');
+                if (cur) cur.focus();
+            } else {
+                collapse.style.display = 'none';
+                btn.classList.remove('active');
+                const cur = document.getElementById('sqCurrentPasswordInput');
+                if (cur) cur.value = '';
+                const ans = document.getElementById('sqAnswerInput');
+                if (ans) ans.value = '';
+                const st = document.getElementById('securityQuestionChangeStatus');
+                if (st) st.innerText = '';
+                resetPasswordVisibility('sqCurrentPasswordInput');
+            }
+        }
+
+        async function loadSecurityQuestionSettingsInfo() {
+            await loadSecurityQuestions();
+            try {
+                const res = await fetch('/api/auth/security-question/current', {
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+                const descEl = document.getElementById('currentSecurityQuestionDesc');
+                const selectEl = document.getElementById('sqSelectInput');
+                if (data.configured && data.questionId) {
+                    if (selectEl) selectEl.value = data.questionId;
+                    if (descEl) descEl.innerText = `Aktif Soru: "${data.questionText}"`;
+                } else {
+                    if (descEl) descEl.innerText = 'Henüz güvenlik sorusu tanımlanmamış. Şifrenizi unutma ihtimaline karşı bir soru belirleyin.';
+                }
+            } catch (e) {}
+        }
+
+        async function saveSecurityQuestionSettings() {
+            const currentPassInput = document.getElementById('sqCurrentPasswordInput');
+            const selectEl = document.getElementById('sqSelectInput');
+            const answerInput = document.getElementById('sqAnswerInput');
+            const status = document.getElementById('securityQuestionChangeStatus');
+            status.innerText = '';
+            status.style.color = '#b91c1c';
+
+            const currentPassword = currentPassInput.value;
+            const securityQuestionId = selectEl.value;
+            const securityAnswer = answerInput.value.trim();
+
+            if (!currentPassword) {
+                status.innerText = 'Lütfen mevcut yönetici parolanızı girin.';
+                return;
+            }
+            if (!securityQuestionId) {
+                status.innerText = 'Lütfen bir güvenlik sorusu seçin.';
+                return;
+            }
+            if (securityAnswer.length < 2) {
+                status.innerText = 'Güvenlik sorusu yanıtı en az 2 karakter olmalıdır.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/security-question', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ currentPassword, securityQuestionId, securityAnswer })
+                });
+                if (handleApiError(res)) return;
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    status.innerText = data.error || 'Güvenlik sorusu güncellenemedi.';
+                    return;
+                }
+
+                currentPassInput.value = '';
+                answerInput.value = '';
+                resetPasswordVisibility('sqCurrentPasswordInput');
+                status.style.color = '#15803d';
+                status.innerText = 'Güvenlik sorunuz başarıyla güncellendi.';
+                loadSecurityQuestionSettingsInfo();
+                setTimeout(() => {
+                    toggleSecurityQuestionForm(false);
                 }, 1500);
             } catch (err) {
                 status.innerText = 'Sunucuya bağlanılamadı.';

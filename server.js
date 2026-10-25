@@ -377,17 +377,77 @@ setInterval(() => {
     }
 }, 10 * 60 * 1000).unref();
 
-function readPasswordHash() {
+const SECURITY_QUESTIONS = [
+    { id: 1, text: 'Kariyerinizdeki ilk çalıştığınız şirketin veya iş yerinin adı nedir?' },
+    { id: 2, text: 'İlk stajınızı yaptığınız kurumun veya firmanın adı nedir?' },
+    { id: 3, text: 'İş hayatınızdaki ilk unvanınız veya pozisyonunuz nedir?' },
+    { id: 4, text: 'İlk işinizdeki yöneticinizin veya amirinizin adı nedir?' },
+    { id: 5, text: 'Üniversitede mezun olduğunuz bölümün adı nedir?' },
+    { id: 6, text: 'İlk evcil hayvanınızın adı nedir?' },
+    { id: 7, text: 'Mezun olduğunuz lisenin adı nedir?' },
+    { id: 8, text: 'Çocukluğunuzun geçtiği semt veya mahalle neresidir?' },
+    { id: 9, text: 'İlk sahip olduğunuz arabanın markası nedir?' },
+    { id: 10, text: 'İlkokuldaki en sevdiğiniz öğretmenin adı veya soyadı nedir?' }
+];
+
+function normalizeSecurityAnswer(answer) {
+    if (!answer || typeof answer !== 'string') return '';
+    return answer
+        .trim()
+        .replace(/İ/g, 'i')
+        .replace(/I/g, 'i')
+        .replace(/ı/g, 'i')
+        .toLowerCase()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]/g, '');
+}
+
+function hashSecurityAnswer(answer, saltHex) {
+    const salt = Buffer.from(saltHex, 'hex');
+    const normalized = normalizeSecurityAnswer(answer);
+    return crypto.scryptSync(normalized, salt, 64).toString('hex');
+}
+
+function verifySecurityAnswer(answer, storedSaltHex, storedHashHex) {
+    if (!answer || !storedSaltHex || !storedHashHex) return false;
+    try {
+        const computedHash = hashSecurityAnswer(answer, storedSaltHex);
+        const hashBuffer = Buffer.from(computedHash, 'hex');
+        const storedBuffer = Buffer.from(storedHashHex, 'hex');
+        if (hashBuffer.length !== storedBuffer.length) return false;
+        return crypto.timingSafeEqual(hashBuffer, storedBuffer);
+    } catch {
+        return false;
+    }
+}
+
+function readPasswordConfig() {
     if (fs.existsSync(PASSWORD_FILE)) {
         try {
-            const stored = JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
-            if (stored.algorithm !== 'scrypt' || !stored.salt || !stored.hash) {
-                throw new Error('Geçersiz parola yapılandırması.');
-            }
-            return { type: 'scrypt', salt: stored.salt, hash: stored.hash };
+            return JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
         } catch (error) {
-            throw new Error(`Parola yapılandırması okunamadı: ${error.message}`);
+            return null;
         }
+    }
+    return null;
+}
+
+function isSecurityQuestionConfigured() {
+    const config = readPasswordConfig();
+    return Boolean(config && config.securityQuestionId && config.securityAnswerHash);
+}
+
+function readPasswordHash() {
+    const stored = readPasswordConfig();
+    if (stored) {
+        if (stored.algorithm !== 'scrypt' || !stored.salt || !stored.hash) {
+            throw new Error('Geçersiz parola yapılandırması.');
+        }
+        return { type: 'scrypt', salt: stored.salt, hash: stored.hash };
     }
 
     if (process.env.ADMIN_PASSWORD) {
@@ -414,14 +474,41 @@ function verifyPassword(password) {
     return crypto.timingSafeEqual(hash, Buffer.from(stored.hash, 'hex'));
 }
 
-function savePassword(password) {
+function savePassword(password, securityQuestionId = null, securityAnswer = null) {
+    const existingConfig = readPasswordConfig() || {};
     const salt = crypto.randomBytes(16);
     const hash = crypto.scryptSync(password, salt, 64);
-    fs.writeFileSync(PASSWORD_FILE, JSON.stringify({
+    const newConfig = {
         algorithm: 'scrypt',
         salt: salt.toString('hex'),
-        hash: hash.toString('hex')
-    }, null, 2), { mode: 0o600 });
+        hash: hash.toString('hex'),
+        updatedAt: new Date().toISOString()
+    };
+
+    if (securityQuestionId && securityAnswer) {
+        const answerSalt = crypto.randomBytes(16);
+        const answerHash = crypto.scryptSync(normalizeSecurityAnswer(securityAnswer), answerSalt, 64);
+        newConfig.securityQuestionId = Number(securityQuestionId);
+        newConfig.securityAnswerSalt = answerSalt.toString('hex');
+        newConfig.securityAnswerHash = answerHash.toString('hex');
+    } else if (existingConfig.securityQuestionId && existingConfig.securityAnswerHash) {
+        newConfig.securityQuestionId = existingConfig.securityQuestionId;
+        newConfig.securityAnswerSalt = existingConfig.securityAnswerSalt;
+        newConfig.securityAnswerHash = existingConfig.securityAnswerHash;
+    }
+
+    fs.writeFileSync(PASSWORD_FILE, JSON.stringify(newConfig, null, 2), { mode: 0o600 });
+}
+
+function saveSecurityQuestion(securityQuestionId, securityAnswer) {
+    const existingConfig = readPasswordConfig() || {};
+    const answerSalt = crypto.randomBytes(16);
+    const answerHash = crypto.scryptSync(normalizeSecurityAnswer(securityAnswer), answerSalt, 64);
+    existingConfig.securityQuestionId = Number(securityQuestionId);
+    existingConfig.securityAnswerSalt = answerSalt.toString('hex');
+    existingConfig.securityAnswerHash = answerHash.toString('hex');
+    existingConfig.updatedAt = new Date().toISOString();
+    fs.writeFileSync(PASSWORD_FILE, JSON.stringify(existingConfig, null, 2), { mode: 0o600 });
 }
 
 function requireAuth(req, res, next) {
@@ -1289,11 +1376,18 @@ restartSlideshowTimer();
 
 // Kimlik Doğrulama (Auth) API'leri
 app.get('/api/auth/status', (req, res) => {
-    res.json({ passwordConfigured: isPasswordConfigured() });
+    res.json({
+        passwordConfigured: isPasswordConfigured(),
+        hasSecurityQuestion: isSecurityQuestionConfigured()
+    });
+});
+
+app.get('/api/auth/security-questions', (req, res) => {
+    res.json({ questions: SECURITY_QUESTIONS });
 });
 
 app.post('/api/auth/setup', (req, res) => {
-    const { password, passwordConfirmation } = req.body || {};
+    const { password, passwordConfirmation, securityQuestionId, securityAnswer } = req.body || {};
     if (isPasswordConfigured()) {
         return res.status(409).json({ success: false, error: 'Yönetici parolası zaten belirlenmiş.' });
     }
@@ -1307,12 +1401,124 @@ app.post('/api/auth/setup', (req, res) => {
     if (password !== passwordConfirmation) {
         return res.status(400).json({ success: false, error: 'Parola tekrarı eşleşmiyor.' });
     }
+    if (!securityQuestionId || !SECURITY_QUESTIONS.some(q => q.id === Number(securityQuestionId))) {
+        return res.status(400).json({ success: false, error: 'Lütfen geçerli bir güvenlik sorusu seçin.' });
+    }
+    if (!securityAnswer || typeof securityAnswer !== 'string' || securityAnswer.trim().length < 2) {
+        return res.status(400).json({ success: false, error: 'Güvenlik sorusu yanıtı en az 2 karakter olmalıdır.' });
+    }
 
-    savePassword(password);
+    savePassword(password, Number(securityQuestionId), securityAnswer.trim());
     activeTokens.clear();
     const token = registerToken();
     setAdminTokenCookie(req, res, token);
+    logActivity('security', 'İlk kurulum tamamlandı', 'Yönetici parolası ve güvenlik sorusu belirlendi');
     res.json({ success: true, token });
+});
+
+app.get('/api/auth/reset-password/question', (req, res) => {
+    const config = readPasswordConfig();
+    if (!config || !config.securityQuestionId || !config.securityAnswerHash) {
+        return res.json({
+            configured: false,
+            error: 'Bu sistemde tanımlı bir güvenlik sorusu bulunamadı. Lütfen sunucu terminalinden "npm run reset-password" komutunu kullanarak parolanızı sıfırlayın.'
+        });
+    }
+    res.json({
+        configured: true
+    });
+});
+
+app.post('/api/auth/reset-password', (req, res) => {
+    const clientIp = getClientIp(req);
+    const lock = checkBruteForceLock(clientIp);
+    if (lock.isLocked) {
+        return res.status(429).json({
+            success: false,
+            error: `Çok fazla deneme yapıldı. Lütfen ${lock.remainingSec} saniye bekleyin.`,
+            retryAfter: lock.remainingSec
+        });
+    }
+
+    const config = readPasswordConfig();
+    if (!config || !config.securityQuestionId || !config.securityAnswerHash) {
+        return res.status(400).json({
+            success: false,
+            error: 'Bu sistemde tanımlı bir güvenlik sorusu bulunmamaktadır. Sunucu terminalinden "npm run reset-password" komutunu kullanabilirsiniz.'
+        });
+    }
+
+    const { securityQuestionId, answer, newPassword, passwordConfirmation } = req.body || {};
+    if (!securityQuestionId) {
+        return res.status(400).json({ success: false, error: 'Lütfen belirlediğiniz güvenlik sorusunu seçin.' });
+    }
+    if (!answer || typeof answer !== 'string') {
+        return res.status(400).json({ success: false, error: 'Güvenlik sorusu yanıtı boş olamaz.' });
+    }
+
+    const isQuestionMatch = Number(securityQuestionId) === Number(config.securityQuestionId);
+    const isAnswerMatch = verifySecurityAnswer(answer, config.securityAnswerSalt, config.securityAnswerHash);
+
+    if (!isQuestionMatch || !isAnswerMatch) {
+        const failResult = recordFailedLogin(clientIp);
+        const hint = failResult.remainingTries > 0 ? ` (${failResult.remainingTries} deneme hakkı kaldı)` : '';
+        return res.status(400).json({ success: false, error: `Güvenlik sorusu seçimi veya yanıtı hatalı!${hint}` });
+    }
+
+    recordSuccessfulLogin(clientIp);
+
+    const validation = validatePasswordStrength(newPassword);
+    if (!validation.valid) {
+        return res.status(400).json({ success: false, error: validation.error });
+    }
+    if (newPassword !== passwordConfirmation) {
+        return res.status(400).json({ success: false, error: 'Yeni parola tekrarı eşleşmiyor.' });
+    }
+
+    savePassword(newPassword);
+    activeTokens.clear();
+    logActivity('security', 'Yönetici parolası güvenlik sorusu ile sıfırlandı', `IP: ${clientIp}`);
+    res.json({ success: true, message: 'Yönetici parolanız başarıyla sıfırlandı. Yeni parolanızla giriş yapabilirsiniz.' });
+});
+
+app.get('/api/auth/security-question/current', requireAuth, (req, res) => {
+    const config = readPasswordConfig();
+    if (!config || !config.securityQuestionId || !config.securityAnswerHash) {
+        return res.json({ configured: false });
+    }
+    const question = SECURITY_QUESTIONS.find(q => q.id === config.securityQuestionId);
+    res.json({
+        configured: true,
+        questionId: config.securityQuestionId,
+        questionText: question ? question.text : ''
+    });
+});
+
+app.post('/api/auth/security-question', requireAuth, (req, res) => {
+    const clientIp = getClientIp(req);
+    const lock = checkBruteForceLock(clientIp);
+    if (lock.isLocked) {
+        return res.status(429).json({ success: false, error: `Çok fazla deneme yapıldı. Lütfen ${lock.remainingSec} saniye bekleyin.` });
+    }
+
+    const { currentPassword, securityQuestionId, securityAnswer } = req.body || {};
+    if (typeof currentPassword !== 'string' || !verifyPassword(currentPassword)) {
+        const failResult = recordFailedLogin(clientIp);
+        const hint = failResult.remainingTries > 0 ? ` (${failResult.remainingTries} deneme hakkı kaldı)` : '';
+        return res.status(400).json({ success: false, error: `Mevcut parola hatalı.${hint}` });
+    }
+    recordSuccessfulLogin(clientIp);
+
+    if (!securityQuestionId || !SECURITY_QUESTIONS.some(q => q.id === Number(securityQuestionId))) {
+        return res.status(400).json({ success: false, error: 'Geçersiz güvenlik sorusu seçimi.' });
+    }
+    if (!securityAnswer || typeof securityAnswer !== 'string' || securityAnswer.trim().length < 2) {
+        return res.status(400).json({ success: false, error: 'Güvenlik sorusu yanıtı en az 2 karakter olmalıdır.' });
+    }
+
+    saveSecurityQuestion(Number(securityQuestionId), securityAnswer.trim());
+    logActivity('security', 'Güvenlik sorusu güncellendi', `Soru ID: ${securityQuestionId}`);
+    res.json({ success: true, message: 'Güvenlik sorusu başarıyla güncellendi.' });
 });
 
 app.post('/api/auth/password', requireAuth, (req, res) => {
