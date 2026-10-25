@@ -2099,7 +2099,8 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
             slideInterval: getSlideIntervalSec(),
             slideshowOrder: getSlideshowOrder(),
             connectedClients: getConnectedClientCount(),
-            latestBroadcastAt: lastBroadcast.time || null
+            latestBroadcastAt: lastBroadcast.time || null,
+            metadata: mediaMetadata
         });
     });
 });

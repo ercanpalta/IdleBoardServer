@@ -3893,9 +3893,22 @@
                 const broadcastTime = document.getElementById('dashboardLastBroadcast');
                 if (stats.latestImage) {
                     preview.innerHTML = '';
+                    const isVid = stats.latestImage.toLowerCase().endsWith('.mp4');
                     const image = document.createElement('img');
-                    image.src = `/thumbnails/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
                     image.alt = stats.latestImage;
+                    if (isVid) {
+                        image.dataset.videoCover = stats.latestImage;
+                        if (typeof videoCoverCache !== 'undefined' && videoCoverCache.has(stats.latestImage)) {
+                            image.src = videoCoverCache.get(stats.latestImage);
+                        } else {
+                            image.src = `/thumbnails/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
+                            if (typeof ensureVideoCover === 'function') {
+                                ensureVideoCover(stats.latestImage);
+                            }
+                        }
+                    } else {
+                        image.src = `/thumbnails/${encodeURIComponent(stats.latestImage)}?t=${stats.latestBroadcastAt}`;
+                    }
                     preview.appendChild(image);
                     const timeStr = stats.latestBroadcastAt ? new Date(stats.latestBroadcastAt).toLocaleTimeString('tr-TR') : '';
                     if (broadcastTime) {
@@ -5590,12 +5603,25 @@
                     // Yan Alanlar Ortam Işığı (Ambilight) güncellemesi
                     if (streamPillarAmbientImg && streamPillarAmbientImg.dataset.filename !== data.currentImage) {
                         streamPillarAmbientImg.dataset.filename = data.currentImage;
-                        streamPillarAmbientImg.onerror = () => {
-                            if (streamPillarAmbientImg.src && !streamPillarAmbientImg.src.includes('/images/')) {
-                                streamPillarAmbientImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                        if (isVid) {
+                            streamPillarAmbientImg.dataset.videoCover = data.currentImage;
+                            if (typeof videoCoverCache !== 'undefined' && videoCoverCache.has(data.currentImage)) {
+                                streamPillarAmbientImg.src = videoCoverCache.get(data.currentImage);
+                            } else {
+                                streamPillarAmbientImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                                if (typeof ensureVideoCover === 'function') {
+                                    ensureVideoCover(data.currentImage);
+                                }
                             }
-                        };
-                        streamPillarAmbientImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                        } else {
+                            delete streamPillarAmbientImg.dataset.videoCover;
+                            streamPillarAmbientImg.onerror = () => {
+                                if (streamPillarAmbientImg.src && !streamPillarAmbientImg.src.includes('/images/')) {
+                                    streamPillarAmbientImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
+                                }
+                            };
+                            streamPillarAmbientImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
+                        }
                     }
                     if (streamPillarAmbient) {
                         streamPillarAmbient.classList.add('is-visible');
@@ -5621,6 +5647,10 @@
                     if (streamPillarAmbient) {
                         streamPillarAmbient.classList.remove('is-visible');
                     }
+                }
+
+                if (data.metadata) {
+                    window.galleryMetadata = { ...(window.galleryMetadata || {}), ...data.metadata };
                 }
 
                 document.getElementById('streamSelectedCount').innerText = data.totalSelected || 0;
@@ -5670,18 +5700,41 @@
 
             selectedImages.forEach(fileName => {
                 const isCurrent = fileName === activeImage;
+                const isVid = fileName.toLowerCase().endsWith('.mp4');
                 const card = document.createElement('div');
                 card.className = isCurrent ? 'card stream-card is-active' : 'card stream-card';
                 card.dataset.filename = fileName;
+                card.style.position = 'relative';
                 if (isCurrent) {
                     card.style.borderColor = '#06b6d4';
                     card.style.boxShadow = '0 0 0 2px rgba(6,182,212,0.25)';
                 }
 
+                if (isVid) {
+                    const meta = (window.galleryMetadata && window.galleryMetadata[fileName]) || {};
+                    const durSec = meta.duration ? Math.round(meta.duration) : null;
+                    const durStr = durSec ? `${Math.floor(durSec / 60)}:${(durSec % 60).toString().padStart(2, '0')}` : 'MP4';
+                    const videoBadge = document.createElement('span');
+                    videoBadge.className = 'stream-video-badge';
+                    videoBadge.style.cssText = 'position: absolute; top: 8px; right: 8px; background: rgba(8, 145, 178, 0.9); color: #fff; border: 1px solid rgba(165, 243, 252, 0.45); padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 3; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.35); pointer-events: none;';
+                    videoBadge.innerText = '▶ ' + durStr;
+                    card.appendChild(videoBadge);
+                }
+
                 const img = document.createElement('img');
-                img.src = `/thumbnails/${encodeURIComponent(fileName)}`;
                 img.alt = fileName;
                 img.loading = 'lazy';
+                if (isVid) {
+                    img.dataset.videoCover = fileName;
+                    if (videoCoverCache.has(fileName)) {
+                        img.src = videoCoverCache.get(fileName);
+                    } else {
+                        img.src = `/thumbnails/${encodeURIComponent(fileName)}`;
+                        ensureVideoCover(fileName);
+                    }
+                } else {
+                    img.src = `/thumbnails/${encodeURIComponent(fileName)}`;
+                }
 
                 const body = document.createElement('div');
                 body.className = 'card-body';
@@ -5866,6 +5919,14 @@
                 panel.style.display = 'block';
                 if (carousel) carousel.style.display = 'none';
                 if (wrap) wrap.classList.add('has-carousel-hidden');
+                panel.querySelectorAll('img[data-video-cover]').forEach(img => {
+                    const fn = img.dataset.videoCover;
+                    if (fn && videoCoverCache.has(fn) && img.src !== videoCoverCache.get(fn)) {
+                        img.src = videoCoverCache.get(fn);
+                    } else if (fn && !videoCoverCache.has(fn)) {
+                        ensureVideoCover(fn);
+                    }
+                });
                 setTimeout(() => {
                     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 60);
