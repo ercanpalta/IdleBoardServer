@@ -2359,7 +2359,7 @@
                         </div>
 
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
-                        <video id="streamCurrentVideo" class="stream-large-img" style="display: none; background: transparent; z-index: 2;" autoplay muted loop playsinline></video>
+                        <video id="streamCurrentVideo" class="stream-large-img" style="display: none; background: transparent; z-index: 2;" autoplay muted playsinline></video>
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
                             <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
                         </div>
@@ -5412,6 +5412,7 @@
             const timeCurrent = document.getElementById('streamTimeCurrent');
             const timeTotal = document.getElementById('streamTimeTotal');
             const timeSep = timeDisplay ? timeDisplay.querySelector('.stream-time-sep') : null;
+            const streamVideo = document.getElementById('streamCurrentVideo');
 
             if (!progressBar || !timeDisplay || !timeCurrent || !timeTotal) return;
 
@@ -5425,8 +5426,12 @@
 
             timeDisplay.style.display = 'inline-flex';
 
-            // Tek görsel varsa (döngü yapılmaz)
-            if (streamCountdownTotalSelected <= 1) {
+            const activeFileName = (currentStreamData && currentStreamData.currentImage) ||
+                (streamVideo && streamVideo.dataset.filename) || '';
+            const isVid = Boolean(activeFileName && activeFileName.toLowerCase().endsWith('.mp4'));
+
+            // Tek görsel varsa ve video değilse (sabit görselde geri sayım yapılmaz)
+            if (streamCountdownTotalSelected <= 1 && !isVid) {
                 timeDisplay.className = 'stream-player-time';
                 timeCurrent.innerText = 'Tek Görsel';
                 if (timeSep) timeSep.style.display = 'none';
@@ -5436,12 +5441,6 @@
                 return;
             }
 
-            if (timeSep) timeSep.style.display = 'inline';
-            timeTotal.style.display = 'inline';
-
-            const totalSec = Math.max(1, Math.round(streamCountdownDurationMs / 1000));
-            timeTotal.innerText = formatPlayerTime(totalSec);
-
             // Duraklatılmışsa
             if (streamCountdownIsPaused) {
                 timeDisplay.className = 'stream-player-time is-paused';
@@ -5450,6 +5449,9 @@
                 timeCurrent.innerText = 'Durduruldu';
                 if (timeSep) timeSep.style.display = 'none';
                 timeTotal.style.display = 'none';
+                if (streamVideo && !streamVideo.paused) {
+                    streamVideo.pause();
+                }
                 return;
             }
 
@@ -5458,34 +5460,153 @@
                 timeDisplay.className = 'stream-player-time is-pinned';
                 progressBar.classList.remove('is-paused');
                 progressBar.classList.add('is-pinned');
-                timeCurrent.innerText = 'Sabitlendi';
-                if (timeSep) timeSep.style.display = 'none';
-                timeTotal.style.display = 'none';
-                return;
+
+                if (isVid) {
+                    let videoTotalSec = 0;
+                    if (streamVideo && Number.isFinite(streamVideo.duration) && streamVideo.duration > 0) {
+                        videoTotalSec = streamVideo.duration;
+                    } else if (window.galleryMetadata && window.galleryMetadata[activeFileName] && Number(window.galleryMetadata[activeFileName].duration) > 0) {
+                        videoTotalSec = Number(window.galleryMetadata[activeFileName].duration);
+                    } else if (currentStreamData && Number(currentStreamData.activeDuration || currentStreamData.mediaDuration) > 0) {
+                        videoTotalSec = Number(currentStreamData.activeDuration || currentStreamData.mediaDuration);
+                    } else {
+                        videoTotalSec = Math.max(1, Math.round(streamCountdownDurationMs / 1000));
+                    }
+                    const totalSec = Math.max(1, Math.round(videoTotalSec));
+
+                    // Sabitlenmiş video döngü halinde oynatılmaya devam eder
+                    if (streamVideo) {
+                        streamVideo.loop = true;
+                        if (streamVideo.paused && streamVideo.style.display !== 'none' && !streamCountdownIsPaused) {
+                            streamVideo.play().catch(() => {});
+                        }
+                    }
+
+                    let videoElapsedSec = 0;
+                    if (streamVideo && Number.isFinite(streamVideo.currentTime) && streamVideo.currentTime >= 0) {
+                        videoElapsedSec = streamVideo.currentTime;
+                    }
+                    if (totalSec > 0) {
+                        videoElapsedSec = videoElapsedSec % totalSec;
+                    }
+
+                    if (timeSep) timeSep.style.display = 'inline';
+                    timeTotal.style.display = 'inline';
+                    timeTotal.innerText = formatPlayerTime(totalSec);
+
+                    const progressRatio = Math.min(1, Math.max(0, videoElapsedSec / totalSec));
+                    progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
+
+                    if (streamTimeMode === 'remaining') {
+                        const remainingSec = Math.max(0, Math.ceil(totalSec - videoElapsedSec));
+                        timeCurrent.innerText = `-${formatPlayerTime(remainingSec)}`;
+                    } else {
+                        const elapsedDisplay = Math.min(totalSec, Math.floor(videoElapsedSec));
+                        timeCurrent.innerText = formatPlayerTime(elapsedDisplay);
+                    }
+                    return;
+                } else {
+                    timeCurrent.innerText = 'Sabitlendi';
+                    if (timeSep) timeSep.style.display = 'none';
+                    timeTotal.style.display = 'none';
+                    return;
+                }
             }
 
             // Normal canlı akış: süre ve ilerleme
             timeDisplay.className = 'stream-player-time';
             progressBar.classList.remove('is-paused', 'is-pinned');
+            if (timeSep) timeSep.style.display = 'inline';
+            timeTotal.style.display = 'inline';
 
-            const now = Date.now();
-            if (!streamCountdownStart) {
-                streamCountdownStart = now;
-            }
+            if (isVid) {
+                // Video yayında: video oynatıcısının gerçek süresine ve karesine senkronize ilerleme
+                let videoTotalSec = 0;
+                if (streamVideo && Number.isFinite(streamVideo.duration) && streamVideo.duration > 0) {
+                    videoTotalSec = streamVideo.duration;
+                } else if (window.galleryMetadata && window.galleryMetadata[activeFileName] && Number(window.galleryMetadata[activeFileName].duration) > 0) {
+                    videoTotalSec = Number(window.galleryMetadata[activeFileName].duration);
+                } else if (currentStreamData && Number(currentStreamData.activeDuration || currentStreamData.mediaDuration) > 0) {
+                    videoTotalSec = Number(currentStreamData.activeDuration || currentStreamData.mediaDuration);
+                } else if (streamCountdownDurationMs > 0) {
+                    videoTotalSec = streamCountdownDurationMs / 1000;
+                } else {
+                    videoTotalSec = 30;
+                }
+                const totalSec = Math.max(1, Math.round(videoTotalSec));
 
-            const totalMs = streamCountdownDurationMs > 0 ? streamCountdownDurationMs : 10000;
-            const elapsedMs = Math.max(0, now - streamCountdownStart);
-            const remainingMs = Math.max(0, totalMs - elapsedMs);
-            const progressRatio = Math.min(1, elapsedMs / totalMs);
-            const elapsedSec = Math.min(totalSec, Math.floor(elapsedMs / 1000));
-            const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+                const now = Date.now();
+                const serverElapsedSec = streamCountdownStart ? Math.max(0, (now - streamCountdownStart) / 1000) : 0;
+                const isSingleMedia = streamCountdownTotalSelected <= 1;
 
-            progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
+                if (streamVideo) {
+                    streamVideo.loop = isSingleMedia;
+                }
 
-            if (streamTimeMode === 'remaining') {
-                timeCurrent.innerText = `-${formatPlayerTime(remainingSec)}`;
+                // Oynatıcı duraklatılmamışsa başlat (video bittiyse ve döngü yoksa tekrar tetikleme)
+                if (streamVideo && streamVideo.paused && !streamCountdownIsPaused && streamVideo.style.display !== 'none' && !streamVideo.ended) {
+                    if (serverElapsedSec < totalSec || isSingleMedia) {
+                        streamVideo.play().catch(() => {});
+                    }
+                }
+
+                let videoElapsedSec = 0;
+                const isVideoReady = streamVideo && streamVideo.readyState >= 1 && Number.isFinite(streamVideo.currentTime);
+
+                if (isVideoReady) {
+                    // Video oynatılırken yayın akışı ile video karesi arasındaki kaymayı (drift > 0.35s) dinamik senkronize et
+                    if (!streamVideo.seeking && !streamVideo.paused && !streamCountdownIsPaused && !isSingleMedia && serverElapsedSec < totalSec) {
+                        if (Math.abs(streamVideo.currentTime - serverElapsedSec) > 0.35) {
+                            streamVideo.currentTime = serverElapsedSec;
+                        }
+                    }
+                    videoElapsedSec = streamVideo.currentTime;
+                } else {
+                    // Video yüklenirken veya ilk kare hazırlanırken yayın saatiyle ilerle
+                    videoElapsedSec = serverElapsedSec;
+                }
+
+                if (!isSingleMedia) {
+                    videoElapsedSec = Math.min(totalSec, Math.max(0, videoElapsedSec));
+                } else if (totalSec > 0) {
+                    videoElapsedSec = videoElapsedSec % totalSec;
+                }
+
+                timeTotal.innerText = formatPlayerTime(totalSec);
+
+                const progressRatio = Math.min(1, Math.max(0, videoElapsedSec / totalSec));
+                progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
+
+                if (streamTimeMode === 'remaining') {
+                    const remainingSec = Math.max(0, Math.ceil(totalSec - videoElapsedSec));
+                    timeCurrent.innerText = `-${formatPlayerTime(remainingSec)}`;
+                } else {
+                    const elapsedDisplay = Math.min(totalSec, Math.floor(videoElapsedSec));
+                    timeCurrent.innerText = formatPlayerTime(elapsedDisplay);
+                }
             } else {
-                timeCurrent.innerText = formatPlayerTime(elapsedSec);
+                // Statik görsel yayında: slayt geçiş süresine göre geri sayım
+                const now = Date.now();
+                if (!streamCountdownStart) {
+                    streamCountdownStart = now;
+                }
+
+                const totalMs = streamCountdownDurationMs > 0 ? streamCountdownDurationMs : 10000;
+                const totalSec = Math.max(1, Math.round(totalMs / 1000));
+                const elapsedMs = Math.max(0, now - streamCountdownStart);
+                const remainingMs = Math.max(0, totalMs - elapsedMs);
+                const progressRatio = Math.min(1, elapsedMs / totalMs);
+                const elapsedSec = Math.min(totalSec, Math.floor(elapsedMs / 1000));
+                const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+
+                timeTotal.innerText = formatPlayerTime(totalSec);
+                progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
+
+                if (streamTimeMode === 'remaining') {
+                    timeCurrent.innerText = `-${formatPlayerTime(remainingSec)}`;
+                } else {
+                    timeCurrent.innerText = formatPlayerTime(elapsedSec);
+                }
             }
         }
 
@@ -5498,8 +5619,24 @@
                 const data = await res.json();
                 currentStreamData = data;
 
-                // Canlı Geçiş Geri Sayımı Durumu
-                streamCountdownDurationMs = (Number(data.slideInterval) || 10) * 1000;
+                // Canlı Geçiş Geri Sayımı Durumu (Video süresi veya slayt süresi)
+                const activeImgName = data.currentImage || '';
+                const isStreamVid = Boolean(activeImgName && activeImgName.toLowerCase().endsWith('.mp4'));
+                let activeMediaDurationSec = 0;
+                if (isStreamVid) {
+                    if (data.activeDuration || data.mediaDuration) {
+                        activeMediaDurationSec = Number(data.activeDuration || data.mediaDuration);
+                    } else if (data.metadata && data.metadata[activeImgName] && Number(data.metadata[activeImgName].duration) > 0) {
+                        activeMediaDurationSec = Number(data.metadata[activeImgName].duration);
+                    } else if (window.galleryMetadata && window.galleryMetadata[activeImgName] && Number(window.galleryMetadata[activeImgName].duration) > 0) {
+                        activeMediaDurationSec = Number(window.galleryMetadata[activeImgName].duration);
+                    } else {
+                        activeMediaDurationSec = 30;
+                    }
+                } else {
+                    activeMediaDurationSec = Number(data.slideInterval) || 10;
+                }
+                streamCountdownDurationMs = activeMediaDurationSec * 1000;
                 streamCountdownIsPaused = Boolean(data.isPaused);
                 streamCountdownIsPinned = Boolean(data.isPinned);
                 streamCountdownTotalSelected = Number(data.totalSelected) || 0;
@@ -5573,10 +5710,48 @@
                             streamCurrentImg.style.display = 'none';
                         }
                         if (streamVideo) {
+                            const isPinnedOrSingle = Boolean(data.isPinned || (data.totalSelected <= 1));
+                            streamVideo.loop = isPinnedOrSingle;
+                            streamVideo.onended = () => {
+                                if (!streamVideo.loop) {
+                                    streamVideo.pause();
+                                    updateStreamCountdownTick();
+                                }
+                            };
+
+                            const targetElapsed = (data.latestBroadcastAt && !data.isPaused)
+                                ? Math.max(0, (Date.now() - Number(data.latestBroadcastAt)) / 1000)
+                                : 0;
+
                             if (streamVideo.dataset.filename !== data.currentImage) {
                                 streamVideo.dataset.filename = data.currentImage;
                                 streamVideo.src = `/images/${encodeURIComponent(data.currentImage)}`;
-                                streamVideo.play().catch(() => {});
+                                streamVideo.ontimeupdate = updateStreamCountdownTick;
+                                streamVideo.onloadedmetadata = () => {
+                                    if (targetElapsed > 0.05 && streamVideo.duration) {
+                                        const seekPos = streamVideo.loop ? (targetElapsed % streamVideo.duration) : Math.min(streamVideo.duration, targetElapsed);
+                                        streamVideo.currentTime = seekPos;
+                                    }
+                                    updateStreamCountdownTick();
+                                };
+                                if (!data.isPaused) {
+                                    streamVideo.play().catch(() => {});
+                                }
+                            } else {
+                                streamVideo.ontimeupdate = updateStreamCountdownTick;
+                                if (data.isPaused) {
+                                    streamVideo.pause();
+                                } else {
+                                    if (streamVideo.paused && !streamVideo.ended) {
+                                        streamVideo.play().catch(() => {});
+                                    }
+                                    if (targetElapsed > 0 && streamVideo.duration > 0 && !streamVideo.seeking) {
+                                        const expectedCurrent = streamVideo.loop ? (targetElapsed % streamVideo.duration) : Math.min(streamVideo.duration, targetElapsed);
+                                        if (Math.abs(streamVideo.currentTime - expectedCurrent) > 0.35) {
+                                            streamVideo.currentTime = expectedCurrent;
+                                        }
+                                    }
+                                }
                             }
                             streamVideo.style.display = 'block';
                         }
@@ -5585,6 +5760,8 @@
                             streamVideo.pause();
                             streamVideo.style.display = 'none';
                             streamVideo.dataset.filename = '';
+                            streamVideo.ontimeupdate = null;
+                            streamVideo.onloadedmetadata = null;
                         }
                         if (streamCurrentImg) {
                             if (streamCurrentImg.dataset.filename !== data.currentImage) {
@@ -6234,7 +6411,9 @@
                 sseSource.close();
             }
 
-            sseSource = new EventSource('/events?source=admin');
+            const adminTok = localStorage.getItem(TOKEN_KEY);
+            const sseUrl = adminTok ? `/events?source=admin&token=${encodeURIComponent(adminTok)}` : '/events?source=admin';
+            sseSource = new EventSource(sseUrl);
 
             sseSource.onmessage = (event) => {
                 try {
@@ -6265,13 +6444,28 @@
                         if (typeof data.isPinned === 'boolean') {
                             streamCountdownIsPinned = data.isPinned;
                         }
-                        if (data.slideInterval) {
+                        if (typeof data.totalSelected === 'number') {
+                            streamCountdownTotalSelected = data.totalSelected;
+                        }
+                        const curImg = data.currentImage || (currentStreamData && currentStreamData.currentImage) || '';
+                        const isCurVid = Boolean(curImg && curImg.toLowerCase().endsWith('.mp4'));
+                        if (isCurVid) {
+                            const vDur = Number(data.activeDuration || data.mediaDuration) ||
+                                (window.galleryMetadata && window.galleryMetadata[curImg] && Number(window.galleryMetadata[curImg].duration)) ||
+                                30;
+                            streamCountdownDurationMs = vDur * 1000;
+                        } else if (data.slideInterval) {
                             streamCountdownDurationMs = Number(data.slideInterval) * 1000;
                         }
+                        if (!currentStreamData) currentStreamData = {};
+                        if (data.currentImage) currentStreamData.currentImage = data.currentImage;
+                        currentStreamData.isVideo = isCurVid;
+                        currentStreamData.latestBroadcastAt = streamCountdownStart;
+                        if (typeof data.isPaused === 'boolean') currentStreamData.isPaused = data.isPaused;
+                        if (typeof data.isPinned === 'boolean') currentStreamData.isPinned = data.isPinned;
+                        if (typeof data.totalSelected === 'number') currentStreamData.totalSelected = data.totalSelected;
                         if (data.slideshowOrder) {
-                            if (currentStreamData) {
-                                currentStreamData.slideshowOrder = data.slideshowOrder;
-                            }
+                            currentStreamData.slideshowOrder = data.slideshowOrder;
                             updateStreamShuffleButton(data.slideshowOrder);
                         }
                         updateStreamCountdownTick();
@@ -6338,11 +6532,71 @@
                             loadStreamStatus();
                         }
                     } else if (data.tip === 'image') {
-                        if (data.broadcastAt) {
-                            streamCountdownStart = Number(data.broadcastAt);
-                        } else {
-                            streamCountdownStart = Date.now();
+                        const isImageVid = data.mediaType === 'video' || (data.dosyaAdi && data.dosyaAdi.toLowerCase().endsWith('.mp4'));
+                        const vDur = isImageVid
+                            ? (Number(data.videoDuration || data.slideInterval) ||
+                               (window.galleryMetadata && window.galleryMetadata[data.dosyaAdi] && Number(window.galleryMetadata[data.dosyaAdi].duration)) || 30)
+                            : (Number(data.slideInterval) || 10);
+
+                        streamCountdownStart = data.broadcastAt ? Number(data.broadcastAt) : Date.now();
+                        streamCountdownDurationMs = vDur * 1000;
+                        streamCountdownHasActiveImage = true;
+
+                        if (!currentStreamData) currentStreamData = {};
+                        currentStreamData.currentImage = data.dosyaAdi;
+                        currentStreamData.isVideo = isImageVid;
+                        currentStreamData.activeDuration = vDur;
+                        currentStreamData.mediaDuration = vDur;
+                        currentStreamData.latestBroadcastAt = streamCountdownStart;
+                        if (Array.isArray(data.activeImages)) {
+                            currentStreamData.selectedImages = data.activeImages;
+                            currentStreamData.totalSelected = data.activeImages.length;
+                            streamCountdownTotalSelected = data.activeImages.length;
                         }
+
+                        // Önizleme ekranı aktifse yeni medyayı beklemeden derhal göster
+                        const streamSec = document.getElementById('streamSection');
+                        if (streamSec && streamSec.style.display === 'block') {
+                            const streamVideo = document.getElementById('streamCurrentVideo');
+                            const streamCurrentImg = document.getElementById('streamCurrentImg');
+                            const streamPlaceholder = document.getElementById('streamPlaceholderThumb');
+                            if (streamPlaceholder) streamPlaceholder.style.display = 'none';
+
+                            if (isImageVid) {
+                                if (streamCurrentImg) streamCurrentImg.style.display = 'none';
+                                if (streamVideo) {
+                                    if (streamVideo.dataset.filename !== data.dosyaAdi) {
+                                        streamVideo.dataset.filename = data.dosyaAdi;
+                                        streamVideo.src = `/images/${encodeURIComponent(data.dosyaAdi)}`;
+                                        streamVideo.currentTime = 0;
+                                        streamVideo.ontimeupdate = updateStreamCountdownTick;
+                                        streamVideo.onloadedmetadata = () => {
+                                            const nowElapsed = Math.max(0, (Date.now() - streamCountdownStart) / 1000);
+                                            if (nowElapsed > 0.05 && streamVideo.duration && nowElapsed < streamVideo.duration) {
+                                                streamVideo.currentTime = nowElapsed;
+                                            }
+                                            updateStreamCountdownTick();
+                                        };
+                                        if (!streamCountdownIsPaused) {
+                                            streamVideo.play().catch(() => {});
+                                        }
+                                    }
+                                    streamVideo.style.display = 'block';
+                                }
+                            } else {
+                                if (streamVideo) {
+                                    streamVideo.pause();
+                                    streamVideo.style.display = 'none';
+                                    streamVideo.dataset.filename = '';
+                                }
+                                if (streamCurrentImg) {
+                                    streamCurrentImg.dataset.filename = data.dosyaAdi;
+                                    streamCurrentImg.src = `/images/${encodeURIComponent(data.dosyaAdi)}`;
+                                    streamCurrentImg.style.display = 'block';
+                                }
+                            }
+                        }
+
                         updateStreamCountdownTick();
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {

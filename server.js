@@ -323,6 +323,9 @@ function getRequestAuthToken(req) {
     if (req.headers['x-admin-token']) {
         return req.headers['x-admin-token'];
     }
+    if (req.query && req.query.token) {
+        return req.query.token;
+    }
     return null;
 }
 
@@ -1181,8 +1184,67 @@ loadServerSettings();
 loadActivityLog();
 ensureThumbnails();
 
+// Sunucu ilk açıldığında seçili görseller varsa yayını anında başlat
+if (selectedImageFiles.size > 0 && !isPlaybackPaused && !isImagePinned) {
+    slideshowTick();
+}
+
+function sendCurrentBroadcastToClient(client) {
+    if (isPlaybackPaused || isImagePinned) return;
+    const currentFile = lastBroadcast.fileName || (selectedImageFiles.size > 0 ? [...selectedImageFiles][0] : null);
+    if (!currentFile) return;
+
+    const filePath = path.join(IMAGES_DIR, currentFile);
+    if (!fs.existsSync(filePath)) return;
+
+    const isVid = isVideoFile(currentFile);
+    const mediaDuration = getMediaDuration(currentFile);
+
+    if (isVid) {
+        const payload = {
+            tip: 'image',
+            mediaType: 'video',
+            dosyaAdi: currentFile,
+            mediaUrl: '/images/' + encodeURIComponent(currentFile),
+            videoDuration: mediaDuration,
+            zaman: new Date().toLocaleTimeString(),
+            slideInterval: mediaDuration,
+                        imageFit: getImageFitMode(),
+            showInfoBar: getShowInfoBar(),
+            transitionEffect: getTransitionEffect(),
+            slideshowOrder: getSlideshowOrder(),
+            showWatermark: getShowWatermark(),
+            activeImages: getActiveSelectedImages(),
+            broadcastAt: lastBroadcast.time || Date.now(),
+            resimData: null
+        };
+        try { client.res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch (e) {}
+    } else {
+        fs.readFile(filePath, (err, data) => {
+            if (err) return;
+            const base64Image = data.toString('base64');
+            const payload = {
+                tip: 'image',
+                mediaType: 'image',
+                dosyaAdi: currentFile,
+                zaman: new Date().toLocaleTimeString(),
+                slideInterval: getSlideIntervalSec(),
+                                imageFit: getImageFitMode(),
+                showInfoBar: getShowInfoBar(),
+                transitionEffect: getTransitionEffect(),
+                slideshowOrder: getSlideshowOrder(),
+                showWatermark: getShowWatermark(),
+                activeImages: getActiveSelectedImages(),
+                broadcastAt: lastBroadcast.time || Date.now(),
+                resimData: base64Image
+            };
+            try { client.res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch (e) {}
+        });
+    }
+}
+
 function slideshowTick() {
-    if (isPlaybackPaused || isImagePinned || clients.length === 0 || slideshowTickInFlight) return;
+    if (isPlaybackPaused || isImagePinned || slideshowTickInFlight) return;
 
     slideshowTickInFlight = true;
     fs.readdir(IMAGES_DIR, (err, files) => {
@@ -1202,11 +1264,14 @@ function slideshowTick() {
             selectedFile = imageFiles[currentImageIndex];
             currentImageIndex = (currentImageIndex + 1) % imageFiles.length;
         } else {
-            if (currentImageIndex >= imageFiles.length) {
-                currentImageIndex = 0;
+            let nextIndex = 0;
+            if (lastBroadcast.fileName && imageFiles.includes(lastBroadcast.fileName)) {
+                nextIndex = (imageFiles.indexOf(lastBroadcast.fileName) + 1) % imageFiles.length;
+            } else if (currentImageIndex >= 0 && currentImageIndex < imageFiles.length) {
+                nextIndex = currentImageIndex;
             }
-            selectedFile = imageFiles[currentImageIndex];
-            currentImageIndex++;
+            currentImageIndex = (nextIndex + 1) % imageFiles.length;
+            selectedFile = imageFiles[nextIndex];
         }
 
         broadcastImage(selectedFile);
@@ -1378,8 +1443,7 @@ app.get('/events', (req, res) => {
         tip: 'init',
         mesaj: 'Bağlantı Başarılı',
         slideInterval: getSlideIntervalSec(),
-        kioskIdleTimeout: getKioskIdleTimeoutSec(),
-        imageFit: getImageFitMode(),
+                imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
         transitionEffect: getTransitionEffect(),
         slideshowOrder: getSlideshowOrder(),
@@ -1395,8 +1459,13 @@ app.get('/events', (req, res) => {
             tip: 'stream_control',
             action: 'stop'
         })}\n\n`);
-    } else if (!isPlaybackPaused && !isImagePinned && clients.filter(c => !c.isAdmin).length === 1) {
-        slideshowTick();
+    } else if (!isPlaybackPaused && !isImagePinned) {
+        // Yeni bağlanan istemciye anlık yayındaki aktif görseli hemen ulaştır
+        sendCurrentBroadcastToClient(newClient);
+        // Slayt zamanlayıcısı henüz devrede değilse başlat
+        if (!slideshowTimer) {
+            restartSlideshowTimer();
+        }
     }
     if (!isAdmin && getActiveSelectedImages().length === 0) {
         res.write(`data: ${JSON.stringify({
@@ -1453,8 +1522,7 @@ function broadcastImage(fileName) {
             videoDuration: mediaDuration,
             zaman: new Date().toLocaleTimeString(),
             slideInterval: mediaDuration,
-            kioskIdleTimeout: getKioskIdleTimeoutSec(),
-            imageFit: getImageFitMode(),
+                        imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
             slideshowOrder: getSlideshowOrder(),
@@ -1480,8 +1548,7 @@ function broadcastImage(fileName) {
             dosyaAdi: fileName,
             zaman: new Date().toLocaleTimeString(),
             slideInterval: getSlideIntervalSec(),
-            kioskIdleTimeout: getKioskIdleTimeoutSec(),
-            imageFit: getImageFitMode(),
+                        imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
             slideshowOrder: getSlideshowOrder(),
@@ -1867,8 +1934,7 @@ app.get('/api/dashboard-stats', requireAuth, (req, res) => {
             imageCount: images.length,
             selectedImageCount: selectedImages.length,
             slideInterval: getSlideIntervalSec(),
-            kioskIdleTimeout: getKioskIdleTimeoutSec(),
-            imageFit: getImageFitMode(),
+                        imageFit: getImageFitMode(),
             showInfoBar: getShowInfoBar(),
             transitionEffect: getTransitionEffect(),
             slideshowOrder: getSlideshowOrder(),
@@ -2090,6 +2156,9 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
             ? lastBroadcast.fileName
             : (selectedList.length > 0 ? selectedList[0] : null);
 
+        const isVid = activeImage ? isVideoFile(activeImage) : false;
+        const activeDuration = activeImage ? getMediaDuration(activeImage) : getSlideIntervalSec();
+
         res.json({
             isPaused: isPlaybackPaused,
             isPinned: isImagePinned,
@@ -2097,6 +2166,9 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
             totalSelected: selectedList.length,
             selectedImages: selectedList,
             slideInterval: getSlideIntervalSec(),
+            activeDuration: activeDuration,
+            mediaDuration: activeDuration,
+            isVideo: isVid,
             slideshowOrder: getSlideshowOrder(),
             connectedClients: getConnectedClientCount(),
             latestBroadcastAt: lastBroadcast.time || null,
@@ -2105,19 +2177,32 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
     });
 });
 
+function broadcastStreamStatus(extra = {}) {
+    const activeFile = extra.currentImage !== undefined ? extra.currentImage : lastBroadcast.fileName;
+    const isVid = activeFile ? isVideoFile(activeFile) : false;
+    const activeDur = activeFile ? getMediaDuration(activeFile) : getSlideIntervalSec();
+
+    broadcastToAdmins({
+        tip: 'stream_status',
+        currentImage: activeFile,
+        activeDuration: activeDur,
+        mediaDuration: activeDur,
+        isVideo: isVid,
+        slideInterval: getSlideIntervalSec(),
+        isPinned: isImagePinned,
+        isPaused: isPlaybackPaused,
+        latestBroadcastAt: lastBroadcast.time || Date.now(),
+        ...extra
+    });
+}
+
 app.post('/api/stream/pin', requireAuth, (req, res) => {
     isImagePinned = true;
     if (slideshowTimer) {
         clearInterval(slideshowTimer);
         slideshowTimer = null;
     }
-    broadcastToAdmins({
-        tip: 'stream_status',
-        isPinned: true,
-        isPaused: isPlaybackPaused,
-        currentImage: lastBroadcast.fileName,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
-    });
+    broadcastStreamStatus({ isPinned: true });
     logActivity('stream', 'Görsel sabitlendi', `"${lastBroadcast.fileName || 'Görsel'}" ekranda sabit tutuluyor`);
     console.log(`[📌 Yayın] Görsel ekranda sabitlendi: ${lastBroadcast.fileName}`);
     res.json({ success: true, isPinned: true });
@@ -2127,13 +2212,7 @@ app.post('/api/stream/unpin', requireAuth, (req, res) => {
     isImagePinned = false;
     lastBroadcast.time = Date.now();
     restartSlideshowTimer();
-    broadcastToAdmins({
-        tip: 'stream_status',
-        isPinned: false,
-        isPaused: isPlaybackPaused,
-        currentImage: lastBroadcast.fileName,
-        latestBroadcastAt: lastBroadcast.time
-    });
+    broadcastStreamStatus({ isPinned: false });
     logActivity('stream', 'Sabitleme kaldırıldı', 'Slayt döngüsü devam ediyor');
     console.log('[▶️ Yayın] Görsel sabitlemesi kaldırıldı, slayt akışı devam ediyor.');
     res.json({ success: true, isPinned: false });
@@ -2154,13 +2233,7 @@ app.post('/api/stream/toggle-pin', requireAuth, (req, res) => {
         logActivity('stream', 'Sabitleme kaldırıldı', 'Slayt döngüsü devam ediyor');
         console.log('[▶️ Yayın] Görsel sabitlemesi kaldırıldı, slayt akışı devam ediyor.');
     }
-    broadcastToAdmins({
-        tip: 'stream_status',
-        isPinned: isImagePinned,
-        isPaused: isPlaybackPaused,
-        currentImage: lastBroadcast.fileName,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
-    });
+    broadcastStreamStatus({ isPinned: isImagePinned });
     res.json({ success: true, isPinned: isImagePinned });
 });
 
@@ -2174,13 +2247,7 @@ app.post('/api/stream/pause', requireAuth, (req, res) => {
         tip: 'stream_control',
         action: 'stop'
     });
-    broadcastToAdmins({
-        tip: 'stream_status',
-        isPaused: true,
-        isPinned: isImagePinned,
-        currentImage: lastBroadcast.fileName,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
-    });
+    broadcastStreamStatus({ isPaused: true });
     logActivity('stream', 'Yayın duraklatıldı', 'Ekranlar bekleme durumuna alındı');
     console.log('[⏸️ Yayın] Yayın durduruldu, istemciler sistem tepsisine alındı.');
     res.json({ success: true, isPaused: true });
@@ -2195,13 +2262,7 @@ app.post('/api/stream/resume', requireAuth, (req, res) => {
         tip: 'stream_control',
         action: 'start'
     });
-    broadcastToAdmins({
-        tip: 'stream_status',
-        isPaused: false,
-        isPinned: isImagePinned,
-        currentImage: lastBroadcast.fileName,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
-    });
+    broadcastStreamStatus({ isPaused: false });
     logActivity('stream', 'Yayın yeniden başlatıldı', 'Canlı görsel akışı devrede');
     if (!isImagePinned) {
         slideshowTick();
@@ -2215,13 +2276,7 @@ app.post('/api/stream/next', requireAuth, (req, res) => {
     if (!nextFile) {
         return res.status(400).json({ success: false, error: 'Yayında gösterilecek görsel bulunamadı.' });
     }
-    broadcastToAdmins({
-        tip: 'stream_status',
-        currentImage: nextFile,
-        isPaused: isPlaybackPaused,
-        isPinned: isImagePinned,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
-    });
+    broadcastStreamStatus({ currentImage: nextFile });
     res.json({ success: true, currentImage: nextFile });
 });
 
@@ -2230,13 +2285,7 @@ app.post('/api/stream/prev', requireAuth, (req, res) => {
     if (!prevFile) {
         return res.status(400).json({ success: false, error: 'Yayında gösterilecek görsel bulunamadı.' });
     }
-    broadcastToAdmins({
-        tip: 'stream_status',
-        currentImage: prevFile,
-        isPaused: isPlaybackPaused,
-        isPinned: isImagePinned,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
-    });
+    broadcastStreamStatus({ currentImage: prevFile });
     res.json({ success: true, currentImage: prevFile });
 });
 
@@ -2270,13 +2319,9 @@ app.post('/api/stream/remove/:name', requireAuth, (req, res) => {
         action: 'selection_change',
         selectedImages: updated
     });
-    broadcastToAdmins({
-        tip: 'stream_status',
+    broadcastStreamStatus({
         selectedImages: updated,
-        currentImage: lastBroadcast.fileName,
-        isPaused: isPlaybackPaused,
-        isPinned: isImagePinned,
-        latestBroadcastAt: lastBroadcast.time || Date.now()
+        currentImage: lastBroadcast.fileName
     });
     broadcastDashboardUpdate();
 
@@ -2288,8 +2333,7 @@ app.get('/api/settings', requireAuth, (req, res) => {
     const net = getNetworkAddresses(req);
     res.json({
         interval: getSlideIntervalSec(),
-        kioskIdleTimeout: getKioskIdleTimeoutSec(),
-        imageFit: getImageFitMode(),
+                imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
         transitionEffect: getTransitionEffect(),
         slideshowOrder: getSlideshowOrder(),
