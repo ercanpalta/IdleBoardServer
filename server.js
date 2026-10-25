@@ -192,6 +192,21 @@ app.get('/thumbnails/:name', async (req, res) => {
     }
 
     if (isVideoFile(fileName)) {
+        // Gerçek video kapak görseli varsa JPEG olarak döndür
+        const coverCandidates = [
+            path.join(THUMBNAILS_DIR, fileName + '.jpg'),
+            path.join(THUMBNAILS_DIR, fileName.replace(/\.mp4$/i, '.jpg')),
+            path.join(THUMBNAILS_DIR, fileName)
+        ];
+        for (const candidate of coverCandidates) {
+            if (fs.existsSync(candidate) && fs.statSync(candidate).size > 0) {
+                res.setHeader('Content-Type', 'image/jpeg');
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+                return res.sendFile(candidate);
+            }
+        }
+
+        // Kapak görseli henüz oluşturulmadıysa SVG şablonuna düş
         const meta = mediaMetadata[fileName];
         const durSec = meta && meta.duration ? Math.round(meta.duration) : null;
         const durText = durSec ? `${Math.floor(durSec / 60)}:${(durSec % 60).toString().padStart(2, '0')}` : 'MP4';
@@ -209,7 +224,7 @@ app.get('/thumbnails/:name', async (req, res) => {
   <text x="160" y="145" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">▶ ${durText}</text>
 </svg>`.trim();
         res.setHeader('Content-Type', 'image/svg+xml');
-        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.setHeader('Cache-Control', 'public, max-age=10');
         return res.send(svg);
     }
 
@@ -2005,6 +2020,29 @@ app.post('/api/upload', requireAuth, (req, res) => {
     });
 });
 
+// Video Kapak Görseli (Thumbnail / Poster) Kaydetme API'si
+app.post('/api/media/cover/:name', requireAuth, express.raw({ type: ['image/jpeg', 'image/png'], limit: '10mb' }), (req, res) => {
+    const fileName = req.params.name;
+    if (path.basename(fileName) !== fileName || !isVideoFile(fileName)) {
+        return res.status(400).json({ success: false, error: 'Geçersiz video dosyası.' });
+    }
+    const origPath = path.join(IMAGES_DIR, fileName);
+    if (!fs.existsSync(origPath)) {
+        return res.status(404).json({ success: false, error: 'Video dosyası bulunamadı.' });
+    }
+    if (!req.body || req.body.length === 0) {
+        return res.status(400).json({ success: false, error: 'Kapak görsel verisi boş.' });
+    }
+
+    try {
+        const targetPath = path.join(THUMBNAILS_DIR, fileName + '.jpg');
+        fs.writeFileSync(targetPath, req.body);
+        return res.json({ success: true, fileName: fileName + '.jpg' });
+    } catch (e) {
+        return res.status(500).json({ success: false, error: 'Kapak görseli kaydedilemedi.' });
+    }
+});
+
 // 3. Resim Sil
 app.delete('/api/images/:name', requireAuth, (req, res) => {
     if (path.basename(req.params.name) !== req.params.name || !isSupportedImage(req.params.name)) {
@@ -2014,8 +2052,12 @@ app.delete('/api/images/:name', requireAuth, (req, res) => {
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
         const thumbPath = path.join(THUMBNAILS_DIR, req.params.name);
+        const thumbJpg = path.join(THUMBNAILS_DIR, req.params.name + '.jpg');
         if (fs.existsSync(thumbPath)) {
             try { fs.unlinkSync(thumbPath); } catch (e) {}
+        }
+        if (fs.existsSync(thumbJpg)) {
+            try { fs.unlinkSync(thumbJpg); } catch (e) {}
         }
         if (selectedImageFiles.has(req.params.name)) {
             saveSelectedImages([...selectedImageFiles].filter(fileName => fileName !== req.params.name));
