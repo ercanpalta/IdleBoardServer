@@ -19,3 +19,7 @@ selected-images.json*
 server-settings.json*
 activity-log.json*
 thumbnails/
+
+# Installer output
+installer_output/
+installer/tools/*.exe

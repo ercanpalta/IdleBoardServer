@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const dgram = require('dgram');
 const crypto = require('crypto');
 const multer = require('multer');
 const chokidar = require('chokidar');
@@ -603,58 +604,60 @@ function saveMediaMetadata() {
 
 loadMediaMetadata();
 
-// MP4 Duration Parser (Harici kütüphane gerektirmeyen saf JS moov/mvhd atom ayrıştırıcı)
+// MP4 Duration Parser (Harici kütüphane gerektirmeyen, doğrudan atom tabanlı hızlı ve hassas ayrıştırıcı)
 function parseMp4Duration(filePath) {
     let fd = null;
     try {
         const stats = fs.statSync(filePath);
         fd = fs.openSync(filePath, 'r');
+        let offset = 0;
+        const buf = Buffer.alloc(16);
 
-        const readMoov = (buf) => {
-            let offset = 0;
-            while (offset < buf.length - 8) {
-                const size = buf.readUInt32BE(offset);
-                if (size <= 0) break;
-                const type = buf.toString('ascii', offset + 4, offset + 8);
-                if (type === 'moov') {
-                    let moovOffset = offset + 8;
-                    const moovEnd = Math.min(buf.length, offset + size);
-                    while (moovOffset < moovEnd - 8) {
-                        const subSize = buf.readUInt32BE(moovOffset);
-                        if (subSize <= 0) break;
-                        const subType = buf.toString('ascii', moovOffset + 4, moovOffset + 8);
-                        if (subType === 'mvhd') {
-                            const version = buf.readUInt8(moovOffset + 8);
-                            if (version === 0) {
-                                const timescale = buf.readUInt32BE(moovOffset + 20);
-                                const duration = buf.readUInt32BE(moovOffset + 24);
-                                if (timescale > 0) return duration / timescale;
-                            } else if (version === 1) {
-                                const timescale = buf.readUInt32BE(moovOffset + 28);
-                                const duration = Number(buf.readBigUInt64BE(moovOffset + 32));
-                                if (timescale > 0) return duration / timescale;
-                            }
-                        }
-                        moovOffset += subSize;
-                    }
-                }
-                offset += size;
+        while (offset < stats.size - 8) {
+            const bytesRead = fs.readSync(fd, buf, 0, 16, offset);
+            if (bytesRead < 8) break;
+            let size = buf.readUInt32BE(0);
+            const type = buf.toString('ascii', 4, 8);
+            let headerSize = 8;
+
+            if (size === 1) { // 64-bit atom boyutu
+                if (bytesRead < 16) break;
+                size = Number(buf.readBigUInt64BE(8));
+                headerSize = 16;
+            } else if (size === 0) { // Dosya sonuna kadar uzanan atom
+                size = stats.size - offset;
             }
-            return null;
-        };
 
-        const bufferSize = Math.min(stats.size, 4 * 1024 * 1024);
-        const headBuffer = Buffer.alloc(bufferSize);
-        fs.readSync(fd, headBuffer, 0, bufferSize, 0);
-        let duration = readMoov(headBuffer);
-        if (duration) return duration;
+            if (size < headerSize) break;
 
-        if (stats.size > bufferSize) {
-            const tailSize = Math.min(stats.size, 4 * 1024 * 1024);
-            const tailBuffer = Buffer.alloc(tailSize);
-            fs.readSync(fd, tailBuffer, 0, tailSize, stats.size - tailSize);
-            duration = readMoov(tailBuffer);
-            if (duration) return duration;
+            if (type === 'moov') {
+                // moov atomu bulundu, içeriğindeki mvhd başlığını oku
+                const moovBufSize = Math.min(size - headerSize, 10 * 1024 * 1024);
+                const moovBuf = Buffer.alloc(moovBufSize);
+                fs.readSync(fd, moovBuf, 0, moovBufSize, offset + headerSize);
+
+                let subOffset = 0;
+                while (subOffset < moovBuf.length - 8) {
+                    const subSize = moovBuf.readUInt32BE(subOffset);
+                    if (subSize <= 0) break;
+                    const subType = moovBuf.toString('ascii', subOffset + 4, subOffset + 8);
+                    if (subType === 'mvhd') {
+                        const version = moovBuf.readUInt8(subOffset + 8);
+                        if (version === 0) {
+                            const timescale = moovBuf.readUInt32BE(subOffset + 20);
+                            const duration = moovBuf.readUInt32BE(subOffset + 24);
+                            if (timescale > 0) return Math.round((duration / timescale) * 100) / 100;
+                        } else if (version === 1) {
+                            const timescale = moovBuf.readUInt32BE(subOffset + 28);
+                            const duration = Number(moovBuf.readBigUInt64BE(subOffset + 32));
+                            if (timescale > 0) return Math.round((duration / timescale) * 100) / 100;
+                        }
+                    }
+                    subOffset += subSize;
+                }
+                break;
+            }
+            offset += size;
         }
     } catch (e) {
     } finally {
@@ -664,6 +667,55 @@ function parseMp4Duration(filePath) {
     }
     return null;
 }
+
+// Medya Metadata Kendini Onarma ve Disk Eşitleme
+function syncMediaMetadataWithDisk() {
+    let changed = false;
+    try {
+        if (!fs.existsSync(IMAGES_DIR)) return;
+        const files = fs.readdirSync(IMAGES_DIR);
+        const diskVideoFiles = new Set(files.filter(f => isVideoFile(f)));
+
+        // 1. Yetim (diskte artık bulunmayan) kayıtları temizle
+        for (const f of Object.keys(mediaMetadata)) {
+            if (!diskVideoFiles.has(f)) {
+                delete mediaMetadata[f];
+                changed = true;
+            }
+        }
+
+        // 2. Diskteki videoların sürelerini doğrula ve eksik/hatalı olanları onar
+        for (const f of diskVideoFiles) {
+            const fullPath = path.join(IMAGES_DIR, f);
+            const currentMeta = mediaMetadata[f];
+            const currentDur = currentMeta ? currentMeta.duration : null;
+
+            // Süre yoksa veya tam 30 ise (eski varsayılan değer şüphesi) tekrar ayrıştır
+            if (!currentDur || currentDur <= 0 || currentDur === 30) {
+                const parsed = parseMp4Duration(fullPath);
+                if (parsed && parsed > 0) {
+                    const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(0.5, parsed));
+                    mediaMetadata[f] = {
+                        ...(currentMeta || {}),
+                        duration: finalDur,
+                        isVideo: true,
+                        size: fs.statSync(fullPath).size,
+                        verifiedAt: new Date().toISOString()
+                    };
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) {
+            saveMediaMetadata();
+        }
+    } catch (e) {
+        console.error('[!] syncMediaMetadataWithDisk hatası:', e.message);
+    }
+}
+
+syncMediaMetadataWithDisk();
 
 const MAX_UPLOAD_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB maksimum dosya boyutu
 const MAX_VIDEO_DURATION_SEC = 60; // Maksimum 60 saniye video süresi
@@ -695,20 +747,25 @@ function isSupportedImage(fileNameOrPath) {
 function getMediaDuration(fileName) {
     if (!fileName) return slideIntervalSec;
     if (isVideoFile(fileName)) {
-        if (mediaMetadata[fileName] && mediaMetadata[fileName].duration > 0) {
-            return Math.min(MAX_VIDEO_DURATION_SEC, Math.max(1, Math.round(mediaMetadata[fileName].duration)));
+        if (mediaMetadata[fileName] && typeof mediaMetadata[fileName].duration === 'number' && mediaMetadata[fileName].duration > 0) {
+            return Math.min(MAX_VIDEO_DURATION_SEC, Math.max(0.5, Math.round(mediaMetadata[fileName].duration * 100) / 100));
         }
         const filePath = path.join(IMAGES_DIR, fileName);
         if (fs.existsSync(filePath)) {
             const parsed = parseMp4Duration(filePath);
             if (parsed && parsed > 0) {
-                const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(1, Math.round(parsed)));
-                mediaMetadata[fileName] = { duration: finalDur, isVideo: true, size: fs.statSync(filePath).size };
+                const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(0.5, Math.round(parsed * 100) / 100));
+                mediaMetadata[fileName] = {
+                    duration: finalDur,
+                    isVideo: true,
+                    size: fs.statSync(filePath).size,
+                    updatedAt: new Date().toISOString()
+                };
                 saveMediaMetadata();
                 return finalDur;
             }
         }
-        return 30; // 30 sn varsayılan video süresi fallback
+        return 30; // fallback if unparseable
     }
     return slideIntervalSec;
 }
@@ -1057,13 +1114,21 @@ function clearCurrentBroadcast() {
 
 function broadcastToAdmins(payload) {
     const chunk = `data: ${JSON.stringify(payload)}\n\n`;
-    clients.filter(client => client.isAdmin).forEach(client => client.res.write(chunk));
+    for (const client of clients.filter(client => client.isAdmin)) {
+        try {
+            client.res.write(chunk);
+        } catch (err) {}
+    }
 }
 
 function broadcastToAll(payload) {
     if (clients.length === 0) return;
     const chunk = `data: ${JSON.stringify(payload)}\n\n`;
-    clients.forEach(c => c.res.write(chunk));
+    for (const c of clients) {
+        try {
+            c.res.write(chunk);
+        } catch (err) {}
+    }
 }
 
 function isSupportedImage(fileNameOrPath) {
@@ -1116,6 +1181,39 @@ async function ensureThumbnails() {
 function getActiveSelectedImages() {
     const imageFiles = listImageFiles(fs.readdirSync(IMAGES_DIR));
     return imageFiles.filter(fileName => selectedImageFiles.has(fileName));
+}
+
+function getNextMediaFile(currentFile) {
+    const selectedList = getActiveSelectedImages();
+    if (!selectedList || selectedList.length <= 1) return null;
+
+    if (slideshowOrder === 'random') {
+        const others = selectedList.filter(f => f !== currentFile);
+        if (others.length > 0) {
+            return others[Math.floor(Math.random() * others.length)];
+        }
+        return selectedList[0];
+    }
+
+    const currentIdx = selectedList.indexOf(currentFile);
+    if (currentIdx !== -1) {
+        return selectedList[(currentIdx + 1) % selectedList.length];
+    }
+    return selectedList[0];
+}
+
+function buildNextMediaPayload(currentFile) {
+    const nextFile = getNextMediaFile(currentFile);
+    if (!nextFile) return null;
+    const isVid = isVideoFile(nextFile);
+    const dur = isVid ? getMediaDuration(nextFile) : getSlideIntervalSec();
+    return {
+        dosyaAdi: nextFile,
+        mediaType: isVid ? 'video' : 'image',
+        mediaUrl: '/images/' + encodeURIComponent(nextFile),
+        videoDuration: isVid ? dur : null,
+        slideInterval: dur
+    };
 }
 
 function advanceSlide(step) {
@@ -1190,7 +1288,7 @@ if (selectedImageFiles.size > 0 && !isPlaybackPaused && !isImagePinned) {
 }
 
 function sendCurrentBroadcastToClient(client) {
-    if (isPlaybackPaused || isImagePinned) return;
+    if (isPlaybackPaused) return;
     const currentFile = lastBroadcast.fileName || (selectedImageFiles.size > 0 ? [...selectedImageFiles][0] : null);
     if (!currentFile) return;
 
@@ -1199,48 +1297,31 @@ function sendCurrentBroadcastToClient(client) {
 
     const isVid = isVideoFile(currentFile);
     const mediaDuration = getMediaDuration(currentFile);
+    const nextMedia = buildNextMediaPayload(currentFile);
 
-    if (isVid) {
-        const payload = {
-            tip: 'image',
-            mediaType: 'video',
-            dosyaAdi: currentFile,
-            mediaUrl: '/images/' + encodeURIComponent(currentFile),
-            videoDuration: mediaDuration,
-            zaman: new Date().toLocaleTimeString(),
-            slideInterval: mediaDuration,
-                        imageFit: getImageFitMode(),
-            showInfoBar: getShowInfoBar(),
-            transitionEffect: getTransitionEffect(),
-            slideshowOrder: getSlideshowOrder(),
-            showWatermark: getShowWatermark(),
-            activeImages: getActiveSelectedImages(),
-            broadcastAt: lastBroadcast.time || Date.now(),
-            resimData: null
-        };
-        try { client.res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch (e) {}
-    } else {
-        fs.readFile(filePath, (err, data) => {
-            if (err) return;
-            const base64Image = data.toString('base64');
-            const payload = {
-                tip: 'image',
-                mediaType: 'image',
-                dosyaAdi: currentFile,
-                zaman: new Date().toLocaleTimeString(),
-                slideInterval: getSlideIntervalSec(),
-                                imageFit: getImageFitMode(),
-                showInfoBar: getShowInfoBar(),
-                transitionEffect: getTransitionEffect(),
-                slideshowOrder: getSlideshowOrder(),
-                showWatermark: getShowWatermark(),
-                activeImages: getActiveSelectedImages(),
-                broadcastAt: lastBroadcast.time || Date.now(),
-                resimData: base64Image
-            };
-            try { client.res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch (e) {}
-        });
-    }
+    const payload = {
+        tip: 'image',
+        mediaType: isVid ? 'video' : 'image',
+        dosyaAdi: currentFile,
+        mediaUrl: isVid ? '/images/' + encodeURIComponent(currentFile) : undefined,
+        videoDuration: isVid ? mediaDuration : undefined,
+        zaman: new Date().toLocaleTimeString(),
+        slideInterval: isVid ? mediaDuration : getSlideIntervalSec(),
+        imageFit: getImageFitMode(),
+        showInfoBar: getShowInfoBar(),
+        transitionEffect: getTransitionEffect(),
+        slideshowOrder: getSlideshowOrder(),
+        showWatermark: getShowWatermark(),
+        activeImages: getActiveSelectedImages(),
+        broadcastAt: lastBroadcast.time || Date.now(),
+        nextMedia: nextMedia,
+        isPinned: isImagePinned
+    };
+
+    payload.resimData = null;
+    try {
+        client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    } catch (e) {}
 }
 
 function slideshowTick() {
@@ -1288,7 +1369,8 @@ function restartSlideshowTimer() {
 
     const currentFile = lastBroadcast.fileName;
     const durationSec = getMediaDuration(currentFile);
-    const waitMs = (durationSec * 1000) + (isVideoFile(currentFile) ? 400 : 0);
+    // Hassas milisaniye zamanlaması + video için son karenin temiz gösterilmesi için 120ms tampon
+    const waitMs = Math.max(1000, Math.round(durationSec * 1000) + (isVideoFile(currentFile) ? 120 : 0));
     slideshowTimer = setTimeout(() => {
         slideshowTick();
     }, waitMs);
@@ -1413,8 +1495,16 @@ function setShowWatermark(visible) {
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+    }
+    if (req.socket) {
+        req.socket.setKeepAlive(true, 5000);
+        req.socket.setNoDelay(true);
+    }
 
     const origin = req.headers.origin;
     if (origin && isAllowedOrigin(origin, req)) {
@@ -1439,31 +1529,41 @@ app.get('/events', (req, res) => {
     }
     console.log(`[+] Yeni istemci bağlandı. (ID: ${clientId}, Toplam: ${getConnectedClientCount()})`);
 
-    res.write(`data: ${JSON.stringify({
+    const activeSelectedList = getActiveSelectedImages();
+    const curFile = lastBroadcast.fileName || (activeSelectedList.length > 0 ? activeSelectedList[0] : null);
+    const isVid = curFile ? isVideoFile(curFile) : false;
+    const activeDur = curFile ? getMediaDuration(curFile) : getSlideIntervalSec();
+
+    res.write('data: ' + JSON.stringify({
         tip: 'init',
         mesaj: 'Bağlantı Başarılı',
         slideInterval: getSlideIntervalSec(),
-                imageFit: getImageFitMode(),
+        imageFit: getImageFitMode(),
         showInfoBar: getShowInfoBar(),
         transitionEffect: getTransitionEffect(),
         slideshowOrder: getSlideshowOrder(),
         showWatermark: getShowWatermark(),
         watermarkImage: getWatermarkBase64(),
-        activeImages: getActiveSelectedImages(),
+        activeImages: activeSelectedList,
         isPaused: isPlaybackPaused,
-        isPinned: isImagePinned
-    })}\n\n`);
+        isPinned: isImagePinned,
+        currentImage: curFile,
+        isVideo: isVid,
+        activeDuration: activeDur,
+        mediaDuration: activeDur,
+        broadcastAt: lastBroadcast.time || Date.now()
+    }) + '\n\n');
 
     if (isPlaybackPaused && !isAdmin) {
-        res.write(`data: ${JSON.stringify({
+        res.write('data: ' + JSON.stringify({
             tip: 'stream_control',
             action: 'stop'
-        })}\n\n`);
-    } else if (!isPlaybackPaused && !isImagePinned) {
+        }) + '\n\n');
+    } else if (!isPlaybackPaused) {
         // Yeni bağlanan istemciye anlık yayındaki aktif görseli hemen ulaştır
         sendCurrentBroadcastToClient(newClient);
-        // Slayt zamanlayıcısı henüz devrede değilse başlat
-        if (!slideshowTimer) {
+        // Slayt zamanlayıcısı henüz devrede değilse ve sabitlenmemişse başlat
+        if (!slideshowTimer && !isImagePinned) {
             restartSlideshowTimer();
         }
     }
@@ -1493,7 +1593,7 @@ setInterval(() => {
             client.res.write(heartbeatComment);
         } catch (err) {}
     }
-}, 15000);
+}, 5000);
 
 // Belirtilen Resmi veya Videoyu Tüm Bağlı İstemcilere Gönderen Fonksiyon
 function broadcastImage(fileName) {
@@ -1504,64 +1604,39 @@ function broadcastImage(fileName) {
 
     const isVid = isVideoFile(fileName);
     const mediaDuration = getMediaDuration(fileName);
+    const nextMedia = buildNextMediaPayload(fileName);
+
+    lastBroadcast = { fileName, time: Date.now() };
+
+    const payload = {
+        tip: 'image',
+        mediaType: isVid ? 'video' : 'image',
+        dosyaAdi: fileName,
+        mediaUrl: isVid ? '/images/' + encodeURIComponent(fileName) : undefined,
+        videoDuration: isVid ? mediaDuration : undefined,
+        zaman: new Date().toLocaleTimeString(),
+        slideInterval: isVid ? mediaDuration : getSlideIntervalSec(),
+        imageFit: getImageFitMode(),
+        showInfoBar: getShowInfoBar(),
+        transitionEffect: getTransitionEffect(),
+        slideshowOrder: getSlideshowOrder(),
+        showWatermark: getShowWatermark(),
+        activeImages: getActiveSelectedImages(),
+        broadcastAt: lastBroadcast.time,
+        nextMedia: nextMedia,
+        isPinned: isImagePinned
+    };
 
     if (clients.length === 0) {
-        lastBroadcast = { fileName, time: Date.now() };
         broadcastDashboardUpdate();
         restartSlideshowTimer();
         return;
     }
 
-    if (isVid) {
-        lastBroadcast = { fileName, time: Date.now() };
-        const payload = {
-            tip: 'image',
-            mediaType: 'video',
-            dosyaAdi: fileName,
-            mediaUrl: '/images/' + encodeURIComponent(fileName),
-            videoDuration: mediaDuration,
-            zaman: new Date().toLocaleTimeString(),
-            slideInterval: mediaDuration,
-                        imageFit: getImageFitMode(),
-            showInfoBar: getShowInfoBar(),
-            transitionEffect: getTransitionEffect(),
-            slideshowOrder: getSlideshowOrder(),
-            showWatermark: getShowWatermark(),
-            activeImages: getActiveSelectedImages(),
-            broadcastAt: lastBroadcast.time,
-            resimData: null
-        };
-        broadcastToAll(payload);
-        broadcastDashboardUpdate();
-        restartSlideshowTimer();
-        return;
-    }
-
-    fs.readFile(filePath, (err, data) => {
-        if (err || !selectedImageFiles.has(fileName)) return;
-
-        const base64Image = data.toString('base64');
-        lastBroadcast = { fileName, time: Date.now() };
-        const payload = {
-            tip: 'image',
-            mediaType: 'image',
-            dosyaAdi: fileName,
-            zaman: new Date().toLocaleTimeString(),
-            slideInterval: getSlideIntervalSec(),
-                        imageFit: getImageFitMode(),
-            showInfoBar: getShowInfoBar(),
-            transitionEffect: getTransitionEffect(),
-            slideshowOrder: getSlideshowOrder(),
-            showWatermark: getShowWatermark(),
-            activeImages: getActiveSelectedImages(),
-            broadcastAt: lastBroadcast.time,
-            resimData: base64Image
-        };
-
-        broadcastToAll(payload);
-        broadcastDashboardUpdate();
-        restartSlideshowTimer();
-    });
+    payload.resimData = null;
+    broadcastToAll(payload);
+    broadcastDashboardUpdate();
+    restartSlideshowTimer();
 }
 
 // Chokidar Dosya İzleyici (images/ klasörünü dinamik izler)
@@ -2031,10 +2106,12 @@ app.post('/api/upload', requireAuth, (req, res) => {
         }
 
         if (expectedType.isVideo) {
-            // Video Süre Kontrolü (Maksimum 60 Saniye)
-            let duration = req.body && req.body.duration ? parseFloat(req.body.duration) : null;
+            // Video Süre Kontrolü (Maksimum 60 Saniye - doğrudan sunucu MP4 atom ayrıştırıcı ile)
+            let duration = parseMp4Duration(req.file.path);
             if (!duration || isNaN(duration) || duration <= 0) {
-                duration = parseMp4Duration(req.file.path);
+                if (req.body && req.body.duration) {
+                    duration = parseFloat(req.body.duration);
+                }
             }
 
             if (duration && duration > MAX_VIDEO_DURATION_SEC) {
@@ -2045,7 +2122,7 @@ app.post('/api/upload', requireAuth, (req, res) => {
                 });
             }
 
-            const finalDuration = duration && duration > 0 ? Math.min(MAX_VIDEO_DURATION_SEC, Math.round(duration * 10) / 10) : 30;
+            const finalDuration = duration && duration > 0 ? Math.min(MAX_VIDEO_DURATION_SEC, Math.round(duration * 100) / 100) : 30;
             mediaMetadata[req.file.filename] = {
                 duration: finalDuration,
                 isVideo: true,
@@ -2172,7 +2249,8 @@ app.get('/api/stream/status', requireAuth, (req, res) => {
             slideshowOrder: getSlideshowOrder(),
             connectedClients: getConnectedClientCount(),
             latestBroadcastAt: lastBroadcast.time || null,
-            metadata: mediaMetadata
+            metadata: mediaMetadata,
+            nextMedia: buildNextMediaPayload(activeImage)
         });
     });
 });
@@ -2182,7 +2260,7 @@ function broadcastStreamStatus(extra = {}) {
     const isVid = activeFile ? isVideoFile(activeFile) : false;
     const activeDur = activeFile ? getMediaDuration(activeFile) : getSlideIntervalSec();
 
-    broadcastToAdmins({
+    const payload = {
         tip: 'stream_status',
         currentImage: activeFile,
         activeDuration: activeDur,
@@ -2192,8 +2270,11 @@ function broadcastStreamStatus(extra = {}) {
         isPinned: isImagePinned,
         isPaused: isPlaybackPaused,
         latestBroadcastAt: lastBroadcast.time || Date.now(),
+        nextMedia: buildNextMediaPayload(activeFile),
         ...extra
-    });
+    };
+
+    broadcastToAll(payload);
 }
 
 app.post('/api/stream/pin', requireAuth, (req, res) => {
@@ -2202,6 +2283,12 @@ app.post('/api/stream/pin', requireAuth, (req, res) => {
         clearInterval(slideshowTimer);
         slideshowTimer = null;
     }
+    broadcastToAll({
+        tip: 'pin_control',
+        isPinned: true,
+        fileName: lastBroadcast.fileName,
+        isVideo: lastBroadcast.fileName ? isVideoFile(lastBroadcast.fileName) : false
+    });
     broadcastStreamStatus({ isPinned: true });
     logActivity('stream', 'Görsel sabitlendi', `"${lastBroadcast.fileName || 'Görsel'}" ekranda sabit tutuluyor`);
     console.log(`[📌 Yayın] Görsel ekranda sabitlendi: ${lastBroadcast.fileName}`);
@@ -2212,6 +2299,12 @@ app.post('/api/stream/unpin', requireAuth, (req, res) => {
     isImagePinned = false;
     lastBroadcast.time = Date.now();
     restartSlideshowTimer();
+    broadcastToAll({
+        tip: 'pin_control',
+        isPinned: false,
+        fileName: lastBroadcast.fileName,
+        isVideo: lastBroadcast.fileName ? isVideoFile(lastBroadcast.fileName) : false
+    });
     broadcastStreamStatus({ isPinned: false });
     logActivity('stream', 'Sabitleme kaldırıldı', 'Slayt döngüsü devam ediyor');
     console.log('[▶️ Yayın] Görsel sabitlemesi kaldırıldı, slayt akışı devam ediyor.');
@@ -2233,6 +2326,12 @@ app.post('/api/stream/toggle-pin', requireAuth, (req, res) => {
         logActivity('stream', 'Sabitleme kaldırıldı', 'Slayt döngüsü devam ediyor');
         console.log('[▶️ Yayın] Görsel sabitlemesi kaldırıldı, slayt akışı devam ediyor.');
     }
+    broadcastToAll({
+        tip: 'pin_control',
+        isPinned: isImagePinned,
+        fileName: lastBroadcast.fileName,
+        isVideo: lastBroadcast.fileName ? isVideoFile(lastBroadcast.fileName) : false
+    });
     broadcastStreamStatus({ isPinned: isImagePinned });
     res.json({ success: true, isPinned: isImagePinned });
 });
@@ -2767,6 +2866,74 @@ updateManager.registerUpdateRoutes(app, {
 
 let serverInstance = null;
 
+
+const DISCOVERY_PORT = 38899;
+let udpDiscoverySocket = null;
+
+function getLocalIpAddresses() {
+    const interfaces = os.networkInterfaces();
+    const addresses = [];
+    for (const name of Object.keys(interfaces)) {
+        for (const net of interfaces[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                addresses.push(net.address);
+            }
+        }
+    }
+    return addresses;
+}
+
+function startUdpDiscoveryServer(httpPort) {
+    if (udpDiscoverySocket) {
+        try { udpDiscoverySocket.close(); } catch (e) {}
+        udpDiscoverySocket = null;
+    }
+
+    try {
+        const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+
+        sock.on('message', (msg, rinfo) => {
+            const str = msg.toString().trim();
+            if (str.startsWith('IDLEBOARD_DISCOVER') || str.startsWith('IDLEBOARD_PING')) {
+                const localIps = getLocalIpAddresses();
+                const primaryIp = localIps.length > 0 ? localIps[0] : '127.0.0.1';
+                const actualPort = Number(httpPort) || 3000;
+
+                const responseObj = {
+                    service: 'idleboard-server',
+                    version: '1.0',
+                    httpPort: actualPort,
+                    primaryIp: primaryIp,
+                    allIps: localIps,
+                    serverUrl: `http://${primaryIp}:${actualPort}`,
+                    eventsUrl: `http://${primaryIp}:${actualPort}/events`,
+                    hostname: os.hostname()
+                };
+
+                const responseBuf = Buffer.from(JSON.stringify(responseObj));
+                sock.send(responseBuf, 0, responseBuf.length, rinfo.port, rinfo.address, (err) => {
+                    if (!err) {
+                        console.log(`[📡 Keşif] İstemciye (${rinfo.address}:${rinfo.port}) sunucu adresi bildirildi: ${responseObj.serverUrl}`);
+                    }
+                });
+            }
+        });
+
+        sock.on('error', (err) => {
+            console.warn('[⚠️ Keşif Servisi]', err.message);
+        });
+
+        sock.bind(DISCOVERY_PORT, '0.0.0.0', () => {
+            try { sock.setBroadcast(true); } catch (e) {}
+            console.log(`📡 Keşif Servisi:       Aktif (UDP ${DISCOVERY_PORT} - Otomatik Bulma)`);
+        });
+
+        udpDiscoverySocket = sock;
+    } catch (err) {
+        console.warn('[⚠️ Keşif Servisi Başlatılamadı]:', err.message);
+    }
+}
+
 function startHttpServer(port) {
     if (serverInstance) {
         try {
@@ -2792,6 +2959,7 @@ function startHttpServer(port) {
         }
     });
 
+    startUdpDiscoveryServer(port);
     return serverInstance;
 }
 

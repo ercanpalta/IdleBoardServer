@@ -2360,6 +2360,7 @@
 
                         <img id="streamCurrentImg" class="stream-large-img" src="" alt="Yayındaki Görsel" style="display: none;">
                         <video id="streamCurrentVideo" class="stream-large-img" style="display: none; background: transparent; z-index: 2;" autoplay muted playsinline></video>
+                        <video id="streamNextVideo" class="stream-large-img" style="display: none; background: transparent; z-index: 1; opacity: 0; pointer-events: none;" muted playsinline preload="auto"></video>
                         <div id="streamPlaceholderThumb" class="stream-large-placeholder">
                             <svg class="icon" style="width: 42px; height: 42px;"><use href="#icon-image"></use></svg>
                         </div>
@@ -5401,6 +5402,227 @@
             }
         }
 
+        // ====================================================================
+        // Gelişmiş Video Oynatma & Kesintisiz Geçiş Motoru (Dual-Buffer Preload)
+        // ====================================================================
+        const StreamPlayerEngine = {
+            activeVideoEl: null,
+            preloadVideoEl: null,
+            currentFileName: '',
+            nextFileName: '',
+
+            init() {
+                this.activeVideoEl = document.getElementById('streamCurrentVideo');
+                this.preloadVideoEl = document.getElementById('streamNextVideo');
+                this.bindVideo(this.activeVideoEl);
+                this.bindVideo(this.preloadVideoEl);
+            },
+
+            bindVideo(vEl) {
+                if (!vEl) return;
+                vEl.muted = true;
+                vEl.playsInline = true;
+
+                vEl.addEventListener('timeupdate', () => {
+                    if (vEl === this.activeVideoEl && !vEl.paused) {
+                        updateStreamCountdownTick();
+                    }
+                });
+
+                vEl.addEventListener('ended', () => {
+                    if (vEl !== this.activeVideoEl) return;
+                    if (streamCountdownIsPinned || streamCountdownTotalSelected <= 1) {
+                        vEl.currentTime = 0;
+                        vEl.play().catch(() => {});
+                    } else {
+                        // Video son karesinde temiz bir şekilde bekletilir
+                        vEl.pause();
+                        updateStreamCountdownTick();
+                    }
+                });
+
+                vEl.addEventListener('error', (e) => {
+                    console.warn('[Yayın Motoru] Video hatası:', e);
+                });
+            },
+
+            getActiveVideo() {
+                if (!this.activeVideoEl) {
+                    this.init();
+                }
+                return this.activeVideoEl;
+            },
+
+            getCurrentFile() {
+                return this.currentFileName;
+            },
+
+            // Bir sonraki medyayı arka planda önceden yükle (Preload)
+            preloadNext(nextMedia) {
+                if (!nextMedia || !nextMedia.dosyaAdi) return;
+                const nextFile = nextMedia.dosyaAdi;
+                this.nextFileName = nextFile;
+
+                const isVid = Boolean(nextMedia.mediaType === 'video' || nextFile.toLowerCase().endsWith('.mp4'));
+                if (isVid) {
+                    if (!this.preloadVideoEl) {
+                        this.preloadVideoEl = document.getElementById('streamNextVideo');
+                        this.bindVideo(this.preloadVideoEl);
+                    }
+                    if (this.preloadVideoEl && this.preloadVideoEl.dataset.filename !== nextFile) {
+                        this.preloadVideoEl.dataset.filename = nextFile;
+                        this.preloadVideoEl.src = nextMedia.mediaUrl || `/images/${encodeURIComponent(nextFile)}`;
+                        this.preloadVideoEl.currentTime = 0;
+                        this.preloadVideoEl.preload = 'auto';
+                        this.preloadVideoEl.load();
+                    }
+                } else {
+                    // Statik görsel ise tarayıcı önbelleğine al
+                    const preloader = new Image();
+                    preloader.src = nextMedia.mediaUrl || `/images/${encodeURIComponent(nextFile)}`;
+                }
+            },
+
+            // Medyayı sorunsuz oynat veya geçiş yap
+            playMedia(fileName, isVideo, opts = {}) {
+                if (!this.activeVideoEl) this.init();
+
+                const {
+                    targetElapsedSec = 0,
+                    isPaused = false,
+                    isPinned = false,
+                    totalCount = 1,
+                    nextMedia = null
+                } = opts;
+
+                const streamCurrentImg = document.getElementById('streamCurrentImg');
+                const streamPlaceholder = document.getElementById('streamPlaceholderThumb');
+                if (streamPlaceholder) streamPlaceholder.style.display = 'none';
+
+                if (isVideo) {
+                    if (streamCurrentImg) streamCurrentImg.style.display = 'none';
+
+                    const isSingleOrPinned = Boolean(isPinned || totalCount <= 1);
+
+                    // 1. Eğer video zaten preload buffer'ında hazırsa (Dual-Buffer Swap)
+                    if (this.preloadVideoEl && this.preloadVideoEl.dataset.filename === fileName && this.preloadVideoEl.readyState >= 2) {
+                        const oldActive = this.activeVideoEl;
+                        this.activeVideoEl = this.preloadVideoEl;
+                        this.preloadVideoEl = oldActive;
+
+                        // Eski aktif videoyu arka plana çek ve sıfırla
+                        if (this.preloadVideoEl) {
+                            this.preloadVideoEl.pause();
+                            this.preloadVideoEl.style.display = 'none';
+                            this.preloadVideoEl.style.zIndex = '1';
+                            this.preloadVideoEl.style.opacity = '0';
+                            this.preloadVideoEl.style.pointerEvents = 'none';
+                            this.preloadVideoEl.dataset.filename = '';
+                        }
+
+                        // Yeni videoyu hemen yayına al
+                        this.activeVideoEl.style.display = 'block';
+                        this.activeVideoEl.style.zIndex = '2';
+                        this.activeVideoEl.style.opacity = '1';
+                        this.activeVideoEl.style.pointerEvents = 'auto';
+                        this.activeVideoEl.loop = isSingleOrPinned;
+                        this.currentFileName = fileName;
+
+                        if (targetElapsedSec > 0.8 && this.activeVideoEl.duration) {
+                            const seekPos = isSingleOrPinned
+                                ? (targetElapsedSec % this.activeVideoEl.duration)
+                                : Math.min(this.activeVideoEl.duration, targetElapsedSec);
+                            this.activeVideoEl.currentTime = seekPos;
+                        } else {
+                            this.activeVideoEl.currentTime = 0;
+                        }
+
+                        if (!isPaused) {
+                            this.activeVideoEl.play().catch(() => {});
+                        }
+                    } else if (this.currentFileName !== fileName || !this.activeVideoEl.src || this.activeVideoEl.dataset.filename !== fileName) {
+                        // 2. Preload edilmemiş yeni video dosyası: Temiz yükleme
+                        this.currentFileName = fileName;
+                        this.activeVideoEl.dataset.filename = fileName;
+                        this.activeVideoEl.src = `/images/${encodeURIComponent(fileName)}`;
+                        this.activeVideoEl.loop = isSingleOrPinned;
+                        this.activeVideoEl.style.display = 'block';
+                        this.activeVideoEl.style.zIndex = '2';
+                        this.activeVideoEl.style.opacity = '1';
+                        this.activeVideoEl.style.pointerEvents = 'auto';
+
+                        if (this.preloadVideoEl) {
+                            this.preloadVideoEl.pause();
+                            this.preloadVideoEl.style.display = 'none';
+                            this.preloadVideoEl.dataset.filename = '';
+                        }
+
+                        this.activeVideoEl.onloadedmetadata = () => {
+                            if (targetElapsedSec > 1.0 && this.activeVideoEl.duration) {
+                                const seekPos = isSingleOrPinned
+                                    ? (targetElapsedSec % this.activeVideoEl.duration)
+                                    : Math.min(this.activeVideoEl.duration, targetElapsedSec);
+                                this.activeVideoEl.currentTime = seekPos;
+                            } else {
+                                this.activeVideoEl.currentTime = 0;
+                            }
+                            updateStreamCountdownTick();
+                        };
+
+                        if (!isPaused) {
+                            this.activeVideoEl.play().catch(() => {});
+                        }
+                    } else {
+                        // 3. Halihazırda oynatılan aynı video: ASLA seek yapma, sadece durum güncellemelerini uygula
+                        this.activeVideoEl.loop = isSingleOrPinned;
+                        if (isPaused) {
+                            if (!this.activeVideoEl.paused) this.activeVideoEl.pause();
+                        } else {
+                            if (this.activeVideoEl.paused && !this.activeVideoEl.ended) {
+                                this.activeVideoEl.play().catch(() => {});
+                            }
+                        }
+                    }
+
+                    // Bir sonraki medyayı arka planda önceden yükle
+                    if (nextMedia) {
+                        this.preloadNext(nextMedia);
+                    }
+                } else {
+                    // Statik Görsel
+                    this.currentFileName = fileName;
+                    if (this.activeVideoEl) {
+                        this.activeVideoEl.pause();
+                        this.activeVideoEl.style.display = 'none';
+                        this.activeVideoEl.dataset.filename = '';
+                    }
+                    if (this.preloadVideoEl) {
+                        this.preloadVideoEl.pause();
+                        this.preloadVideoEl.style.display = 'none';
+                        this.preloadVideoEl.dataset.filename = '';
+                    }
+
+                    if (streamCurrentImg) {
+                        if (streamCurrentImg.dataset.filename !== fileName) {
+                            streamCurrentImg.dataset.filename = fileName;
+                            streamCurrentImg.onerror = () => {
+                                if (streamCurrentImg.src && !streamCurrentImg.src.includes('/thumbnails/')) {
+                                    streamCurrentImg.src = `/thumbnails/${encodeURIComponent(fileName)}`;
+                                }
+                            };
+                            streamCurrentImg.src = `/images/${encodeURIComponent(fileName)}`;
+                        }
+                        streamCurrentImg.style.display = 'block';
+                    }
+
+                    // Bir sonraki medyayı arka planda önceden yükle
+                    if (nextMedia) {
+                        this.preloadNext(nextMedia);
+                    }
+                }
+            }
+        };
+
         function updateStreamCountdownTick() {
             const streamSection = document.getElementById('streamSection');
             if (!streamSection || streamSection.style.display !== 'block') {
@@ -5412,7 +5634,7 @@
             const timeCurrent = document.getElementById('streamTimeCurrent');
             const timeTotal = document.getElementById('streamTimeTotal');
             const timeSep = timeDisplay ? timeDisplay.querySelector('.stream-time-sep') : null;
-            const streamVideo = document.getElementById('streamCurrentVideo');
+            const activeVideo = StreamPlayerEngine.getActiveVideo();
 
             if (!progressBar || !timeDisplay || !timeCurrent || !timeTotal) return;
 
@@ -5427,7 +5649,7 @@
             timeDisplay.style.display = 'inline-flex';
 
             const activeFileName = (currentStreamData && currentStreamData.currentImage) ||
-                (streamVideo && streamVideo.dataset.filename) || '';
+                StreamPlayerEngine.getCurrentFile() || '';
             const isVid = Boolean(activeFileName && activeFileName.toLowerCase().endsWith('.mp4'));
 
             // Tek görsel varsa ve video değilse (sabit görselde geri sayım yapılmaz)
@@ -5449,8 +5671,8 @@
                 timeCurrent.innerText = 'Durduruldu';
                 if (timeSep) timeSep.style.display = 'none';
                 timeTotal.style.display = 'none';
-                if (streamVideo && !streamVideo.paused) {
-                    streamVideo.pause();
+                if (activeVideo && !activeVideo.paused) {
+                    activeVideo.pause();
                 }
                 return;
             }
@@ -5463,8 +5685,8 @@
 
                 if (isVid) {
                     let videoTotalSec = 0;
-                    if (streamVideo && Number.isFinite(streamVideo.duration) && streamVideo.duration > 0) {
-                        videoTotalSec = streamVideo.duration;
+                    if (activeVideo && Number.isFinite(activeVideo.duration) && activeVideo.duration > 0) {
+                        videoTotalSec = activeVideo.duration;
                     } else if (window.galleryMetadata && window.galleryMetadata[activeFileName] && Number(window.galleryMetadata[activeFileName].duration) > 0) {
                         videoTotalSec = Number(window.galleryMetadata[activeFileName].duration);
                     } else if (currentStreamData && Number(currentStreamData.activeDuration || currentStreamData.mediaDuration) > 0) {
@@ -5475,16 +5697,16 @@
                     const totalSec = Math.max(1, Math.round(videoTotalSec));
 
                     // Sabitlenmiş video döngü halinde oynatılmaya devam eder
-                    if (streamVideo) {
-                        streamVideo.loop = true;
-                        if (streamVideo.paused && streamVideo.style.display !== 'none' && !streamCountdownIsPaused) {
-                            streamVideo.play().catch(() => {});
+                    if (activeVideo) {
+                        activeVideo.loop = true;
+                        if (activeVideo.paused && activeVideo.style.display !== 'none' && !streamCountdownIsPaused) {
+                            activeVideo.play().catch(() => {});
                         }
                     }
 
                     let videoElapsedSec = 0;
-                    if (streamVideo && Number.isFinite(streamVideo.currentTime) && streamVideo.currentTime >= 0) {
-                        videoElapsedSec = streamVideo.currentTime;
+                    if (activeVideo && Number.isFinite(activeVideo.currentTime) && activeVideo.currentTime >= 0) {
+                        videoElapsedSec = activeVideo.currentTime;
                     }
                     if (totalSec > 0) {
                         videoElapsedSec = videoElapsedSec % totalSec;
@@ -5520,10 +5742,10 @@
             timeTotal.style.display = 'inline';
 
             if (isVid) {
-                // Video yayında: video oynatıcısının gerçek süresine ve karesine senkronize ilerleme
+                // Video yayında: video oynatıcısının gerçek donanım saatine ve karesine senkronize ilerleme (ASLA seek yapılmaz!)
                 let videoTotalSec = 0;
-                if (streamVideo && Number.isFinite(streamVideo.duration) && streamVideo.duration > 0) {
-                    videoTotalSec = streamVideo.duration;
+                if (activeVideo && Number.isFinite(activeVideo.duration) && activeVideo.duration > 0) {
+                    videoTotalSec = activeVideo.duration;
                 } else if (window.galleryMetadata && window.galleryMetadata[activeFileName] && Number(window.galleryMetadata[activeFileName].duration) > 0) {
                     videoTotalSec = Number(window.galleryMetadata[activeFileName].duration);
                 } else if (currentStreamData && Number(currentStreamData.activeDuration || currentStreamData.mediaDuration) > 0) {
@@ -5534,36 +5756,22 @@
                     videoTotalSec = 30;
                 }
                 const totalSec = Math.max(1, Math.round(videoTotalSec));
-
-                const now = Date.now();
-                const serverElapsedSec = streamCountdownStart ? Math.max(0, (now - streamCountdownStart) / 1000) : 0;
                 const isSingleMedia = streamCountdownTotalSelected <= 1;
 
-                if (streamVideo) {
-                    streamVideo.loop = isSingleMedia;
+                if (activeVideo) {
+                    activeVideo.loop = isSingleMedia;
                 }
 
-                // Oynatıcı duraklatılmamışsa başlat (video bittiyse ve döngü yoksa tekrar tetikleme)
-                if (streamVideo && streamVideo.paused && !streamCountdownIsPaused && streamVideo.style.display !== 'none' && !streamVideo.ended) {
-                    if (serverElapsedSec < totalSec || isSingleMedia) {
-                        streamVideo.play().catch(() => {});
-                    }
+                // Oynatıcı duraklatılmamışsa oynat
+                if (activeVideo && activeVideo.paused && !streamCountdownIsPaused && activeVideo.style.display !== 'none' && !activeVideo.ended) {
+                    activeVideo.play().catch(() => {});
                 }
 
                 let videoElapsedSec = 0;
-                const isVideoReady = streamVideo && streamVideo.readyState >= 1 && Number.isFinite(streamVideo.currentTime);
-
-                if (isVideoReady) {
-                    // Video oynatılırken yayın akışı ile video karesi arasındaki kaymayı (drift > 0.35s) dinamik senkronize et
-                    if (!streamVideo.seeking && !streamVideo.paused && !streamCountdownIsPaused && !isSingleMedia && serverElapsedSec < totalSec) {
-                        if (Math.abs(streamVideo.currentTime - serverElapsedSec) > 0.35) {
-                            streamVideo.currentTime = serverElapsedSec;
-                        }
-                    }
-                    videoElapsedSec = streamVideo.currentTime;
-                } else {
-                    // Video yüklenirken veya ilk kare hazırlanırken yayın saatiyle ilerle
-                    videoElapsedSec = serverElapsedSec;
+                if (activeVideo && Number.isFinite(activeVideo.currentTime) && activeVideo.currentTime >= 0) {
+                    videoElapsedSec = activeVideo.currentTime;
+                } else if (streamCountdownStart) {
+                    videoElapsedSec = Math.max(0, (Date.now() - streamCountdownStart) / 1000);
                 }
 
                 if (!isSingleMedia) {
@@ -5573,7 +5781,6 @@
                 }
 
                 timeTotal.innerText = formatPlayerTime(totalSec);
-
                 const progressRatio = Math.min(1, Math.max(0, videoElapsedSec / totalSec));
                 progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
 
@@ -5703,79 +5910,17 @@
                 if (data.currentImage) {
                     streamPlaceholder.style.display = 'none';
                     const isVid = data.currentImage.toLowerCase().endsWith('.mp4');
-                    const streamVideo = document.getElementById('streamCurrentVideo');
+                    const targetElapsed = (data.latestBroadcastAt && !data.isPaused)
+                        ? Math.max(0, (Date.now() - Number(data.latestBroadcastAt)) / 1000)
+                        : 0;
 
-                    if (isVid) {
-                        if (streamCurrentImg) {
-                            streamCurrentImg.style.display = 'none';
-                        }
-                        if (streamVideo) {
-                            const isPinnedOrSingle = Boolean(data.isPinned || (data.totalSelected <= 1));
-                            streamVideo.loop = isPinnedOrSingle;
-                            streamVideo.onended = () => {
-                                if (!streamVideo.loop) {
-                                    streamVideo.pause();
-                                    updateStreamCountdownTick();
-                                }
-                            };
-
-                            const targetElapsed = (data.latestBroadcastAt && !data.isPaused)
-                                ? Math.max(0, (Date.now() - Number(data.latestBroadcastAt)) / 1000)
-                                : 0;
-
-                            if (streamVideo.dataset.filename !== data.currentImage) {
-                                streamVideo.dataset.filename = data.currentImage;
-                                streamVideo.src = `/images/${encodeURIComponent(data.currentImage)}`;
-                                streamVideo.ontimeupdate = updateStreamCountdownTick;
-                                streamVideo.onloadedmetadata = () => {
-                                    if (targetElapsed > 0.05 && streamVideo.duration) {
-                                        const seekPos = streamVideo.loop ? (targetElapsed % streamVideo.duration) : Math.min(streamVideo.duration, targetElapsed);
-                                        streamVideo.currentTime = seekPos;
-                                    }
-                                    updateStreamCountdownTick();
-                                };
-                                if (!data.isPaused) {
-                                    streamVideo.play().catch(() => {});
-                                }
-                            } else {
-                                streamVideo.ontimeupdate = updateStreamCountdownTick;
-                                if (data.isPaused) {
-                                    streamVideo.pause();
-                                } else {
-                                    if (streamVideo.paused && !streamVideo.ended) {
-                                        streamVideo.play().catch(() => {});
-                                    }
-                                    if (targetElapsed > 0 && streamVideo.duration > 0 && !streamVideo.seeking) {
-                                        const expectedCurrent = streamVideo.loop ? (targetElapsed % streamVideo.duration) : Math.min(streamVideo.duration, targetElapsed);
-                                        if (Math.abs(streamVideo.currentTime - expectedCurrent) > 0.35) {
-                                            streamVideo.currentTime = expectedCurrent;
-                                        }
-                                    }
-                                }
-                            }
-                            streamVideo.style.display = 'block';
-                        }
-                    } else {
-                        if (streamVideo) {
-                            streamVideo.pause();
-                            streamVideo.style.display = 'none';
-                            streamVideo.dataset.filename = '';
-                            streamVideo.ontimeupdate = null;
-                            streamVideo.onloadedmetadata = null;
-                        }
-                        if (streamCurrentImg) {
-                            if (streamCurrentImg.dataset.filename !== data.currentImage) {
-                                streamCurrentImg.dataset.filename = data.currentImage;
-                                streamCurrentImg.onerror = () => {
-                                    if (streamCurrentImg.src && !streamCurrentImg.src.includes('/thumbnails/')) {
-                                        streamCurrentImg.src = `/thumbnails/${encodeURIComponent(data.currentImage)}`;
-                                    }
-                                };
-                                streamCurrentImg.src = `/images/${encodeURIComponent(data.currentImage)}`;
-                            }
-                            streamCurrentImg.style.display = 'block';
-                        }
-                    }
+                    StreamPlayerEngine.playMedia(data.currentImage, isVid, {
+                        targetElapsedSec: targetElapsed,
+                        isPaused: Boolean(data.isPaused),
+                        isPinned: Boolean(data.isPinned),
+                        totalCount: Number(data.totalSelected) || 0,
+                        nextMedia: data.nextMedia || null
+                    });
 
                     // Yan Alanlar Ortam Işığı (Ambilight) güncellemesi
                     if (streamPillarAmbientImg && streamPillarAmbientImg.dataset.filename !== data.currentImage) {
@@ -5817,6 +5962,7 @@
                         streamActiveBadgeText.innerText = 'Yayında';
                     }
                 } else {
+                    StreamPlayerEngine.playMedia('', false);
                     streamCurrentImg.style.display = 'none';
                     streamPlaceholder.style.display = 'grid';
                     streamActiveBadge.style.display = 'none';
@@ -6554,52 +6700,45 @@
                             streamCountdownTotalSelected = data.activeImages.length;
                         }
 
-                        // Önizleme ekranı aktifse yeni medyayı beklemeden derhal göster
+                        // Önizleme ekranı aktifse yeni medyayı derhal kesintisiz oynat
                         const streamSec = document.getElementById('streamSection');
                         if (streamSec && streamSec.style.display === 'block') {
-                            const streamVideo = document.getElementById('streamCurrentVideo');
-                            const streamCurrentImg = document.getElementById('streamCurrentImg');
-                            const streamPlaceholder = document.getElementById('streamPlaceholderThumb');
-                            if (streamPlaceholder) streamPlaceholder.style.display = 'none';
+                            StreamPlayerEngine.playMedia(data.dosyaAdi, isImageVid, {
+                                targetElapsedSec: 0,
+                                isPaused: Boolean(streamCountdownIsPaused),
+                                isPinned: Boolean(streamCountdownIsPinned),
+                                totalCount: Number(streamCountdownTotalSelected) || 0,
+                                nextMedia: data.nextMedia || null
+                            });
 
-                            if (isImageVid) {
-                                if (streamCurrentImg) streamCurrentImg.style.display = 'none';
-                                if (streamVideo) {
-                                    if (streamVideo.dataset.filename !== data.dosyaAdi) {
-                                        streamVideo.dataset.filename = data.dosyaAdi;
-                                        streamVideo.src = `/images/${encodeURIComponent(data.dosyaAdi)}`;
-                                        streamVideo.currentTime = 0;
-                                        streamVideo.ontimeupdate = updateStreamCountdownTick;
-                                        streamVideo.onloadedmetadata = () => {
-                                            const nowElapsed = Math.max(0, (Date.now() - streamCountdownStart) / 1000);
-                                            if (nowElapsed > 0.05 && streamVideo.duration && nowElapsed < streamVideo.duration) {
-                                                streamVideo.currentTime = nowElapsed;
-                                            }
-                                            updateStreamCountdownTick();
-                                        };
-                                        if (!streamCountdownIsPaused) {
-                                            streamVideo.play().catch(() => {});
-                                        }
+                            // Yan Alanlar Ortam Işığı (Ambilight) güncellemesi
+                            const ambImg = document.getElementById('streamPillarAmbientImg');
+                            const ambWrap = document.getElementById('streamPillarAmbient');
+                            if (ambImg && ambImg.dataset.filename !== data.dosyaAdi) {
+                                ambImg.dataset.filename = data.dosyaAdi;
+                                if (isImageVid) {
+                                    ambImg.dataset.videoCover = data.dosyaAdi;
+                                    if (typeof videoCoverCache !== 'undefined' && videoCoverCache.has(data.dosyaAdi)) {
+                                        ambImg.src = videoCoverCache.get(data.dosyaAdi);
+                                    } else {
+                                        ambImg.src = `/thumbnails/${encodeURIComponent(data.dosyaAdi)}`;
+                                        if (typeof ensureVideoCover === 'function') ensureVideoCover(data.dosyaAdi);
                                     }
-                                    streamVideo.style.display = 'block';
+                                } else {
+                                    delete ambImg.dataset.videoCover;
+                                    ambImg.src = `/thumbnails/${encodeURIComponent(data.dosyaAdi)}`;
                                 }
-                            } else {
-                                if (streamVideo) {
-                                    streamVideo.pause();
-                                    streamVideo.style.display = 'none';
-                                    streamVideo.dataset.filename = '';
-                                }
-                                if (streamCurrentImg) {
-                                    streamCurrentImg.dataset.filename = data.dosyaAdi;
-                                    streamCurrentImg.src = `/images/${encodeURIComponent(data.dosyaAdi)}`;
-                                    streamCurrentImg.style.display = 'block';
-                                }
+                                if (ambWrap) ambWrap.classList.add('is-visible');
                             }
+                        } else if (data.nextMedia) {
+                            // Önizleme kapalı olsa dahi bir sonraki medyayı önbelleğe hazırla
+                            StreamPlayerEngine.preloadNext(data.nextMedia);
                         }
 
                         updateStreamCountdownTick();
                         loadDashboardStats();
                         if (document.getElementById('streamSection').style.display === 'block') {
+                            // Canlı grid ve carousel bilgilerini yenile (oynatıcıyı sıfırlamadan)
                             loadStreamStatus();
                         }
                     } else if (data.tip === 'client_count' || data.tip === 'dashboard_update') {
@@ -7198,6 +7337,15 @@
             if (btn) btn.disabled = false;
             if (label) label.innerText = 'Şimdi Denetle';
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                const streamSec = document.getElementById('streamSection');
+                if (streamSec && streamSec.style.display === 'block') {
+                    loadStreamStatus();
+                }
+            }
+        });
 
         // Başlangıç kontrolü
         checkAuth();
