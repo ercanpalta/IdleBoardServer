@@ -235,6 +235,10 @@ router.delete('/api/images/:name', auth.requireAuth, (req, res) => {
         if (fs.existsSync(thumbJpg)) {
             try { fs.unlinkSync(thumbJpg); } catch (e) {}
         }
+        if (state.mediaMetadata[req.params.name]) {
+            delete state.mediaMetadata[req.params.name];
+            try { media.saveMediaMetadata(); } catch (e) {}
+        }
         if (state.selectedImageFiles.has(req.params.name)) {
             playlist.saveSelectedImages([...state.selectedImageFiles].filter(fileName => fileName !== req.params.name));
         }

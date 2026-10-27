@@ -46,8 +46,13 @@ function startWatcher() {
             const fileName = path.basename(filePath);
             console.log(`[🗑️ Watcher] Klasörden görsel silindi: ${fileName}`);
             const thumbPath = path.join(cfg.THUMBNAILS_DIR, fileName);
-            if (fs.existsSync(thumbPath)) {
-                try { fs.unlinkSync(thumbPath); } catch (e) {}
+            const coverPath = path.join(cfg.THUMBNAILS_DIR, fileName + '.jpg');
+            for (const p of [thumbPath, coverPath]) {
+                try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (e) {}
+            }
+            if (state.mediaMetadata[fileName]) {
+                delete state.mediaMetadata[fileName];
+                try { media.saveMediaMetadata(); } catch (e) {}
             }
 
             if (state.selectedImageFiles.has(fileName)) {
