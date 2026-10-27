@@ -201,8 +201,13 @@ router.post('/api/media/cover/:name', auth.requireAuth, express.raw({ type: ['im
     if (!fs.existsSync(origPath)) {
         return res.status(404).json({ success: false, error: 'Video dosyası bulunamadı.' });
     }
-    if (!req.body || req.body.length === 0) {
-        return res.status(400).json({ success: false, error: 'Kapak görsel verisi boş.' });
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ success: false, error: 'Kapak görsel verisi boş veya desteklenmeyen biçimde (JPEG/PNG gerekli).' });
+    }
+    const isJpeg = req.body[0] === 0xFF && req.body[1] === 0xD8 && req.body[2] === 0xFF;
+    const isPng = req.body.length > 8 && req.body.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
+    if (!isJpeg && !isPng) {
+        return res.status(400).json({ success: false, error: 'Kapak görseli geçerli bir JPEG veya PNG değil.' });
     }
 
     try {
