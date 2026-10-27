@@ -55,24 +55,19 @@ function isNewerVersion(remoteVer, currentVer) {
 }
 
 async function fetchLatestRelease(repo) {
-    try {
-        const url = `https://api.github.com/repos/${repo}/releases/latest`;
-        const res = await fetch(url, {
-            headers: {
-                'User-Agent': 'IdleBoard-Updater/1.0',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-        if (!res.ok) {
-            if (res.status === 404) return null;
-            console.warn(`[Güncelleme] GitHub API HTTP ${res.status} döndürdü (${repo})`);
-            return null;
+    // 404 (henüz release yok) null döner; ağ/HTTP hataları fırlatılır ki önbellek ezilmesin.
+    const url = `https://api.github.com/repos/${repo}/releases/latest`;
+    const res = await fetch(url, {
+        headers: {
+            'User-Agent': 'IdleBoard-Updater/1.0',
+            'Accept': 'application/vnd.github.v3+json'
         }
-        return await res.json();
-    } catch (err) {
-        console.warn(`[Güncelleme] GitHub Releases bağlantı hatası (${repo}):`, err.message);
-        return null;
+    });
+    if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error(`GitHub API HTTP ${res.status} (${repo})`);
     }
+    return await res.json();
 }
 
 async function checkAllUpdates(rootDir, getConnectedClientCount, force = false) {
@@ -81,17 +76,20 @@ async function checkAllUpdates(rootDir, getConnectedClientCount, force = false) 
         return buildUpdateStatusResponse(rootDir, getConnectedClientCount);
     }
 
-    try {
-        const [serverRel, clientRel] = await Promise.all([
-            fetchLatestRelease(SERVER_REPO),
-            fetchLatestRelease(CLIENT_REPO)
-        ]);
-        updateCache.server = serverRel;
-        updateCache.client = clientRel;
-        updateCache.lastChecked = now;
-    } catch (err) {
-        console.warn('[Güncelleme] Güncelleme sorgulama hatası:', err.message);
-    }
+    const results = await Promise.allSettled([
+        fetchLatestRelease(SERVER_REPO),
+        fetchLatestRelease(CLIENT_REPO)
+    ]);
+    const [serverRes, clientRes] = results;
+    if (serverRes.status === 'fulfilled') updateCache.server = serverRes.value;
+    if (clientRes.status === 'fulfilled') updateCache.client = clientRes.value;
+
+    const failed = results.filter(r => r.status === 'rejected');
+    failed.forEach(r => console.warn('[Güncelleme] Güncelleme sorgulama hatası:', r.reason && r.reason.message));
+    // Hata durumunda önbelleği geçersiz kılmadan 1 dk sonra tekrar dene
+    updateCache.lastChecked = failed.length
+        ? now - Math.max(0, UPDATE_CACHE_TTL_MS - 60 * 1000)
+        : now;
 
     return buildUpdateStatusResponse(rootDir, getConnectedClientCount);
 }
