@@ -14,7 +14,16 @@ const state = require('../state');
 const router = express.Router();
 
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
+const MAX_SSE_CLIENTS_PER_IP = 20;
+const MAX_SSE_CLIENTS_TOTAL = 500;
+
 router.get('/events', (req, res) => {
+    const remoteIp = (req.socket.remoteAddress || '').replace(/^.*:/, '');
+    const fromSameIp = state.clients.filter((c) => c.clientIp === remoteIp).length;
+    if (state.clients.length >= MAX_SSE_CLIENTS_TOTAL || fromSameIp >= MAX_SSE_CLIENTS_PER_IP) {
+        res.setHeader('Retry-After', '10');
+        return res.status(429).end();
+    }
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
