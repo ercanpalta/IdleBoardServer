@@ -258,8 +258,10 @@ function registerUpdateRoutes(app, context) {
             let count = 0;
             for (const client of clientList) {
                 if (!client.isAdmin && client.res) {
-                    client.res.write(`data: ${payload}\n\n`);
-                    count++;
+                    try {
+                        client.res.write(`data: ${payload}\n\n`);
+                        count++;
+                    } catch (e) {}
                 }
             }
 
