@@ -76,6 +76,7 @@ Source: "{#NodeExePath}"; DestDir: "{app}"; Flags: ignoreversion
 ; Sunucu Uygulama Kaynak Dosyaları
 Source: "..\server.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\updateManager.js"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\reset-password.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\package.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\package-lock.json"; DestDir: "{app}"; Flags: ignoreversion

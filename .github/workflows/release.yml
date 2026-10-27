@@ -32,7 +32,7 @@ jobs:
           TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
           ZIP_NAME="IdleBoardServer-${TAG_NAME}.zip"
           echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
-          zip -r "${ZIP_NAME}" server.js package.json package-lock.json public/ README.md -x "*.git*"
+          zip -r "${ZIP_NAME}" server.js updateManager.js src/ package.json package-lock.json public/ README.md -x "*.git*"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
