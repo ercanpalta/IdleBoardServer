@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
 const SERVER_REPO = 'ercanpalta/IdleBoardServer';
@@ -114,9 +115,13 @@ function buildUpdateStatusResponse(rootDir, getConnectedClientCount) {
         const remoteVer = updateCache.server.tag_name.replace(/^v/i, '');
         const hasUpdate = isNewerVersion(remoteVer, curServerVer);
         let dlUrl = null;
+        let dlDigest = null;
         if (Array.isArray(updateCache.server.assets) && updateCache.server.assets.length > 0) {
             const zipAsset = updateCache.server.assets.find(a => a.name.endsWith('.zip'));
-            if (zipAsset) dlUrl = zipAsset.browser_download_url;
+            if (zipAsset) {
+                dlUrl = zipAsset.browser_download_url;
+                dlDigest = typeof zipAsset.digest === 'string' ? zipAsset.digest : null;
+            }
         }
         if (!dlUrl) {
             dlUrl = updateCache.server.zipball_url || null;
@@ -130,6 +135,7 @@ function buildUpdateStatusResponse(rootDir, getConnectedClientCount) {
             releaseNotes: updateCache.server.body || '',
             publishedAt: updateCache.server.published_at,
             downloadUrl: dlUrl,
+            downloadDigest: dlDigest,
             htmlUrl: updateCache.server.html_url
         };
     }
@@ -290,6 +296,16 @@ function registerUpdateRoutes(app, context) {
             await downloadFile(downloadUrl, zipPath);
             console.log('[Güncelleme] İndirme tamamlandı. Arşiv açılıyor.');
 
+            // GitHub release asset'leri sha256 özeti sağlıyorsa paketi doğrula
+            const expectedDigest = status.server.downloadDigest;
+            if (expectedDigest && /^sha256:[0-9a-f]{64}$/i.test(expectedDigest)) {
+                const actual = crypto.createHash('sha256').update(fs.readFileSync(zipPath)).digest('hex');
+                if (actual.toLowerCase() !== expectedDigest.slice(7).toLowerCase()) {
+                    throw new Error('Güncelleme paketinin SHA-256 özeti eşleşmiyor; güncelleme iptal edildi.');
+                }
+                console.log('[Güncelleme] SHA-256 doğrulaması başarılı.');
+            }
+
             // Arşivi sunucu kapanmadan önce aç: bozuk/beklenmeyen paket sunucuyu düşürmeden reddedilir
             const extract = process.platform === 'win32'
                 ? spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command',
@@ -310,6 +326,20 @@ function registerUpdateRoutes(app, context) {
                 throw new Error('Güncelleme paketi geçerli bir sunucu paketi değil (server.js/package.json bulunamadı).');
             }
             console.log('[Güncelleme] Güncelleme betiği hazırlanıyor.');
+
+            // Geri dönüş için mevcut kodun yedeğini data klasörüne al (veri dizinleri güncelleme tarafından korunur)
+            try {
+                const backupDir = path.join(serverDir, 'data', 'update-backup');
+                fs.rmSync(backupDir, { recursive: true, force: true });
+                fs.mkdirSync(backupDir, { recursive: true });
+                for (const entry of ['server.js', 'package.json', 'updateManager.js', 'src', 'public']) {
+                    const from = path.join(serverDir, entry);
+                    if (fs.existsSync(from)) fs.cpSync(from, path.join(backupDir, entry), { recursive: true });
+                }
+                console.log('[Güncelleme] Mevcut sürümün yedeği alındı: data/update-backup');
+            } catch (backupErr) {
+                console.warn('[Güncelleme] Yedek alınamadı, güncelleme yine de sürdürülüyor:', backupErr.message);
+            }
 
             if (process.platform === 'win32') {
                 const scriptPath = path.join(tempDir, 'apply_server_update.cmd');
