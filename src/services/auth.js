@@ -354,6 +354,7 @@ function requireAuth(req, res, next) {
 
 Object.assign(module.exports, {
     INACTIVITY_TIMEOUT_MS,
+    MAX_SESSION_TTL_MS,
     isTokenValid,
     PASSWORD_FILE,
     SECURITY_QUESTIONS,

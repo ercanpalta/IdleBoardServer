@@ -35,7 +35,7 @@ router.get('/events', (req, res) => {
 
     const clientId = crypto.randomUUID();
     const token = auth.getRequestAuthToken(req);
-    const isAdmin = req.query.source === 'admin' && Boolean(token && auth.activeTokens.has(token));
+    const isAdmin = req.query.source === 'admin' && Boolean(auth.isTokenValid(token));
     const clientIp = (req.socket.remoteAddress || '').replace(/^.*:/, '');
     const rawVersion = typeof req.query.clientVersion === 'string' ? req.query.clientVersion.trim() : '';
     const clientVersion = /^\d+(\.\d+){0,3}$/.test(rawVersion) ? rawVersion : null;
