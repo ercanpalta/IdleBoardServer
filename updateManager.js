@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 const SERVER_REPO = 'ercanpalta/IdleBoardServer';
 const CLIENT_REPO = 'ercanpalta/IdleBoardClient';
@@ -288,7 +288,28 @@ function registerUpdateRoutes(app, context) {
 
             console.log(`[Güncelleme] Sunucu v${targetVersion} paketi indiriliyor: ${downloadUrl}`);
             await downloadFile(downloadUrl, zipPath);
-            console.log('[Güncelleme] İndirme tamamlandı. Güncelleme betiği hazırlanıyor.');
+            console.log('[Güncelleme] İndirme tamamlandı. Arşiv açılıyor.');
+
+            // Arşivi sunucu kapanmadan önce aç: bozuk/beklenmeyen paket sunucuyu düşürmeden reddedilir
+            const extract = process.platform === 'win32'
+                ? spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command',
+                    'Expand-Archive -LiteralPath $env:IB_ZIP -DestinationPath $env:IB_DEST -Force'],
+                    { env: { ...process.env, IB_ZIP: zipPath, IB_DEST: extractedDir } })
+                : spawnSync('unzip', ['-q', '-o', zipPath, '-d', extractedDir]);
+            if (extract.status !== 0) {
+                throw new Error('Güncelleme arşivi açılamadı.');
+            }
+
+            // GitHub zipball paketleri tek bir üst klasör içerir; içeriği o klasörden kopyala
+            let sourceDir = extractedDir;
+            const topEntries = fs.readdirSync(extractedDir, { withFileTypes: true });
+            if (topEntries.length === 1 && topEntries[0].isDirectory()) {
+                sourceDir = path.join(extractedDir, topEntries[0].name);
+            }
+            if (!fs.existsSync(path.join(sourceDir, 'server.js')) || !fs.existsSync(path.join(sourceDir, 'package.json'))) {
+                throw new Error('Güncelleme paketi geçerli bir sunucu paketi değil (server.js/package.json bulunamadı).');
+            }
+            console.log('[Güncelleme] Güncelleme betiği hazırlanıyor.');
 
             if (process.platform === 'win32') {
                 const scriptPath = path.join(tempDir, 'apply_server_update.cmd');
@@ -303,11 +324,8 @@ if not errorlevel 1 (
 )
 timeout /t 1 /nobreak >nul
 
-echo [IdleBoard Sunucu Güncelleyici] Arşiv açılıyor...
-powershell -NoProfile -NonInteractive -Command "Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${extractedDir.replace(/'/g, "''")}' -Force"
-
 echo [IdleBoard Sunucu Güncelleyici] Dosyalar güncelleniyor (veri ve resim dizinleri korunuyor)...
-robocopy "${extractedDir}" "${serverDir}" /E /XD data images thumbnails node_modules .git /XF .env /NFL /NDL /NJH /NJS >nul 2>&1
+robocopy "${sourceDir}" "${serverDir}" /E /XD data images thumbnails node_modules .git /XF .env /NFL /NDL /NJH /NJS >nul 2>&1
 
 echo [IdleBoard Sunucu Güncelleyici] Bağımlılıklar denetleniyor...
 cd /d "${serverDir}"
@@ -342,9 +360,7 @@ while kill -0 ${currentPid} 2>/dev/null; do
     sleep 1
 done
 sleep 1
-mkdir -p "${extractedDir}"
-unzip -q -o "${zipPath}" -d "${extractedDir}"
-rsync -a --exclude "data" --exclude "images" --exclude "thumbnails" --exclude "node_modules" --exclude ".git" --exclude ".env" "${extractedDir}/" "${serverDir}/"
+rsync -a --exclude "data" --exclude "images" --exclude "thumbnails" --exclude "node_modules" --exclude ".git" --exclude ".env" "${sourceDir}/" "${serverDir}/"
 cd "${serverDir}"
 npm install --omit=dev
 nohup node server.js >/dev/null 2>&1 &
