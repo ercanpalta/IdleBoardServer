@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const sharp = require('sharp');
 const cfg = require('../config');
@@ -261,15 +262,27 @@ function listImageFiles(files) {
     return (files || []).filter(f => isSupportedImage(f)).sort();
 }
 
-async function generateThumbnail(fileName) {
+const thumbnailJobs = new Map();
+
+// Aynı dosya için eşzamanlı üretimler tek işe birleştirilir
+function generateThumbnail(fileName) {
+    if (thumbnailJobs.has(fileName)) return thumbnailJobs.get(fileName);
+    const job = generateThumbnailInternal(fileName).finally(() => thumbnailJobs.delete(fileName));
+    thumbnailJobs.set(fileName, job);
+    return job;
+}
+
+async function generateThumbnailInternal(fileName) {
     if (isVideoFile(fileName)) return false;
     const origPath = path.join(cfg.IMAGES_DIR, fileName);
     const thumbPath = path.join(cfg.THUMBNAILS_DIR, fileName);
+    const ext = path.extname(fileName).toLowerCase();
+    // Yarım yazılmış küçük resim sunulmasın diye önce geçici dosyaya yazılır (uzantı sharp'ın biçim seçimi için korunur)
+    const tempPath = path.join(cfg.THUMBNAILS_DIR, `.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp${ext}`);
 
     if (!fs.existsSync(origPath)) return false;
 
     try {
-        const ext = path.extname(fileName).toLowerCase();
         let pipeline = sharp(origPath).resize(500, null, { withoutEnlargement: true });
         if (ext === '.png') {
             pipeline = pipeline.png({ quality: 80, compressionLevel: 8 });
@@ -278,9 +291,11 @@ async function generateThumbnail(fileName) {
         } else {
             pipeline = pipeline.jpeg({ quality: 80, progressive: true });
         }
-        await pipeline.toFile(thumbPath);
+        await pipeline.toFile(tempPath);
+        fs.renameSync(tempPath, thumbPath);
         return true;
     } catch (err) {
+        try { fs.rmSync(tempPath, { force: true }); } catch (e) {}
         console.error(`[!] Thumbnail oluşturulamadı (${fileName}):`, err.message);
         return false;
     }
