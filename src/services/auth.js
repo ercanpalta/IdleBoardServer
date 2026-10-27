@@ -213,6 +213,7 @@ function hashSecurityAnswer(answer, saltHex) {
 
 function verifySecurityAnswer(answer, storedSaltHex, storedHashHex) {
     if (!answer || !storedSaltHex || !storedHashHex) return false;
+    if (!normalizeSecurityAnswer(answer)) return false;
     try {
         const computedHash = hashSecurityAnswer(answer, storedSaltHex);
         const hashBuffer = Buffer.from(computedHash, 'hex');
@@ -349,6 +350,7 @@ Object.assign(module.exports, {
     checkBruteForceLock,
     clearAdminTokenCookie,
     getClientIp,
+    normalizeSecurityAnswer,
     getRequestAuthToken,
     isPasswordConfigured,
     isSecurityQuestionConfigured,

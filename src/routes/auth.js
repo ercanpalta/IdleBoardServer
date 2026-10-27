@@ -34,7 +34,7 @@ router.post('/api/auth/setup', (req, res) => {
     if (!securityQuestionId || !auth.SECURITY_QUESTIONS.some(q => q.id === Number(securityQuestionId))) {
         return res.status(400).json({ success: false, error: 'Lütfen geçerli bir güvenlik sorusu seçin.' });
     }
-    if (!securityAnswer || typeof securityAnswer !== 'string' || securityAnswer.trim().length < 2) {
+    if (!securityAnswer || typeof securityAnswer !== 'string' || securityAnswer.trim().length < 2 || !auth.normalizeSecurityAnswer(securityAnswer)) {
         return res.status(400).json({ success: false, error: 'Güvenlik sorusu yanıtı en az 2 karakter olmalıdır.' });
     }
 
@@ -142,7 +142,7 @@ router.post('/api/auth/security-question', auth.requireAuth, (req, res) => {
     if (!securityQuestionId || !auth.SECURITY_QUESTIONS.some(q => q.id === Number(securityQuestionId))) {
         return res.status(400).json({ success: false, error: 'Geçersiz güvenlik sorusu seçimi.' });
     }
-    if (!securityAnswer || typeof securityAnswer !== 'string' || securityAnswer.trim().length < 2) {
+    if (!securityAnswer || typeof securityAnswer !== 'string' || securityAnswer.trim().length < 2 || !auth.normalizeSecurityAnswer(securityAnswer)) {
         return res.status(400).json({ success: false, error: 'Güvenlik sorusu yanıtı en az 2 karakter olmalıdır.' });
     }
 
