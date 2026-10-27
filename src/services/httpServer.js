@@ -27,9 +27,10 @@ function startHttpServer(port) {
         } else {
             console.error(`[!] Sunucu dinleme hatası (${port}):`, err.message);
         }
+        if (!serverInstance.listening) process.exit(1);
     });
 
-    network.startUdpDiscoveryServer(port);
+    serverInstance.once('listening', () => network.startUdpDiscoveryServer(port));
     return serverInstance;
 }
 
