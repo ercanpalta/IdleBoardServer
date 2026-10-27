@@ -196,12 +196,21 @@ function isTrustedDownloadUrl(url, repo) {
 async function downloadFile(url, destPath) {
     const res = await fetch(url, {
         headers: { 'User-Agent': 'IdleBoard-Updater/1.0' },
-        redirect: 'follow'
+        redirect: 'follow',
+        signal: AbortSignal.timeout(5 * 60 * 1000)
     });
     if (!res.ok) {
         throw new Error(`İndirme başarısız: HTTP ${res.status}`);
     }
+    const MAX_BYTES = 200 * 1024 * 1024;
+    const declared = Number(res.headers.get('content-length') || 0);
+    if (declared > MAX_BYTES) {
+        throw new Error('Güncelleme paketi çok büyük.');
+    }
     const arrayBuffer = await res.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_BYTES) {
+        throw new Error('Güncelleme paketi çok büyük.');
+    }
     fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
 }
 
@@ -286,6 +295,7 @@ function registerUpdateRoutes(app, context) {
             return res.status(409).json({ success: false, error: 'Bir sunucu güncellemesi zaten devam ediyor.' });
         }
         serverUpdateInProgress = true;
+        let tempDir = null;
         try {
             const status = await checkAllUpdates(rootDir, getConnectedClientCount, false);
             if (!status.server || !status.server.hasUpdate || !status.server.downloadUrl) {
@@ -312,7 +322,7 @@ function registerUpdateRoutes(app, context) {
                 logActivity('settings', 'Sunucu güncellemesi başlatıldı', `v${targetVersion}`);
             }
 
-            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idleboard_server_update_'));
+            tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idleboard_server_update_'));
 
             const zipPath = path.join(tempDir, 'update.zip');
             const extractedDir = path.join(tempDir, 'extracted');
@@ -404,10 +414,16 @@ exit
                 });
 
                 setTimeout(() => {
-                    spawn('cmd.exe', ['/c', scriptPath], {
-                        detached: true,
-                        stdio: 'ignore'
-                    }).unref();
+                    try {
+                        spawn('cmd.exe', ['/c', scriptPath], {
+                            detached: true,
+                            stdio: 'ignore'
+                        }).unref();
+                    } catch (e) {
+                        serverUpdateInProgress = false;
+                        console.error('[Güncelleme Hatası] Betik başlatılamadı:', e);
+                        return;
+                    }
                     process.exit(0);
                 }, 600);
             } else {
@@ -432,15 +448,24 @@ rm -rf "${tempDir}"
                 });
 
                 setTimeout(() => {
-                    spawn('sh', [scriptPath], {
-                        detached: true,
-                        stdio: 'ignore'
-                    }).unref();
+                    try {
+                        spawn('sh', [scriptPath], {
+                            detached: true,
+                            stdio: 'ignore'
+                        }).unref();
+                    } catch (e) {
+                        serverUpdateInProgress = false;
+                        console.error('[Güncelleme Hatası] Betik başlatılamadı:', e);
+                        return;
+                    }
                     process.exit(0);
                 }, 600);
             }
         } catch (err) {
             serverUpdateInProgress = false;
+            if (tempDir) {
+                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) {}
+            }
             console.error('[Güncelleme Hatası]', err);
             res.status(500).json({ success: false, error: err.message });
         }
