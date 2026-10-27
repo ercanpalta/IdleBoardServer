@@ -134,7 +134,15 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
                 }
             }
 
-            if (duration && duration > media.MAX_VIDEO_DURATION_SEC) {
+            if (!duration || isNaN(duration) || duration <= 0) {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({
+                    success: false,
+                    error: 'Video süresi okunamadı. Dosya geçerli bir MP4 olmalıdır.'
+                });
+            }
+
+            if (duration > media.MAX_VIDEO_DURATION_SEC) {
                 try { await fs.promises.unlink(req.file.path); } catch (e) {}
                 return res.status(400).json({
                     success: false,
@@ -142,7 +150,7 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
                 });
             }
 
-            const finalDuration = duration && duration > 0 ? Math.min(media.MAX_VIDEO_DURATION_SEC, Math.round(duration * 100) / 100) : 30;
+            const finalDuration = Math.round(duration * 100) / 100;
             state.mediaMetadata[req.file.filename] = {
                 duration: finalDuration,
                 isVideo: true,
