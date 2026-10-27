@@ -138,11 +138,11 @@ function syncMediaMetadataWithDisk() {
     }
 }
 
+const MAX_VIDEO_DURATION_SEC = 60; // Maksimum 60 saniye video süresi
+
 syncMediaMetadataWithDisk();
 
 const MAX_UPLOAD_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB maksimum dosya boyutu
-
-const MAX_VIDEO_DURATION_SEC = 60; // Maksimum 60 saniye video süresi
 
 const supportedMediaTypes = {
     '.jpg': { mimeType: 'image/jpeg', format: 'jpeg', isVideo: false },
