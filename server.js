@@ -1314,6 +1314,7 @@ function sendCurrentBroadcastToClient(client) {
         showWatermark: getShowWatermark(),
         activeImages: getActiveSelectedImages(),
         broadcastAt: lastBroadcast.time || Date.now(),
+        serverNow: Date.now(),
         nextMedia: nextMedia,
         isPinned: isImagePinned
     };
@@ -1551,7 +1552,8 @@ app.get('/events', (req, res) => {
         isVideo: isVid,
         activeDuration: activeDur,
         mediaDuration: activeDur,
-        broadcastAt: lastBroadcast.time || Date.now()
+        broadcastAt: lastBroadcast.time || Date.now(),
+        serverNow: Date.now()
     }) + '\n\n');
 
     if (isPlaybackPaused && !isAdmin) {
