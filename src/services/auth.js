@@ -111,10 +111,6 @@ const MAX_REQUESTS_PER_MINUTE = 30; // Dakikada maks 30 istek
 const loginAttemptMap = new Map(); // ip -> { failedCount, lockedUntil, reqCount, windowStart }
 
 function getClientIp(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded && typeof forwarded === 'string') {
-        return forwarded.split(',')[0].trim();
-    }
     return req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : req.ip || 'unknown';
 }
 
