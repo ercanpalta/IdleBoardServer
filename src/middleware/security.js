@@ -81,7 +81,11 @@ function applySecurity(app) {
                 if (parts.length >= 2) {
                     const name = parts[0].trim();
                     const value = parts.slice(1).join('=').trim();
-                    req.cookies[name] = decodeURIComponent(value);
+                    try {
+                        req.cookies[name] = decodeURIComponent(value);
+                    } catch (e) {
+                        req.cookies[name] = value;
+                    }
                 }
             });
         }
