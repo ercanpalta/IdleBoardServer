@@ -2988,6 +2988,36 @@
         const TOKEN_KEY = 'idleboard_admin_token';
         const THEME_KEY = 'idleboard_admin_theme';
         let sseSource = null;
+
+        // Süresi dolan/geçersiz oturumda (401) panel otomatik olarak giriş ekranına döner
+        let sessionExpiredHandling = false;
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+            const res = await originalFetch(input, init);
+            try {
+                const url = typeof input === 'string' ? input : (input && input.url) || '';
+                const isApi = url.startsWith('/api/') && !url.startsWith('/api/auth/') && url !== '/api/login' && url !== '/api/logout';
+                if (res.status === 401 && isApi && localStorage.getItem(TOKEN_KEY) && !sessionExpiredHandling) {
+                    sessionExpiredHandling = true;
+                    Promise.resolve(logout('Oturum süresi doldu, lütfen tekrar giriş yapın.')).finally(() => { sessionExpiredHandling = false; });
+                }
+            } catch (e) {}
+            return res;
+        };
+
+        // SSE bağlantısı süresi dolmuş token ile sessizce yetkisiz kalmasın: periyodik doğrulama
+        setInterval(async () => {
+            const tok = localStorage.getItem(TOKEN_KEY);
+            if (!tok || sessionExpiredHandling) return;
+            try {
+                const r = await originalFetch('/api/auth/check', { headers: getAuthHeaders() });
+                if (r.status === 401) {
+                    sessionExpiredHandling = true;
+                    await logout('Oturum süresi doldu, lütfen tekrar giriş yapın.');
+                    sessionExpiredHandling = false;
+                }
+            } catch (e) {}
+        }, 5 * 60 * 1000);
         let debounceTimer = null;
         let galleryImages = [];
         let savedSelection = new Set();
