@@ -8,6 +8,7 @@ const activity = require('../services/activity');
 const auth = require('../services/auth');
 const broadcast = require('../services/broadcast');
 const httpServer = require('../services/httpServer');
+const media = require('../services/media');
 const network = require('../services/network');
 const settings = require('../services/settings');
 const state = require('../state');
@@ -373,7 +374,9 @@ router.post('/api/settings/factory-reset', auth.requireAuth, (req, res) => {
     state.selectedImageFiles.clear();
     state.currentImageIndex = 0;
     state.slideIntervalSec = 5;
-    try { eval('k' + 'ioskIdleTimeoutSec = 5'); } catch (e) {}
+    state.kioskIdleTimeoutSec = 5;
+    state.mediaMetadata = {};
+    try { media.saveMediaMetadata(); } catch (e) {}
     state.imageFitMode = 'uniform';
     state.showInfoBar = true;
     state.transitionEffect = 'fade';
