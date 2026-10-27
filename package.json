@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "reset-password": "node reset-password.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/"
   },
   "keywords": [
     "digital-signage",
