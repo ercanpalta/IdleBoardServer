@@ -183,6 +183,16 @@ function buildUpdateStatusResponse(rootDir, getConnectedClientCount) {
     };
 }
 
+function isTrustedDownloadUrl(url, repo) {
+    try {
+        const u = new URL(url);
+        return u.protocol === 'https:' && u.hostname === 'github.com'
+            && u.pathname.toLowerCase().startsWith(`/${repo.toLowerCase()}/releases/download/`);
+    } catch (e) {
+        return false;
+    }
+}
+
 async function downloadFile(url, destPath) {
     const res = await fetch(url, {
         headers: { 'User-Agent': 'IdleBoard-Updater/1.0' },
@@ -231,6 +241,12 @@ function registerUpdateRoutes(app, context) {
 
             const targetVersion = status.client.latestVersion;
             const downloadUrl = status.client.downloadUrl;
+            if (!isTrustedDownloadUrl(downloadUrl, CLIENT_REPO)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'İstemci güncelleme bağlantısı güvenilir bir release asset\'i değil; talimat gönderilmedi.'
+                });
+            }
 
             const payload = JSON.stringify({
                 tip: 'update_command',
@@ -280,6 +296,15 @@ function registerUpdateRoutes(app, context) {
 
             const targetVersion = status.server.latestVersion;
             const downloadUrl = status.server.downloadUrl;
+
+            const digestOk = /^sha256:[0-9a-f]{64}$/i.test(status.server.downloadDigest || '');
+            if (!isTrustedDownloadUrl(downloadUrl, SERVER_REPO) || !digestOk) {
+                serverUpdateInProgress = false;
+                return res.status(400).json({
+                    success: false,
+                    error: 'Güncelleme paketi güvenilir bir release asset\'i değil veya SHA-256 özeti yok; güncelleme reddedildi.'
+                });
+            }
 
             if (typeof logActivity === 'function') {
                 logActivity('settings', 'Sunucu güncellemesi başlatıldı', `v${targetVersion}`);
