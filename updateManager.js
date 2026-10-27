@@ -14,6 +14,7 @@ let updateCache = {
     lastChecked: 0
 };
 const UPDATE_CACHE_TTL_MS = 15 * 60 * 1000; // 15 dakika
+let serverUpdateInProgress = false;
 
 function setLastKnownClientVersion(version) {
     if (version && typeof version === 'string') {
@@ -257,9 +258,14 @@ function registerUpdateRoutes(app, context) {
 
     // Sunucu Kendini Güncelleme (Self-Update)
     app.post('/api/updates/server/apply', requireAuth, async (req, res) => {
+        if (serverUpdateInProgress) {
+            return res.status(409).json({ success: false, error: 'Bir sunucu güncellemesi zaten devam ediyor.' });
+        }
+        serverUpdateInProgress = true;
         try {
             const status = await checkAllUpdates(rootDir, getConnectedClientCount, false);
             if (!status.server || !status.server.hasUpdate || !status.server.downloadUrl) {
+                serverUpdateInProgress = false;
                 return res.status(400).json({
                     success: false,
                     error: 'Sunucu için geçerli bir güncelleme veya indirme bağlantısı bulunamadı.'
@@ -273,11 +279,7 @@ function registerUpdateRoutes(app, context) {
                 logActivity('settings', 'Sunucu güncellemesi başlatıldı', `v${targetVersion}`);
             }
 
-            const tempDir = path.join(os.tmpdir(), 'idleboard_server_update');
-            if (fs.existsSync(tempDir)) {
-                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) {}
-            }
-            fs.mkdirSync(tempDir, { recursive: true });
+            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idleboard_server_update_'));
 
             const zipPath = path.join(tempDir, 'update.zip');
             const extractedDir = path.join(tempDir, 'extracted');
@@ -365,6 +367,7 @@ rm -rf "${tempDir}"
                 }, 600);
             }
         } catch (err) {
+            serverUpdateInProgress = false;
             console.error('[Güncelleme Hatası]', err);
             res.status(500).json({ success: false, error: err.message });
         }
