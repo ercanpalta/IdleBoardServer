@@ -226,19 +226,24 @@ function verifySecurityAnswer(answer, storedSaltHex, storedHashHex) {
 }
 
 function readPasswordConfig() {
-    if (fs.existsSync(PASSWORD_FILE)) {
-        try {
-            return JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
-        } catch (error) {
-            return null;
-        }
-    }
-    return null;
+    if (!fs.existsSync(PASSWORD_FILE)) return null;
+    // Bozuk dosya "parola yok" anlamına gelmemeli; aksi halde kurulum uç noktası yetkisiz yeniden açılır
+    return JSON.parse(fs.readFileSync(PASSWORD_FILE, 'utf8'));
+}
+
+function writePasswordConfigAtomic(config) {
+    const temporaryFile = `${PASSWORD_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(temporaryFile, JSON.stringify(config, null, 2), { mode: 0o600 });
+    fs.renameSync(temporaryFile, PASSWORD_FILE);
 }
 
 function isSecurityQuestionConfigured() {
-    const config = readPasswordConfig();
-    return Boolean(config && config.securityQuestionId && config.securityAnswerHash);
+    try {
+        const config = readPasswordConfig();
+        return Boolean(config && config.securityQuestionId && config.securityAnswerHash);
+    } catch {
+        return false;
+    }
 }
 
 function readPasswordHash() {
@@ -257,7 +262,12 @@ function readPasswordHash() {
 }
 
 function isPasswordConfigured() {
-    return Boolean(readPasswordHash());
+    try {
+        return Boolean(readPasswordHash());
+    } catch {
+        // Dosya var ama okunamıyorsa yapılandırılmış say; setup uç noktası açılmasın
+        return fs.existsSync(PASSWORD_FILE);
+    }
 }
 
 function verifyPassword(password) {
@@ -297,7 +307,7 @@ function savePassword(password, securityQuestionId = null, securityAnswer = null
         newConfig.securityAnswerHash = existingConfig.securityAnswerHash;
     }
 
-    fs.writeFileSync(PASSWORD_FILE, JSON.stringify(newConfig, null, 2), { mode: 0o600 });
+    writePasswordConfigAtomic(newConfig);
 }
 
 function saveSecurityQuestion(securityQuestionId, securityAnswer) {
@@ -308,7 +318,7 @@ function saveSecurityQuestion(securityQuestionId, securityAnswer) {
     existingConfig.securityAnswerSalt = answerSalt.toString('hex');
     existingConfig.securityAnswerHash = answerHash.toString('hex');
     existingConfig.updatedAt = new Date().toISOString();
-    fs.writeFileSync(PASSWORD_FILE, JSON.stringify(existingConfig, null, 2), { mode: 0o600 });
+    writePasswordConfigAtomic(existingConfig);
 }
 
 function isTokenValid(token) {
