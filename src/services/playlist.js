@@ -82,9 +82,18 @@ function loadSelectedImages() {
         return;
     }
 
-    const stored = JSON.parse(fs.readFileSync(cfg.SELECTED_IMAGES_FILE, 'utf8'));
+    let stored;
+    try {
+        stored = JSON.parse(fs.readFileSync(cfg.SELECTED_IMAGES_FILE, 'utf8'));
+    } catch (e) {
+        stored = null;
+    }
     if (!Array.isArray(stored) || stored.some(fileName => typeof fileName !== 'string')) {
-        throw new Error('Galeri seçim yapılandırması geçersiz.');
+        // Bozuk dosya sunucunun açılmasını engellemesin; yedeklenip varsayılan seçimle devam edilir
+        try { fs.copyFileSync(cfg.SELECTED_IMAGES_FILE, `${cfg.SELECTED_IMAGES_FILE}.corrupt`); } catch (e) {}
+        console.error('[!] Galeri seçim yapılandırması geçersiz; tüm medya seçilerek devam ediliyor.');
+        saveSelectedImages(imageFiles);
+        return;
     }
     const availableImages = new Set(imageFiles);
     state.selectedImageFiles = new Set(stored.filter(fileName => availableImages.has(fileName)));

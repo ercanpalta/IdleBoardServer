@@ -22,7 +22,9 @@ function loadMediaMetadata() {
 
 function saveMediaMetadata() {
     try {
-        fs.writeFileSync(MEDIA_METADATA_FILE, JSON.stringify(state.mediaMetadata, null, 2), 'utf8');
+        const tmp = `${MEDIA_METADATA_FILE}.${process.pid}.tmp`;
+        fs.writeFileSync(tmp, JSON.stringify(state.mediaMetadata, null, 2), 'utf8');
+        fs.renameSync(tmp, MEDIA_METADATA_FILE);
     } catch (e) {}
 }
 
