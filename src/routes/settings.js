@@ -33,7 +33,7 @@ router.get('/api/settings', auth.requireAuth, (req, res) => {
 });
 
 // Sunucu Port Numarasını Güncelleme Endpoint'i
-router.post('/api/settings/port', auth.requireAuth, (req, res) => {
+router.post('/api/settings/port', auth.requireAuth, async (req, res) => {
     const rawPort = req.body && req.body.port;
     const newPort = parseInt(rawPort, 10);
 
@@ -53,6 +53,19 @@ router.post('/api/settings/port', auth.requireAuth, (req, res) => {
     }
 
     const oldPort = state.serverPort;
+    let closeOldServer;
+    try {
+        closeOldServer = await httpServer.switchHttpServer(newPort);
+    } catch (err) {
+        console.error('[!] Yeni port bağlanamadı:', err.message);
+        return res.status(409).json({
+            success: false,
+            error: err.code === 'EADDRINUSE'
+                ? `Port ${newPort} başka bir uygulama tarafından kullanılıyor.`
+                : `Port ${newPort} üzerinde dinleme başlatılamadı: ${err.message}`
+        });
+    }
+
     state.serverPort = newPort;
     settings.saveServerSettings();
     activity.logActivity('settings', 'Sunucu port numarası güncellendi', `${oldPort} -> ${newPort}`);
@@ -65,16 +78,10 @@ router.post('/api/settings/port', auth.requireAuth, (req, res) => {
         oldPort,
         newPort,
         redirectUrl,
-        message: `Sunucu portu ${newPort} olarak değiştirildi. Sunucu yeni port üzerinde yeniden başlatılıyor.`
+        message: `Sunucu portu ${newPort} olarak değiştirildi.`
     });
 
-    setTimeout(() => {
-        try {
-            httpServer.startHttpServer(newPort);
-        } catch (err) {
-            console.error('[!] Sunucu yeni portta başlatılırken hata:', err.message);
-        }
-    }, 400);
+    setTimeout(closeOldServer, 400);
 });
 
 router.post('/api/settings/interval', auth.requireAuth, (req, res) => {

@@ -33,4 +33,34 @@ function startHttpServer(port) {
     return serverInstance;
 }
 
-module.exports = { startHttpServer };
+// Yeni portu önce bağlar; başarısız olursa eski dinleyici dokunulmadan kalır.
+// Başarıda eski dinleyiciyi kapatan bir fonksiyon döndürür.
+async function switchHttpServer(port) {
+    const { app } = require('../app');
+
+    const newServer = await new Promise((resolve, reject) => {
+        const s = app.listen(port);
+        s.once('listening', () => resolve(s));
+        s.once('error', reject);
+    });
+
+    newServer.on('error', (err) => {
+        console.error(`[!] Sunucu dinleme hatası (${port}):`, err.message);
+    });
+
+    const oldServer = serverInstance;
+    serverInstance = newServer;
+    network.startUdpDiscoveryServer(port);
+    console.log(`🚀 Yönetim Paneli:       http://localhost:${port}`);
+
+    return () => {
+        if (!oldServer) return;
+        try {
+            oldServer.close();
+            if (typeof oldServer.closeAllConnections === 'function') oldServer.closeAllConnections();
+            console.log('[i] Eski sunucu dinleyicisi kapatıldı.');
+        } catch (e) {}
+    };
+}
+
+module.exports = { startHttpServer, switchHttpServer };
