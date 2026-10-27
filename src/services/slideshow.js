@@ -45,16 +45,23 @@ function sendCurrentBroadcastToClient(client) {
     } catch (e) {}
 }
 
+function scheduleSlideshowRetry() {
+    if (state.isPlaybackPaused || state.isImagePinned || state.selectedImageFiles.size === 0) return;
+    if (state.slideshowTimer) clearTimeout(state.slideshowTimer);
+    state.slideshowTimer = setTimeout(slideshowTick, 5000);
+}
+
 function slideshowTick() {
     if (state.isPlaybackPaused || state.isImagePinned || state.slideshowTickInFlight) return;
 
     state.slideshowTickInFlight = true;
     fs.readdir(cfg.IMAGES_DIR, (err, files) => {
         state.slideshowTickInFlight = false;
-        if (err || !files) return;
+        // Zamanlayıcı tek seferlik olduğundan erken çıkışlarda yeniden kurulmazsa slayt gösterisi kalıcı durur
+        if (err || !files) return scheduleSlideshowRetry();
 
         const imageFiles = media.listImageFiles(files).filter(fileName => state.selectedImageFiles.has(fileName));
-        if (imageFiles.length === 0) return;
+        if (imageFiles.length === 0) return scheduleSlideshowRetry();
 
         let selectedFile;
         if (state.slideshowOrder === 'random' && imageFiles.length > 1) {
@@ -76,7 +83,7 @@ function slideshowTick() {
             selectedFile = imageFiles[nextIndex];
         }
 
-        broadcastImage(selectedFile);
+        if (!broadcastImage(selectedFile)) scheduleSlideshowRetry();
     });
 }
 
@@ -99,10 +106,10 @@ function restartSlideshowTimer() {
 
 // Belirtilen Resmi veya Videoyu Tüm Bağlı İstemcilere Gönderen Fonksiyon
 function broadcastImage(fileName) {
-    if (!state.selectedImageFiles.has(fileName)) return;
+    if (!state.selectedImageFiles.has(fileName)) return false;
 
     const filePath = path.join(cfg.IMAGES_DIR, fileName);
-    if (!fs.existsSync(filePath)) return;
+    if (!fs.existsSync(filePath)) return false;
 
     const isVid = media.isVideoFile(fileName);
     const mediaDuration = media.getMediaDuration(fileName);
@@ -132,13 +139,14 @@ function broadcastImage(fileName) {
     if (state.clients.length === 0) {
         broadcast.broadcastDashboardUpdate();
         restartSlideshowTimer();
-        return;
+        return true;
     }
 
     payload.resimData = null;
     broadcast.broadcastToAll(payload);
     broadcast.broadcastDashboardUpdate();
     restartSlideshowTimer();
+    return true;
 }
 
 Object.assign(module.exports, {
