@@ -14,13 +14,19 @@ const state = require('../state');
 const router = express.Router();
 
 // SSE Endpoint (C# WPF İstemcisinin ve Web Panelinin Bağlandığı Adres)
-const MAX_SSE_CLIENTS_PER_IP = 20;
-const MAX_SSE_CLIENTS_TOTAL = 500;
+const MAX_SSE_CLIENTS_PER_IP = Number(process.env.MAX_SSE_CLIENTS_PER_IP) || 50;
+const MAX_SSE_CLIENTS_TOTAL = Number(process.env.MAX_SSE_CLIENTS_TOTAL) || 500;
+
+// IPv4-mapped IPv6 adresleri sadeleştirilir; gerçek IPv6 adresleri tam korunur (son hextet'e indirgenmez)
+function normalizeRemoteIp(addr) {
+    return String(addr || '').replace(/^::ffff:/i, '');
+}
 
 router.get('/events', (req, res) => {
-    const remoteIp = (req.socket.remoteAddress || '').replace(/^.*:/, '');
-    const fromSameIp = state.clients.filter((c) => c.clientIp === remoteIp).length;
-    if (state.clients.length >= MAX_SSE_CLIENTS_TOTAL || fromSameIp >= MAX_SSE_CLIENTS_PER_IP) {
+    const remoteIp = normalizeRemoteIp(req.socket.remoteAddress);
+    const fromSameIp = state.clients.filter((c) => !c.isAdmin && c.clientIp === remoteIp).length;
+    const totalDisplays = state.clients.filter((c) => !c.isAdmin).length;
+    if (totalDisplays >= MAX_SSE_CLIENTS_TOTAL || fromSameIp >= MAX_SSE_CLIENTS_PER_IP) {
         res.setHeader('Retry-After', '10');
         return res.status(429).end();
     }
@@ -45,7 +51,7 @@ router.get('/events', (req, res) => {
     const clientId = crypto.randomUUID();
     const token = auth.getRequestAuthToken(req);
     const isAdmin = req.query.source === 'admin' && Boolean(auth.isTokenValid(token));
-    const clientIp = (req.socket.remoteAddress || '').replace(/^.*:/, '');
+    const clientIp = remoteIp;
     const rawVersion = typeof req.query.clientVersion === 'string' ? req.query.clientVersion.trim() : '';
     const clientVersion = /^\d+(\.\d+){0,3}$/.test(rawVersion) ? rawVersion : null;
     if (clientVersion) {
