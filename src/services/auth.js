@@ -311,6 +311,17 @@ function saveSecurityQuestion(securityQuestionId, securityAnswer) {
     fs.writeFileSync(PASSWORD_FILE, JSON.stringify(existingConfig, null, 2), { mode: 0o600 });
 }
 
+function isTokenValid(token) {
+    if (!token || !activeTokens.has(token)) return false;
+    const tokenData = activeTokens.get(token);
+    const now = Date.now();
+    if (now - tokenData.lastActivityAt > INACTIVITY_TIMEOUT_MS || now - tokenData.createdAt > MAX_SESSION_TTL_MS) {
+        activeTokens.delete(token);
+        return false;
+    }
+    return true;
+}
+
 function requireAuth(req, res, next) {
     const token = getRequestAuthToken(req);
 
@@ -343,7 +354,7 @@ function requireAuth(req, res, next) {
 
 Object.assign(module.exports, {
     INACTIVITY_TIMEOUT_MS,
-    MAX_SESSION_TTL_MS,
+    isTokenValid,
     PASSWORD_FILE,
     SECURITY_QUESTIONS,
     activeTokens,

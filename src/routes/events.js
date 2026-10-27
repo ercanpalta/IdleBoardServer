@@ -36,8 +36,9 @@ router.get('/events', (req, res) => {
     const clientId = crypto.randomUUID();
     const token = auth.getRequestAuthToken(req);
     const isAdmin = req.query.source === 'admin' && Boolean(token && auth.activeTokens.has(token));
-    const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').replace(/^.*:/, '');
-    const clientVersion = req.query.clientVersion || null;
+    const clientIp = (req.socket.remoteAddress || '').replace(/^.*:/, '');
+    const rawVersion = typeof req.query.clientVersion === 'string' ? req.query.clientVersion.trim() : '';
+    const clientVersion = /^\d+(\.\d+){0,3}$/.test(rawVersion) ? rawVersion : null;
     if (clientVersion) {
         updateManager.setLastKnownClientVersion(clientVersion);
     }
