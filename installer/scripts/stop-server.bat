@@ -1,4 +1,9 @@
 @echo off
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
 title IdleBoard Sunucu Servisini Durdur
 echo IdleBoard Sunucusu durduruluyor...
 schtasks /end /tn "IdleBoardServer"
