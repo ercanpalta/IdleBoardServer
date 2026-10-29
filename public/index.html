@@ -4080,7 +4080,7 @@
                     if (forgotSelect) forgotSelect.focus();
                 } else {
                     promptEl.innerText = 'Sıfırlama işlemi yapılamıyor.';
-                    document.getElementById('forgotQuestionNoConfigMsg').innerHTML = data.error || 'Bu sistemde henüz bir güvenlik sorusu tanımlanmamış. Sunucu terminalinde <code>npm run reset-password</code> komutunu kullanarak şifrenizi doğrudan sıfırlayabilirsiniz.';
+                    document.getElementById('forgotQuestionNoConfigMsg').innerHTML = data.error ? escapeHtml(data.error) : 'Bu sistemde henüz bir güvenlik sorusu tanımlanmamış. Sunucu terminalinde <code>npm run reset-password</code> komutunu kullanarak şifrenizi doğrudan sıfırlayabilirsiniz.';
                     noConfigEl.style.display = 'block';
                 }
             } catch (err) {
@@ -6876,10 +6876,10 @@
             openUpdateModal(
                 'Sunucu Portunu Değiştir',
                 'Port Değişimi ve Yeniden Başlatma',
-                'Sunucu dinleme portunu <strong>' + currentServerPort + '</strong> yerine <strong>' + newPort + '</strong> olarak değiştirmek üzeresiniz.<br><br>' +
+                'Sunucu dinleme portunu <strong>' + escapeHtml(currentServerPort) + '</strong> yerine <strong>' + escapeHtml(newPort) + '</strong> olarak değiştirmek üzeresiniz.<br><br>' +
                 '<strong>Önemli Bilgiler:</strong><br>' +
                 '• Sunucu yeni port üzerinde anında yeniden başlatılacaktır.<br>' +
-                '• Web yönetim paneli otomatik olarak yeni adrese (<code>http://' + window.location.hostname + ':' + newPort + '</code>) yönlendirilecektir.<br>' +
+                '• Web yönetim paneli otomatik olarak yeni adrese (<code>http://' + escapeHtml(window.location.hostname) + ':' + escapeHtml(newPort) + '</code>) yönlendirilecektir.<br>' +
                 '• <strong>Ekran istemcisi (IdleBoardClient)</strong> uygulamasının ayarlarındaki bağlantı adresini de bu yeni port ile güncellemeniz gerekecektir.<br><br>' +
                 'Onaylıyor musunuz?',
                 () => doExecutePortChange(newPort)
@@ -6919,7 +6919,7 @@
                 statusEl.style.background = '#ecfeff';
                 statusEl.style.border = '1px solid #a5f3fc';
                 statusEl.style.color = '#155e75';
-                statusEl.innerHTML = '<strong>' + (data.message || 'Port başarıyla değiştirildi!') + '</strong><br>Yeni adrese yönlendiriliyorsunuz...';
+                statusEl.innerHTML = '<strong>' + escapeHtml(data.message || 'Port başarıyla değiştirildi!') + '</strong><br>Yeni adrese yönlendiriliyorsunuz...';
 
                 setTimeout(() => {
                     const redirectHost = window.location.hostname;
@@ -6958,7 +6958,7 @@
                 const chip = document.createElement('button');
                 chip.type = 'button';
                 chip.className = 'network-ip-chip' + (addr.isPrimary ? ' active' : '');
-                chip.innerHTML = '<strong>' + addr.ip + '</strong> <span class="network-ip-chip-badge">' + addr.name + '</span>';
+                chip.innerHTML = '<strong>' + escapeHtml(addr.ip) + '</strong> <span class="network-ip-chip-badge">' + escapeHtml(addr.name) + '</span>';
                 chip.onclick = () => {
                     selectNetworkIp(addr.ip, chip);
                 };
@@ -7261,7 +7261,7 @@
                 statusEl.style.background = '#ecfeff';
                 statusEl.style.border = '1px solid #a5f3fc';
                 statusEl.style.color = '#155e75';
-                statusEl.innerHTML = '<strong>' + (data.message || 'Güncelleme başlatıldı!') + '</strong><br>Sunucu yeniden başlatılıyor. Sayfa 8 saniye içinde yenilenecektir...';
+                statusEl.innerHTML = '<strong>' + escapeHtml(data.message || 'G\u00fcncelleme ba\u015flat\u0131ld\u0131!') + '</strong><br>Sunucu yeniden başlatılıyor. Sayfa 8 saniye içinde yenilenecektir...';
 
                 setTimeout(() => {
                     window.location.reload();
@@ -7283,7 +7283,7 @@
             openUpdateModal(
                 'Ekran İstemcisi Güncellemesini Onayla',
                 'IdleBoard Ekran İstemcisi v' + client.latestVersion + ' sürümüne güncellenecek',
-                'Tüm bağlı ekran istemcilerine <strong>v' + client.latestVersion + '</strong> sürümüne güncellenme talimatı iletilecektir.<br><br>Ekran istemcileri yeni sürüm zip paketini GitHub Releases üzerinden indirecek, yerel önbellek ve ayarlarını koruyarak kendilerini otomatik olarak güncelleyip yeniden başlatacaktır.<br><br><strong>Bağlı Ekran Sayısı:</strong> ' + (client.connectedClientCount || 0),
+                'Tüm bağlı ekran istemcilerine <strong>v' + escapeHtml(client.latestVersion) + '</strong> sürümüne güncellenme talimatı iletilecektir.<br><br>Ekran istemcileri yeni sürüm zip paketini GitHub Releases üzerinden indirecek, yerel önbellek ve ayarlarını koruyarak kendilerini otomatik olarak güncelleyip yeniden başlatacaktır.<br><br><strong>Bağlı Ekran Sayısı:</strong> ' + (client.connectedClientCount || 0),
                 doExecuteClientUpdate
             );
         }
@@ -7317,7 +7317,7 @@
                 statusEl.style.background = '#ecfeff';
                 statusEl.style.border = '1px solid #a5f3fc';
                 statusEl.style.color = '#155e75';
-                statusEl.innerHTML = '<strong>' + (data.message || 'Güncelleme talimatı iletildi!') + '</strong>';
+                statusEl.innerHTML = '<strong>' + escapeHtml(data.message || 'G\u00fcncelleme talimat\u0131 iletildi!') + '</strong>';
 
                 setTimeout(() => {
                     closeUpdateModal();
@@ -7341,7 +7341,7 @@
             openUpdateModal(
                 'Tüm Sistemi Güncelle',
                 'Sunucu ve Ekran İstemcileri Güncellenecektir',
-                'Önce bağlı ekran istemcilerine <strong>v' + client.latestVersion + '</strong> güncelleme talimatı gönderilecek, hemen ardından sunucu <strong>v' + server.latestVersion + '</strong> sürümüne güncellenerek yeniden başlatılacaktır.<br><br>Onaylıyor musunuz?',
+                'Önce bağlı ekran istemcilerine <strong>v' + escapeHtml(client.latestVersion) + '</strong> güncelleme talimatı gönderilecek, hemen ardından sunucu <strong>v' + escapeHtml(server.latestVersion) + '</strong> sürümüne güncellenerek yeniden başlatılacaktır.<br><br>Onaylıyor musunuz?',
                 async () => {
                     await doExecuteClientUpdate();
                     setTimeout(() => {
