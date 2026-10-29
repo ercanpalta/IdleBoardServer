@@ -64,7 +64,7 @@ router.post('/api/stream/pin', auth.requireAuth, (req, res) => {
     res.json({ success: true, isPinned: true });
 });
 
-router.post('/api/stream/unpin', auth.requireAuth, (req, res) => {
+function unpinStream(reason = 'Slayt döngüsü devam ediyor') {
     state.isImagePinned = false;
     state.lastBroadcast.time = Date.now();
     slideshow.restartSlideshowTimer();
@@ -75,8 +75,12 @@ router.post('/api/stream/unpin', auth.requireAuth, (req, res) => {
         isVideo: state.lastBroadcast.fileName ? media.isVideoFile(state.lastBroadcast.fileName) : false
     });
     broadcast.broadcastStreamStatus({ isPinned: false });
-    activity.logActivity('stream', 'Sabitleme kaldırıldı', 'Slayt döngüsü devam ediyor');
-    console.log('[▶️ Yayın] Görsel sabitlemesi kaldırıldı, slayt akışı devam ediyor.');
+    activity.logActivity('stream', 'Sabitleme kaldırıldı', reason);
+    console.log(`[▶️ Yayın] Görsel sabitlemesi kaldırıldı (${reason}).`);
+}
+
+router.post('/api/stream/unpin', auth.requireAuth, (req, res) => {
+    unpinStream('Slayt döngüsü devam ediyor');
     res.json({ success: true, isPinned: false });
 });
 
@@ -140,6 +144,17 @@ router.post('/api/stream/resume', auth.requireAuth, (req, res) => {
 });
 
 router.post('/api/stream/next', auth.requireAuth, (req, res) => {
+    if (state.isImagePinned) {
+        if (req.body && req.body.unpin) {
+            unpinStream('Sonraki görsele geçiş için sabitleme kaldırıldı');
+        } else {
+            return res.status(400).json({
+                success: false,
+                isPinned: true,
+                error: 'Sonraki medyaya geçmek için pini kaldırmanız gerekmektedir.'
+            });
+        }
+    }
     const nextFile = playlist.advanceSlide(1);
     if (!nextFile) {
         return res.status(400).json({ success: false, error: 'Yayında gösterilecek görsel bulunamadı.' });
@@ -149,6 +164,17 @@ router.post('/api/stream/next', auth.requireAuth, (req, res) => {
 });
 
 router.post('/api/stream/prev', auth.requireAuth, (req, res) => {
+    if (state.isImagePinned) {
+        if (req.body && req.body.unpin) {
+            unpinStream('Önceki görsele geçiş için sabitleme kaldırıldı');
+        } else {
+            return res.status(400).json({
+                success: false,
+                isPinned: true,
+                error: 'Önceki medyaya geçmek için pini kaldırmanız gerekmektedir.'
+            });
+        }
+    }
     const prevFile = playlist.advanceSlide(-1);
     if (!prevFile) {
         return res.status(400).json({ success: false, error: 'Yayında gösterilecek görsel bulunamadı.' });

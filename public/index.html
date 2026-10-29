@@ -528,6 +528,7 @@
         html[data-theme="dark"] .btn-toggle-reset-password:hover { color: #cbd5e1; background: #1e293b; }
         html[data-theme="dark"] .reset-modal-error { background: rgba(185, 28, 28, 0.2); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; }
         html[data-theme="dark"] .reset-modal-error.is-success { background: rgba(22, 163, 74, 0.2); border-color: rgba(34, 197, 94, 0.3); color: #86efac; }
+        html[data-theme="dark"] #updateConfirmContent, html[data-theme="dark"] #streamPinConfirmContent { color: #cbd5e1; }
         html[data-theme="dark"] .modal-footer { background: #071318; border-top-color: #16323e; }
 
         /* Aktif Tercihler Özeti (Genel Bakış) */
@@ -2979,6 +2980,36 @@
                 <button type="button" class="btn btn-primary" id="btnExecuteUpdate">
                     <svg class="icon"><use href="#icon-check"></use></svg>
                     <span id="btnExecuteUpdateText">Onayla ve Başlat</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sabitleme Kaldırma Onay Modalı -->
+    <div id="streamPinConfirmModal" class="modal-backdrop" style="display: none;" onclick="handleStreamPinModalBackdropClick(event)">
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="streamPinConfirmTitle">
+            <div class="modal-header">
+                <div class="modal-icon-badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border-color: rgba(245, 158, 11, 0.25);">
+                    <svg class="icon"><use href="#icon-pin"></use></svg>
+                </div>
+                <div class="modal-header-copy">
+                    <h2 id="streamPinConfirmTitle">Sabitlemeyi Kaldır</h2>
+                    <p class="modal-subtitle" id="streamPinConfirmSubtitle">Görsel Sabitlenmiş Durumda</p>
+                </div>
+                <button type="button" class="btn-modal-close" onclick="closeStreamPinModal()" aria-label="Kapat">
+                    <svg class="icon"><use href="#icon-minus-circle"></use></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="streamPinConfirmContent" style="font-size: 13.5px; line-height: 1.6; color: #334155;">
+                    Sonraki medyaya geçmek için pini kaldırmanız gerekmektedir. Kaldırılsın mı?
+                </div>
+            </div>
+            <div class="modal-footer" style="border-radius: 0 0 16px 16px;">
+                <button type="button" class="btn btn-secondary" onclick="closeStreamPinModal()" id="btnCancelStreamPin">Vazgeç</button>
+                <button type="button" class="btn btn-primary" id="btnExecuteStreamPin">
+                    <svg class="icon"><use href="#icon-check"></use></svg>
+                    <span id="btnExecuteStreamPinText">Pini Kaldır ve İlerle</span>
                 </button>
             </div>
         </div>
@@ -6348,39 +6379,133 @@
             }
         }
 
-        async function streamNext() {
-            try {
-                const res = await fetch('/api/stream/next', {
-                    method: 'POST',
-                    headers: getAuthHeaders()
-                });
-                if (handleApiError(res)) return;
-                const result = await res.json();
-                if (result.success) {
-                    await loadStreamStatus();
-                } else {
-                    alert(result.error || 'Sonraki görsele geçilemedi.');
-                }
-            } catch (err) {
-                console.error('Sonraki resme geçiş hatası:', err);
+        let streamPinConfirmAction = null;
+
+        function openStreamPinModal({ title, subtitle, message, confirmText, onConfirm }) {
+            const titleEl = document.getElementById('streamPinConfirmTitle');
+            const subtitleEl = document.getElementById('streamPinConfirmSubtitle');
+            const contentEl = document.getElementById('streamPinConfirmContent');
+            const confirmBtnText = document.getElementById('btnExecuteStreamPinText');
+            const confirmBtn = document.getElementById('btnExecuteStreamPin');
+
+            if (titleEl && title) titleEl.innerText = title;
+            if (subtitleEl && subtitle) subtitleEl.innerText = subtitle;
+            if (contentEl && message) contentEl.innerText = message;
+            if (confirmBtnText && confirmText) confirmBtnText.innerText = confirmText;
+
+            streamPinConfirmAction = onConfirm;
+            if (confirmBtn) {
+                confirmBtn.onclick = () => {
+                    if (typeof streamPinConfirmAction === 'function') {
+                        streamPinConfirmAction();
+                    }
+                };
+            }
+
+            const modal = document.getElementById('streamPinConfirmModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            requestAnimationFrame(() => {
+                modal.classList.add('is-open');
+            });
+        }
+
+        function closeStreamPinModal() {
+            const modal = document.getElementById('streamPinConfirmModal');
+            if (!modal) return;
+            modal.classList.remove('is-open');
+            streamPinConfirmAction = null;
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+        }
+
+        function handleStreamPinModalBackdropClick(event) {
+            if (event.target === document.getElementById('streamPinConfirmModal')) {
+                closeStreamPinModal();
             }
         }
 
+        async function streamNext() {
+            const isPinned = Boolean(
+                streamCountdownIsPinned ||
+                (currentStreamData && currentStreamData.isPinned) ||
+                document.getElementById('btnStreamPin')?.classList.contains('is-pinned')
+            );
+
+            if (isPinned) {
+                if (isStreamFullscreen()) {
+                    await exitStreamFullscreen();
+                }
+                openStreamPinModal({
+                    title: 'Sabitlemeyi Kaldır',
+                    subtitle: 'Görsel Sabitlenmiş Durumda',
+                    message: 'Sonraki medyaya geçmek için pini kaldırmanız gerekmektedir. Kaldırılsın mı?',
+                    confirmText: 'Pini Kaldır ve İlerle',
+                    onConfirm: async () => {
+                        closeStreamPinModal();
+                        await doStreamNavigate(1, true);
+                    }
+                });
+                return;
+            }
+
+            await doStreamNavigate(1, false);
+        }
+
         async function streamPrev() {
+            const isPinned = Boolean(
+                streamCountdownIsPinned ||
+                (currentStreamData && currentStreamData.isPinned) ||
+                document.getElementById('btnStreamPin')?.classList.contains('is-pinned')
+            );
+
+            if (isPinned) {
+                if (isStreamFullscreen()) {
+                    await exitStreamFullscreen();
+                }
+                openStreamPinModal({
+                    title: 'Sabitlemeyi Kaldır',
+                    subtitle: 'Görsel Sabitlenmiş Durumda',
+                    message: 'Önceki medyaya geçmek için pini kaldırmanız gerekmektedir. Kaldırılsın mı?',
+                    confirmText: 'Pini Kaldır ve İlerle',
+                    onConfirm: async () => {
+                        closeStreamPinModal();
+                        await doStreamNavigate(-1, true);
+                    }
+                });
+                return;
+            }
+
+            await doStreamNavigate(-1, false);
+        }
+
+        async function doStreamNavigate(direction, unpin) {
             try {
-                const res = await fetch('/api/stream/prev', {
+                if (unpin) {
+                    await fetch('/api/stream/unpin', {
+                        method: 'POST',
+                        headers: getAuthHeaders()
+                    });
+                }
+                const endpoint = direction > 0 ? '/api/stream/next' : '/api/stream/prev';
+                const res = await fetch(endpoint, {
                     method: 'POST',
-                    headers: getAuthHeaders()
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ unpin: Boolean(unpin) })
                 });
                 if (handleApiError(res)) return;
                 const result = await res.json();
                 if (result.success) {
                     await loadStreamStatus();
                 } else {
-                    alert(result.error || 'Önceki görsele geçilemedi.');
+                    alert(result.error || (direction > 0 ? 'Sonraki görsele geçilemedi.' : 'Önceki görsele geçilemedi.'));
                 }
             } catch (err) {
-                console.error('Önceki resme geçiş hatası:', err);
+                console.error(direction > 0 ? 'Sonraki resme geçiş hatası:' : 'Önceki resme geçiş hatası:', err);
             }
         }
 
@@ -6558,13 +6683,31 @@
 
         // Medya Oynatıcı & Tam Ekran Klavye Kısayolları (Space, Sol/Sağ Ok, F)
         document.addEventListener('keydown', (e) => {
+            const pinModal = document.getElementById('streamPinConfirmModal');
+            if (pinModal && pinModal.classList.contains('is-open')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeStreamPinModal();
+                }
+                return;
+            }
+
             const resetModal = document.getElementById('resetModal');
             if (resetModal && resetModal.classList.contains('is-open')) {
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     closeResetModal();
-                    return;
                 }
+                return;
+            }
+
+            const updateConfirmModal = document.getElementById('updateConfirmModal');
+            if (updateConfirmModal && updateConfirmModal.classList.contains('is-open')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeUpdateModal();
+                }
+                return;
             }
 
             const streamSec = document.getElementById('streamSection');
