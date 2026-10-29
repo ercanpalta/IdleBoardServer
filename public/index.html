@@ -5784,6 +5784,7 @@
                     videoTotalSec = 30;
                 }
                 const totalSec = Math.max(1, Math.round(videoTotalSec));
+                const exactTotalSec = Math.max(0.5, videoTotalSec);
                 const isSingleMedia = streamCountdownTotalSelected <= 1;
 
                 if (activeVideo) {
@@ -5803,17 +5804,17 @@
                 }
 
                 if (!isSingleMedia) {
-                    videoElapsedSec = Math.min(totalSec, Math.max(0, videoElapsedSec));
-                } else if (totalSec > 0) {
-                    videoElapsedSec = videoElapsedSec % totalSec;
+                    videoElapsedSec = Math.min(exactTotalSec, Math.max(0, videoElapsedSec));
+                } else {
+                    videoElapsedSec = videoElapsedSec % exactTotalSec;
                 }
 
                 timeTotal.innerText = formatPlayerTime(totalSec);
-                const progressRatio = Math.min(1, Math.max(0, videoElapsedSec / totalSec));
+                const progressRatio = Math.min(1, Math.max(0, videoElapsedSec / exactTotalSec));
                 progressBar.style.width = `${(progressRatio * 100).toFixed(1)}%`;
 
                 if (streamTimeMode === 'remaining') {
-                    const remainingSec = Math.max(0, Math.ceil(totalSec - videoElapsedSec));
+                    const remainingSec = Math.max(0, Math.ceil(exactTotalSec - videoElapsedSec - 0.05));
                     timeCurrent.innerText = `-${formatPlayerTime(remainingSec)}`;
                 } else {
                     const elapsedDisplay = Math.min(totalSec, Math.floor(videoElapsedSec));
