@@ -34,4 +34,12 @@ updateManager.registerUpdateRoutes(app, {
     rootDir: cfg.ROOT_DIR
 });
 
+// Yakalanmayan senkron hatalar (örn. bozuk parola dosyası) için JSON 500 yanıtı
+app.use((err, req, res, next) => {
+    console.error(`[Hata] ${req.method} ${req.path}:`, err && err.message ? err.message : err);
+    if (res.headersSent) return next(err);
+    res.status(err && err.status && err.status >= 400 && err.status < 500 ? err.status : 500)
+        .json({ success: false, error: 'Sunucu hatası oluştu.' });
+});
+
 module.exports = { app };

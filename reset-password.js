@@ -117,7 +117,9 @@ function savePasswordData(password, questionId = null, answer = null) {
         payload.securityAnswerHash = existingData.securityAnswerHash;
     }
 
-    fs.writeFileSync(PASSWORD_FILE, JSON.stringify(payload, null, 2), { mode: 0o600 });
+    const temporaryFile = `${PASSWORD_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(temporaryFile, JSON.stringify(payload, null, 2), { mode: 0o600 });
+    fs.renameSync(temporaryFile, PASSWORD_FILE);
 }
 
 function clearPasswordData() {
