@@ -31,7 +31,7 @@ function saveMediaMetadata() {
 loadMediaMetadata();
 
 // MP4 Duration Parser (Harici kütüphane gerektirmeyen, doğrudan atom tabanlı hızlı ve hassas ayrıştırıcı)
-function parseMp4Duration(filePath) {
+function parseMvhdDuration(filePath) {
     let fd = null;
     try {
         const stats = fs.statSync(filePath);
@@ -92,6 +92,133 @@ function parseMp4Duration(filePath) {
         }
     }
     return null;
+}
+
+function iterMp4Boxes(buf, start, end, fn) {
+    let o = start;
+    while (o + 8 <= end) {
+        let size = buf.readUInt32BE(o);
+        const type = buf.toString('ascii', o + 4, o + 8);
+        let hdr = 8;
+        if (size === 1) {
+            if (o + 16 > end) return;
+            size = Number(buf.readBigUInt64BE(o + 8));
+            hdr = 16;
+        } else if (size === 0) {
+            size = end - o;
+        }
+        if (size < hdr) return;
+        const boxEnd = Math.min(o + size, end);
+        if (fn(type, o + hdr, boxEnd) === false) return;
+        o += size;
+    }
+}
+
+// Parçalı (fragmented) MP4 ve mvhd süresi 0 olan dosyalar için: mehd, moof/trun toplamı veya mdhd üzerinden süre hesaplar
+function parseFragmentedMp4Duration(filePath) {
+    const stats = fs.statSync(filePath);
+    if (stats.size > 512 * 1024 * 1024) return null;
+    const buf = fs.readFileSync(filePath);
+    let movieTimescale = 0;
+    let mehdDuration = 0;
+    const trexDefaults = {};
+    const trackTimescale = {};
+    const trackMdhdDuration = {};
+    const fragmentSums = {};
+
+    iterMp4Boxes(buf, 0, buf.length, (type, s, e) => {
+        if (type === 'moov') {
+            iterMp4Boxes(buf, s, e, (t, s2, e2) => {
+                if (t === 'mvhd' && e2 - s2 >= 20) {
+                    movieTimescale = buf.readUInt8(s2) === 1 ? buf.readUInt32BE(s2 + 20) : buf.readUInt32BE(s2 + 12);
+                } else if (t === 'mvex') {
+                    iterMp4Boxes(buf, s2, e2, (t3, s3, e3) => {
+                        if (t3 === 'mehd' && e3 - s3 >= 8) {
+                            mehdDuration = buf.readUInt8(s3) === 1 && e3 - s3 >= 12
+                                ? Number(buf.readBigUInt64BE(s3 + 4))
+                                : buf.readUInt32BE(s3 + 4);
+                        } else if (t3 === 'trex' && e3 - s3 >= 16) {
+                            trexDefaults[buf.readUInt32BE(s3 + 4)] = buf.readUInt32BE(s3 + 12);
+                        }
+                    });
+                } else if (t === 'trak') {
+                    let trackId = 0;
+                    iterMp4Boxes(buf, s2, e2, (t3, s3, e3) => {
+                        if (t3 === 'tkhd' && e3 - s3 >= 24) {
+                            trackId = buf.readUInt8(s3) === 1 ? buf.readUInt32BE(s3 + 20) : buf.readUInt32BE(s3 + 12);
+                        } else if (t3 === 'mdia') {
+                            iterMp4Boxes(buf, s3, e3, (t4, s4, e4) => {
+                                if (t4 === 'mdhd' && e4 - s4 >= 24) {
+                                    const v1 = buf.readUInt8(s4) === 1;
+                                    trackTimescale[trackId] = buf.readUInt32BE(s4 + (v1 ? 20 : 12));
+                                    trackMdhdDuration[trackId] = v1
+                                        ? Number(buf.readBigUInt64BE(s4 + 24))
+                                        : buf.readUInt32BE(s4 + 16);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        } else if (type === 'moof') {
+            iterMp4Boxes(buf, s, e, (t, s2, e2) => {
+                if (t !== 'traf') return;
+                let trackId = 0;
+                let defaultDuration = 0;
+                iterMp4Boxes(buf, s2, e2, (t3, s3, e3) => {
+                    if (t3 === 'tfhd') {
+                        const flags = buf.readUInt32BE(s3) & 0xFFFFFF;
+                        trackId = buf.readUInt32BE(s3 + 4);
+                        let p = s3 + 8;
+                        if (flags & 0x1) p += 8;
+                        if (flags & 0x2) p += 4;
+                        defaultDuration = (flags & 0x8) ? buf.readUInt32BE(p) : (trexDefaults[trackId] || 0);
+                    } else if (t3 === 'trun') {
+                        const flags = buf.readUInt32BE(s3) & 0xFFFFFF;
+                        const count = buf.readUInt32BE(s3 + 4);
+                        let p = s3 + 8;
+                        if (flags & 0x1) p += 4;
+                        if (flags & 0x4) p += 4;
+                        const perSample = (flags & 0x100) ? 4 : 0;
+                        const stride = perSample + ((flags & 0x200) ? 4 : 0) + ((flags & 0x400) ? 4 : 0) + ((flags & 0x800) ? 4 : 0);
+                        let sum = 0;
+                        if (perSample) {
+                            for (let i = 0; i < count && p + stride <= e3; i++, p += stride) sum += buf.readUInt32BE(p);
+                        } else {
+                            sum = count * defaultDuration;
+                        }
+                        fragmentSums[trackId] = (fragmentSums[trackId] || 0) + sum;
+                    }
+                });
+            });
+        }
+    });
+
+    const round2 = v => Math.round(v * 100) / 100;
+    if (mehdDuration > 0 && movieTimescale > 0) return round2(mehdDuration / movieTimescale);
+
+    let best = 0;
+    for (const id of Object.keys(fragmentSums)) {
+        const ts = trackTimescale[id] || movieTimescale;
+        if (ts > 0) best = Math.max(best, fragmentSums[id] / ts);
+    }
+    if (best > 0) return round2(best);
+
+    for (const id of Object.keys(trackMdhdDuration)) {
+        const ts = trackTimescale[id];
+        if (ts > 0) best = Math.max(best, trackMdhdDuration[id] / ts);
+    }
+    return best > 0 ? round2(best) : null;
+}
+
+function parseMp4Duration(filePath) {
+    const simple = parseMvhdDuration(filePath);
+    if (simple > 0) return simple;
+    try {
+        return parseFragmentedMp4Duration(filePath);
+    } catch (e) {
+        return null;
+    }
 }
 
 // Medya Metadata Kendini Onarma ve Disk Eşitleme
