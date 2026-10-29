@@ -39,6 +39,31 @@ function saveActivityLog() {
     }
 }
 
+let saveTimer = null;
+
+function flushActivityLog() {
+    if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+    }
+    saveActivityLog();
+}
+
+// Bağlantı/ayar olayları art arda geldiğinde diske her seferinde yazmamak için birleştirilir
+function scheduleActivitySave() {
+    if (saveTimer) return;
+    saveTimer = setTimeout(flushActivityLog, 1000);
+    saveTimer.unref();
+}
+
+process.on('exit', () => { if (saveTimer) flushActivityLog(); });
+for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, () => {
+        if (saveTimer) flushActivityLog();
+        process.exit(0);
+    });
+}
+
 function logActivity(type, title, detail = '') {
     const entry = {
         id: 'act-' + Date.now() + '-' + Math.round(Math.random() * 1000),
@@ -51,7 +76,7 @@ function logActivity(type, title, detail = '') {
     if (state.activityLog.length > MAX_ACTIVITY_LOG) {
         state.activityLog = state.activityLog.slice(0, MAX_ACTIVITY_LOG);
     }
-    saveActivityLog();
+    scheduleActivitySave();
     broadcast.broadcastDashboardUpdate();
 }
 
@@ -59,4 +84,5 @@ Object.assign(module.exports, {
     loadActivityLog,
     logActivity,
     saveActivityLog,
+    flushActivityLog,
 });
