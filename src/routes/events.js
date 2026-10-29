@@ -22,6 +22,18 @@ function normalizeRemoteIp(addr) {
     return String(addr || '').replace(/^::ffff:/i, '');
 }
 
+// Genel sürüm bilgisi yalnızca yerel ağdaki ekranlardan kabul edilir; dışarıdan sahte sürüm bildirimi güncellemeleri gizleyemez
+function isLanAddress(ip) {
+    return ip === '::1'
+        || /^(127|10)\./.test(ip)
+        || /^192\.168\./.test(ip)
+        || /^172\.(1[6-9]|2\d|3[01])\./.test(ip)
+        || /^169\.254\./.test(ip)
+        || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)
+        || /^f[cd][0-9a-f]{2}:/i.test(ip)
+        || /^fe80:/i.test(ip);
+}
+
 router.get('/events', (req, res) => {
     const remoteIp = normalizeRemoteIp(req.socket.remoteAddress);
     const fromSameIp = state.clients.filter((c) => !c.isAdmin && c.clientIp === remoteIp).length;
@@ -54,7 +66,7 @@ router.get('/events', (req, res) => {
     const clientIp = remoteIp;
     const rawVersion = typeof req.query.clientVersion === 'string' ? req.query.clientVersion.trim() : '';
     const clientVersion = /^\d+(\.\d+){0,3}$/.test(rawVersion) ? rawVersion : null;
-    if (clientVersion) {
+    if (clientVersion && !isAdmin && isLanAddress(remoteIp)) {
         updateManager.setLastKnownClientVersion(clientVersion);
     }
     const newClient = { id: clientId, res, isAdmin, clientVersion, clientIp, connectedAt: Date.now() };
