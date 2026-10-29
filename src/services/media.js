@@ -330,6 +330,7 @@ async function ensureThumbnails() {
 Object.assign(module.exports, {
     MAX_VIDEO_DURATION_SEC,
     ensureThumbnails,
+    generateThumbnail,
     decodeUploadName,
     getMediaDuration,
     isSupportedImage,
