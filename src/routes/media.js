@@ -129,8 +129,10 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
             // Video Süre Kontrolü (Maksimum 60 Saniye - doğrudan sunucu MP4 atom ayrıştırıcı ile)
             let duration = media.parseMp4Duration(req.file.path);
             if (!duration || isNaN(duration) || duration <= 0) {
-                if (req.body && req.body.duration) {
-                    duration = parseFloat(req.body.duration);
+                // İstemci süresi güvenilmez: yalnızca makul bir bit hızıyla (<= 12.5 MB/sn) uyumluysa kabul edilir
+                const claimed = parseFloat(req.body && req.body.duration);
+                if (claimed > 0 && Number.isFinite(claimed) && req.file.size / claimed <= 12.5 * 1024 * 1024) {
+                    duration = claimed;
                 }
             }
 

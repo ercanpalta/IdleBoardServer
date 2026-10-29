@@ -208,6 +208,15 @@ const storage = multer.diskStorage({
     }
 });
 
+// busboy dosya adını latin1 olarak çözer; UTF-8 baytlarını geri dönüştürür (Türkçe karakterler için)
+function decodeUploadName(file) {
+    if (file && typeof file.originalname === 'string' && /[\u0080-\u00ff]/.test(file.originalname)) {
+        const decoded = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        if (!decoded.includes('\ufffd')) file.originalname = decoded;
+    }
+    return file;
+}
+
 const upload = multer({
     storage,
     limits: {
@@ -215,6 +224,7 @@ const upload = multer({
         files: 1
     },
     fileFilter: (req, file, cb) => {
+        decodeUploadName(file);
         const ext = path.extname(file.originalname).toLowerCase();
         const type = supportedMediaTypes[ext];
         if (!type || file.mimetype !== type.mimeType) {
@@ -320,7 +330,7 @@ async function ensureThumbnails() {
 Object.assign(module.exports, {
     MAX_VIDEO_DURATION_SEC,
     ensureThumbnails,
-    generateThumbnail,
+    decodeUploadName,
     getMediaDuration,
     isSupportedImage,
     isSupportedMedia,

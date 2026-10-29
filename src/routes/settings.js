@@ -157,6 +157,7 @@ const watermarkLogoUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024, files: 1 },
     fileFilter: (req, file, cb) => {
+        require('../services/media').decodeUploadName(file);
         const ext = path.extname(file.originalname).toLowerCase();
         if (['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
             cb(null, true);
