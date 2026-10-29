@@ -94,6 +94,86 @@ function parseMvhdDuration(filePath) {
     return null;
 }
 
+function inspectMp4VideoCodec(filePath) {
+    let fd = null;
+    try {
+        const stats = fs.statSync(filePath);
+        fd = fs.openSync(filePath, 'r');
+        let offset = 0;
+        const buf = Buffer.alloc(16);
+
+        while (offset < stats.size - 8) {
+            const bytesRead = fs.readSync(fd, buf, 0, 16, offset);
+            if (bytesRead < 8) break;
+            let size = buf.readUInt32BE(0);
+            const type = buf.toString('ascii', 4, 8);
+            let headerSize = 8;
+
+            if (size === 1) {
+                if (bytesRead < 16) break;
+                size = Number(buf.readBigUInt64BE(8));
+                headerSize = 16;
+            } else if (size === 0) {
+                size = stats.size - offset;
+            }
+
+            if (size < headerSize) break;
+
+            if (type === 'moov') {
+                const moovBufSize = Math.min(size - headerSize, 20 * 1024 * 1024);
+                const moovBuf = Buffer.alloc(moovBufSize);
+                fs.readSync(fd, moovBuf, 0, moovBufSize, offset + headerSize);
+
+                let videoCodec = null;
+                function walk(s, e) {
+                    let o = s;
+                    while (o + 8 <= e && !videoCodec) {
+                        let subSize = moovBuf.readUInt32BE(o);
+                        const subType = moovBuf.toString('ascii', o + 4, o + 8);
+                        let subHdr = 8;
+                        if (subSize === 1) {
+                            if (o + 16 > e) break;
+                            subSize = Number(moovBuf.readBigUInt64BE(o + 8));
+                            subHdr = 16;
+                        } else if (subSize === 0) {
+                            subSize = e - o;
+                        }
+                        if (subSize < subHdr) break;
+                        const bEnd = Math.min(o + subSize, e);
+
+                        if (subType === 'trak' || subType === 'mdia' || subType === 'minf' || subType === 'stbl') {
+                            walk(o + subHdr, bEnd);
+                        } else if (subType === 'stsd' && bEnd - o >= subHdr + 8) {
+                            const count = moovBuf.readUInt32BE(o + subHdr + 4);
+                            let entryOffset = o + subHdr + 8;
+                            for (let i = 0; i < count && entryOffset + 8 <= bEnd; i++) {
+                                const eSize = moovBuf.readUInt32BE(entryOffset);
+                                const fourcc = moovBuf.toString('ascii', entryOffset + 4, entryOffset + 8);
+                                if (fourcc === 'avc1' || fourcc === 'avc3' || fourcc === 'hvc1' || fourcc === 'hev1' || fourcc === 'av01' || fourcc === 'vp09' || fourcc === 'mp4v') {
+                                    videoCodec = fourcc;
+                                    break;
+                                }
+                                if (eSize <= 0) break;
+                                entryOffset += eSize;
+                            }
+                        }
+                        o += subSize;
+                    }
+                }
+                walk(0, moovBuf.length);
+                return videoCodec;
+            }
+            offset += size;
+        }
+    } catch (e) {
+    } finally {
+        if (fd !== null) {
+            try { fs.closeSync(fd); } catch (e) {}
+        }
+    }
+    return null;
+}
+
 function iterMp4Boxes(buf, start, end, fn) {
     let o = start;
     while (o + 8 <= end) {
@@ -464,6 +544,7 @@ Object.assign(module.exports, {
     isSupportedMedia,
     isVideoFile,
     listImageFiles,
+    inspectMp4VideoCodec,
     parseMp4Duration,
     saveMediaMetadata,
     supportedMediaTypes,

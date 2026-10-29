@@ -75,3 +75,19 @@ test('parseMp4Duration returns null for garbage', () => {
     assert.ok(!media.parseMp4Duration(p));
     fs.unlinkSync(p);
 });
+
+test('inspectMp4VideoCodec detects avc1 and hvc1', () => {
+    const avc1Entry = box('avc1', Buffer.alloc(78));
+    const stsdAvc = box('stsd', u32(0, 1), avc1Entry);
+    const trakAvc = box('trak', tkhd, box('mdia', mdhd, box('minf', box('stbl', stsdAvc))));
+    const pAvc = writeTemp('codec-avc', Buffer.concat([ftyp, box('moov', trakAvc)]));
+    assert.strictEqual(media.inspectMp4VideoCodec(pAvc), 'avc1');
+    fs.unlinkSync(pAvc);
+
+    const hvc1Entry = box('hvc1', Buffer.alloc(78));
+    const stsdHvc = box('stsd', u32(0, 1), hvc1Entry);
+    const trakHvc = box('trak', tkhd, box('mdia', mdhd, box('minf', box('stbl', stsdHvc))));
+    const pHvc = writeTemp('codec-hvc', Buffer.concat([ftyp, box('moov', trakHvc)]));
+    assert.strictEqual(media.inspectMp4VideoCodec(pHvc), 'hvc1');
+    fs.unlinkSync(pHvc);
+});

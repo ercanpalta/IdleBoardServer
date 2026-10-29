@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -126,6 +126,30 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
         }
 
         if (expectedType.isVideo) {
+            // Video Kodek Uyumluluk Kontrolü (H.264 / AVC gereklidir)
+            const codec = media.inspectMp4VideoCodec(req.file.path);
+            if (codec === 'hvc1' || codec === 'hev1') {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({
+                    success: false,
+                    error: 'Yüklenen video H.265 (HEVC) formatında. Tüm Windows istemcilerde sorunsuz oynatılabilmesi için video H.264 (AVC) formatında olmalıdır.'
+                });
+            }
+            if (codec === 'av01') {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({
+                    success: false,
+                    error: 'Yüklenen video AV1 formatında. Tüm Windows istemcilerde sorunsuz oynatılabilmesi için video H.264 (AVC) formatında olmalıdır.'
+                });
+            }
+            if (codec === 'vp09') {
+                try { await fs.promises.unlink(req.file.path); } catch (e) {}
+                return res.status(400).json({
+                    success: false,
+                    error: 'Yüklenen video VP9 formatında. Tüm Windows istemcilerde sorunsuz oynatılabilmesi için video H.264 (AVC) formatında olmalıdır.'
+                });
+            }
+
             // Video Süre Kontrolü (Maksimum 60 Saniye - doğrudan sunucu MP4 atom ayrıştırıcı ile)
             let duration = media.parseMp4Duration(req.file.path);
             if (!duration || isNaN(duration) || duration <= 0) {
@@ -156,6 +180,7 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
             state.mediaMetadata[req.file.filename] = {
                 duration: finalDuration,
                 isVideo: true,
+                codec: codec || 'avc1',
                 size: req.file.size,
                 uploadedAt: new Date().toISOString()
             };
