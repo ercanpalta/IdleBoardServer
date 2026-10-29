@@ -177,10 +177,25 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
             }
 
             const finalDuration = Math.round(duration * 100) / 100;
+            const videoRes = media.inspectMp4Resolution(req.file.path);
+            let warning = null;
+            if (videoRes && videoRes.width > 0 && videoRes.height > 0) {
+                const maxDim = Math.max(videoRes.width, videoRes.height);
+                const minDim = Math.min(videoRes.width, videoRes.height);
+                if (maxDim > 2048 || minDim > 1152) {
+                    warning = `Yüklenen video 2K çözünürlüğünden büyüktür (${videoRes.width}x${videoRes.height}). İstemci cihazlarda takılma yaşamamak ve en akıcı oynatma için 1080p (1920x1080) formatı önerilir.`;
+                    console.log(`[⚠️ Video Uyarısı] ${req.file.filename}: ${warning}`);
+                    activity.logActivity('upload', '2K Üstü Video Uyarısı', `${req.file.originalname || req.file.filename} (${videoRes.width}x${videoRes.height})`);
+                }
+            }
+
             state.mediaMetadata[req.file.filename] = {
                 duration: finalDuration,
                 isVideo: true,
-                codec: codec || 'avc1',
+                codec: codec || (videoRes && videoRes.codec) || 'avc1',
+                width: videoRes ? videoRes.width : undefined,
+                height: videoRes ? videoRes.height : undefined,
+                warning: warning || undefined,
                 size: req.file.size,
                 uploadedAt: new Date().toISOString()
             };
@@ -214,7 +229,8 @@ router.post('/api/upload', auth.requireAuth, (req, res) => {
         // Arka planda küçük önizleme (thumbnail) oluşturulur
         media.generateThumbnail(req.file.filename).catch(() => {});
         activity.logActivity('upload', 'Yeni görsel yüklendi', req.file.originalname || req.file.filename);
-        res.json({ success: true, fileName: req.file.filename });
+        const uploadWarn = (expectedType.isVideo && state.mediaMetadata[req.file.filename]) ? state.mediaMetadata[req.file.filename].warning : undefined;
+        res.json({ success: true, fileName: req.file.filename, warning: uploadWarn });
     });
 });
 

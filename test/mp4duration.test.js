@@ -91,3 +91,17 @@ test('inspectMp4VideoCodec detects avc1 and hvc1', () => {
     assert.strictEqual(media.inspectMp4VideoCodec(pHvc), 'hvc1');
     fs.unlinkSync(pHvc);
 });
+
+
+test('inspectMp4Resolution extracts width and height from stsd', () => {
+    const avc1Payload = Buffer.alloc(78);
+    avc1Payload.writeUInt16BE(1920, 24);
+    avc1Payload.writeUInt16BE(1080, 26);
+    const avc1Entry = box('avc1', avc1Payload);
+    const stsdAvc = box('stsd', u32(0, 1), avc1Entry);
+    const trakAvc = box('trak', tkhd, box('mdia', mdhd, box('minf', box('stbl', stsdAvc))));
+    const p = writeTemp('res-test', Buffer.concat([ftyp, box('moov', trakAvc)]));
+    const res = media.inspectMp4Resolution(p);
+    assert.deepStrictEqual(res, { width: 1920, height: 1080, codec: 'avc1' });
+    fs.unlinkSync(p);
+});

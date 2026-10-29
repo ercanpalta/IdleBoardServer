@@ -94,7 +94,7 @@ function parseMvhdDuration(filePath) {
     return null;
 }
 
-function inspectMp4VideoCodec(filePath) {
+function inspectMp4VideoInfo(filePath) {
     let fd = null;
     try {
         const stats = fs.statSync(filePath);
@@ -125,9 +125,12 @@ function inspectMp4VideoCodec(filePath) {
                 fs.readSync(fd, moovBuf, 0, moovBufSize, offset + headerSize);
 
                 let videoCodec = null;
+                let videoWidth = 0;
+                let videoHeight = 0;
+
                 function walk(s, e) {
                     let o = s;
-                    while (o + 8 <= e && !videoCodec) {
+                    while (o + 8 <= e && (!videoCodec || !videoWidth)) {
                         let subSize = moovBuf.readUInt32BE(o);
                         const subType = moovBuf.toString('ascii', o + 4, o + 8);
                         let subHdr = 8;
@@ -143,6 +146,18 @@ function inspectMp4VideoCodec(filePath) {
 
                         if (subType === 'trak' || subType === 'mdia' || subType === 'minf' || subType === 'stbl') {
                             walk(o + subHdr, bEnd);
+                        } else if (subType === 'tkhd' && bEnd - o >= subHdr + 84) {
+                            const ver = moovBuf.readUInt8(o + subHdr);
+                            const wOff = ver === 1 ? o + subHdr + 88 : o + subHdr + 76;
+                            const hOff = ver === 1 ? o + subHdr + 92 : o + subHdr + 80;
+                            if (hOff + 4 <= bEnd) {
+                                const tw = moovBuf.readUInt32BE(wOff) >>> 16;
+                                const th = moovBuf.readUInt32BE(hOff) >>> 16;
+                                if (tw > 0 && th > 0 && (!videoWidth || !videoHeight)) {
+                                    videoWidth = tw;
+                                    videoHeight = th;
+                                }
+                            }
                         } else if (subType === 'stsd' && bEnd - o >= subHdr + 8) {
                             const count = moovBuf.readUInt32BE(o + subHdr + 4);
                             let entryOffset = o + subHdr + 8;
@@ -151,6 +166,14 @@ function inspectMp4VideoCodec(filePath) {
                                 const fourcc = moovBuf.toString('ascii', entryOffset + 4, entryOffset + 8);
                                 if (fourcc === 'avc1' || fourcc === 'avc3' || fourcc === 'hvc1' || fourcc === 'hev1' || fourcc === 'av01' || fourcc === 'vp09' || fourcc === 'mp4v') {
                                     videoCodec = fourcc;
+                                    if (entryOffset + 36 <= bEnd) {
+                                        const w = moovBuf.readUInt16BE(entryOffset + 32);
+                                        const h = moovBuf.readUInt16BE(entryOffset + 34);
+                                        if (w > 0 && h > 0) {
+                                            videoWidth = w;
+                                            videoHeight = h;
+                                        }
+                                    }
                                     break;
                                 }
                                 if (eSize <= 0) break;
@@ -161,7 +184,10 @@ function inspectMp4VideoCodec(filePath) {
                     }
                 }
                 walk(0, moovBuf.length);
-                return videoCodec;
+                if (videoCodec || videoWidth > 0) {
+                    return { codec: videoCodec, width: videoWidth, height: videoHeight };
+                }
+                return null;
             }
             offset += size;
         }
@@ -170,6 +196,19 @@ function inspectMp4VideoCodec(filePath) {
         if (fd !== null) {
             try { fs.closeSync(fd); } catch (e) {}
         }
+    }
+    return null;
+}
+
+function inspectMp4VideoCodec(filePath) {
+    const info = inspectMp4VideoInfo(filePath);
+    return info ? info.codec : null;
+}
+
+function inspectMp4Resolution(filePath) {
+    const info = inspectMp4VideoInfo(filePath);
+    if (info && info.width > 0 && info.height > 0) {
+        return { width: info.width, height: info.height, codec: info.codec };
     }
     return null;
 }
@@ -322,13 +361,27 @@ function syncMediaMetadataWithDisk() {
             const fullPath = path.join(cfg.IMAGES_DIR, f);
             const currentMeta = state.mediaMetadata[f];
             const parsed = parseMp4Duration(fullPath);
+            const res = inspectMp4Resolution(fullPath);
+            const codec = inspectMp4VideoCodec(fullPath);
             if (parsed && parsed > 0) {
                 const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(0.5, Math.round(parsed * 100) / 100));
-                if (!currentMeta || currentMeta.duration !== finalDur) {
+                let warn = undefined;
+                if (res && res.width > 0 && res.height > 0) {
+                    const maxDim = Math.max(res.width, res.height);
+                    const minDim = Math.min(res.width, res.height);
+                    if (maxDim > 2048 || minDim > 1152) {
+                        warn = `Yüklenen video 2K çözünürlüğünden büyüktür (${res.width}x${res.height}). İstemci cihazlarda takılma yaşamamak ve en akıcı oynatma için 1080p (1920x1080) formatı önerilir.`;
+                    }
+                }
+                if (!currentMeta || currentMeta.duration !== finalDur || !currentMeta.width || currentMeta.warning !== warn) {
                     state.mediaMetadata[f] = {
                         ...(currentMeta || {}),
                         duration: finalDur,
                         isVideo: true,
+                        codec: codec || (res && res.codec) || (currentMeta && currentMeta.codec) || 'avc1',
+                        width: res ? res.width : (currentMeta ? currentMeta.width : undefined),
+                        height: res ? res.height : (currentMeta ? currentMeta.height : undefined),
+                        warning: warn,
                         size: fs.statSync(fullPath).size,
                         verifiedAt: new Date().toISOString()
                     };
@@ -545,6 +598,8 @@ Object.assign(module.exports, {
     isVideoFile,
     listImageFiles,
     inspectMp4VideoCodec,
+    inspectMp4VideoInfo,
+    inspectMp4Resolution,
     parseMp4Duration,
     saveMediaMetadata,
     supportedMediaTypes,

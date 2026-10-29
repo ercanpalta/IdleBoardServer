@@ -4524,6 +4524,15 @@
                     badge.style.cssText = 'position: absolute; top: 8px; left: 8px; background: rgba(8, 145, 178, 0.9); color: #fff; border: 1px solid rgba(165, 243, 252, 0.45); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 3; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.35); pointer-events: none;';
                     badge.innerText = '▶ ' + durStr;
                     card.appendChild(badge);
+
+                    const isOver2K = Boolean(meta.warning || (meta.width && (Math.max(meta.width, meta.height) > 2048 || Math.min(meta.width, meta.height) > 1152)));
+                    if (isOver2K) {
+                        const warnBadge = document.createElement('span');
+                        warnBadge.style.cssText = 'position: absolute; top: 8px; right: 8px; background: rgba(217, 119, 6, 0.95); color: #ffffff; border: 1px solid rgba(253, 230, 138, 0.7); padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 800; z-index: 3; display: flex; align-items: center; gap: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: help;';
+                        warnBadge.title = meta.warning || `Video çözünürlüğü (${meta.width}x${meta.height}) 2K üzerindedir. Takılmaları önlemek için 1080p önerilir.`;
+                        warnBadge.innerText = `⚠️ >2K (${meta.width || '4K'})`;
+                        card.appendChild(warnBadge);
+                    }
                 }
 
                 const isVid = fileName.toLowerCase().endsWith('.mp4');
@@ -4811,6 +4820,7 @@
             const fileInput = document.getElementById('fileInput');
             const status = document.getElementById('uploadStatus');
             const failedFiles = [];
+            const uploadWarnings = [];
             let uploadedCount = 0;
             clearTimeout(uploadStatusTimer);
             status.innerText = '';
@@ -4859,6 +4869,9 @@
                             failedFiles.push(`${file.name}${errNote}`);
                         } else {
                             uploadedCount++;
+                            if (result.warning) {
+                                uploadWarnings.push(`${file.name}: ${result.warning}`);
+                            }
                             // Video ise oluşturulan kapak görselini sunucuya ve önbelleğe kaydet
                             if (videoMeta && result.fileName) {
                                 if (videoMeta.dataUrl) {
@@ -4883,14 +4896,19 @@
                 }
 
                 await loadGallery(true);
-                status.innerText = failedFiles.length
-                    ? `${uploadedCount} / ${files.length} görsel yüklendi. Yüklenemeyenler: ${failedFiles.join(', ')}`
-                    : `${uploadedCount} görsel başarıyla yüklendi.`;
-                if (failedFiles.length === 0) {
-                    uploadStatusTimer = setTimeout(() => {
-                        status.innerText = '';
-                        uploadStatusTimer = null;
-                    }, 5000);
+                if (uploadWarnings.length > 0) {
+                    const failMsg = failedFiles.length ? `<br><span style="color:#ef4444;">Yüklenemeyenler: ${failedFiles.join(', ')}</span>` : '';
+                    status.innerHTML = `<span style="color:#d97706; font-weight:600;">⚠️ ${uploadedCount} dosya yüklendi ancak uyarı var:</span><br>${uploadWarnings.map(w => '<span style="color:#b45309; font-size:12px;">• ' + w + '</span>').join('<br>')}${failMsg}`;
+                } else {
+                    status.innerText = failedFiles.length
+                        ? `${uploadedCount} / ${files.length} görsel yüklendi. Yüklenemeyenler: ${failedFiles.join(', ')}`
+                        : `${uploadedCount} görsel başarıyla yüklendi.`;
+                    if (failedFiles.length === 0) {
+                        uploadStatusTimer = setTimeout(() => {
+                            status.innerText = '';
+                            uploadStatusTimer = null;
+                        }, 5000);
+                    }
                 }
             } catch (err) {
                 console.error('Galeri yüklemesi tamamlanamadı:', err);
