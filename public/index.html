@@ -2985,7 +2985,8 @@
     </div>
 
     <script>
-        const TOKEN_KEY = 'idleboard_admin_token';
+        // Oturum yalnızca HttpOnly çerez ile taşınır; token JS tarafında saklanmaz
+        let adminSessionActive = false;
         const THEME_KEY = 'idleboard_admin_theme';
         let sseSource = null;
 
@@ -2997,7 +2998,7 @@
             try {
                 const url = typeof input === 'string' ? input : (input && input.url) || '';
                 const isApi = url.startsWith('/api/') && !url.startsWith('/api/auth/') && url !== '/api/login' && url !== '/api/logout';
-                if (res.status === 401 && isApi && localStorage.getItem(TOKEN_KEY) && !sessionExpiredHandling) {
+                if (res.status === 401 && isApi && adminSessionActive && !sessionExpiredHandling) {
                     sessionExpiredHandling = true;
                     Promise.resolve(logout('Oturum süresi doldu, lütfen tekrar giriş yapın.')).finally(() => { sessionExpiredHandling = false; });
                 }
@@ -3007,10 +3008,9 @@
 
         // SSE bağlantısı süresi dolmuş token ile sessizce yetkisiz kalmasın: periyodik doğrulama
         setInterval(async () => {
-            const tok = localStorage.getItem(TOKEN_KEY);
-            if (!tok || sessionExpiredHandling) return;
+            if (!adminSessionActive || sessionExpiredHandling) return;
             try {
-                const r = await originalFetch('/api/auth/check', { headers: getAuthHeaders() });
+                const r = await originalFetch('/api/auth/check');
                 if (r.status === 401) {
                     sessionExpiredHandling = true;
                     await logout('Oturum süresi doldu, lütfen tekrar giriş yapın.');
@@ -3028,8 +3028,7 @@
         let isEditingServerPort = false;
 
         function getAuthHeaders() {
-            const token = localStorage.getItem(TOKEN_KEY);
-            return token ? { 'Authorization': `Bearer ${token}` } : {};
+            return {};
         }
 
         async function checkAuth() {
@@ -3385,7 +3384,6 @@
 
                 const data = await res.json();
                 if (res.ok && data.success) {
-                    localStorage.removeItem(TOKEN_KEY);
                     passInput.value = '';
                     showDashboard();
                 } else {
@@ -3404,7 +3402,6 @@
                 });
             } catch (e) {}
 
-            localStorage.removeItem(TOKEN_KEY);
             clearInterval(dashboardRefreshTimer);
             dashboardRefreshTimer = null;
             if (sseSource) {
@@ -3415,6 +3412,7 @@
         }
 
         function showLogin(msg = '') {
+            adminSessionActive = false;
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('setupSection').style.display = 'none';
@@ -3439,6 +3437,7 @@
         }
 
         function showSetup() {
+            adminSessionActive = false;
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'flex';
@@ -3456,6 +3455,7 @@
         }
 
         function showDashboard() {
+            adminSessionActive = true;
             stopStreamCountdown();
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('setupSection').style.display = 'none';
@@ -4021,7 +4021,6 @@
                     return;
                 }
 
-                localStorage.removeItem(TOKEN_KEY);
                 currentPasswordInput.value = '';
                 newPasswordInput.value = '';
                 confirmationInput.value = '';
@@ -4439,7 +4438,6 @@
                     errorDiv.innerText = 'Sunucu fabrika ayarlarına sıfırlandı. Çıkış yapılıyor...';
                     errorDiv.style.display = 'flex';
                 }
-                localStorage.removeItem(TOKEN_KEY);
                 setTimeout(() => {
                     window.location.reload();
                 }, 1200);
@@ -6587,15 +6585,12 @@
                 sseSource.close();
             }
 
-            const adminTok = localStorage.getItem(TOKEN_KEY);
-            const sseUrl = adminTok ? `/events?source=admin&token=${encodeURIComponent(adminTok)}` : '/events?source=admin';
-            sseSource = new EventSource(sseUrl);
+            sseSource = new EventSource('/events?source=admin');
 
             sseSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.tip === 'factory_reset') {
-                        localStorage.removeItem(TOKEN_KEY);
                         window.location.reload();
                         return;
                     }

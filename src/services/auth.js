@@ -85,9 +85,6 @@ function getRequestAuthToken(req) {
     if (req.headers['x-admin-token']) {
         return req.headers['x-admin-token'];
     }
-    if (req.query && req.query.token) {
-        return req.query.token;
-    }
     return null;
 }
 
