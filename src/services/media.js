@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
@@ -241,13 +241,10 @@ function syncMediaMetadataWithDisk() {
         for (const f of diskVideoFiles) {
             const fullPath = path.join(cfg.IMAGES_DIR, f);
             const currentMeta = state.mediaMetadata[f];
-            const currentDur = currentMeta ? currentMeta.duration : null;
-
-            // Süre yoksa veya tam 30 ise (eski varsayılan değer şüphesi) tekrar ayrıştır
-            if (!currentDur || currentDur <= 0 || currentDur === 30) {
-                const parsed = parseMp4Duration(fullPath);
-                if (parsed && parsed > 0) {
-                    const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(0.5, parsed));
+            const parsed = parseMp4Duration(fullPath);
+            if (parsed && parsed > 0) {
+                const finalDur = Math.min(MAX_VIDEO_DURATION_SEC, Math.max(0.5, Math.round(parsed * 100) / 100));
+                if (!currentMeta || currentMeta.duration !== finalDur) {
                     state.mediaMetadata[f] = {
                         ...(currentMeta || {}),
                         duration: finalDur,
@@ -257,6 +254,8 @@ function syncMediaMetadataWithDisk() {
                     };
                     changed = true;
                 }
+            } else if (!currentMeta || !currentMeta.duration) {
+                console.warn(`[!] Video süresi diskten okunamadı: ${f}`);
             }
         }
 
@@ -320,7 +319,8 @@ function getMediaDuration(fileName) {
                 return finalDur;
             }
         }
-        return 30; // fallback if unparseable
+        console.warn(`[!] Video süresi çözülemedi: ${fileName}. Standart slayt aralığı (${state.slideIntervalSec}s) uygulanıyor.`);
+        return state.slideIntervalSec;
     }
     return state.slideIntervalSec;
 }
