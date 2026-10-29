@@ -1,4 +1,5 @@
 const cors = require('cors');
+const net = require('net');
 
 // İzin Verilen Kaynak (Origin) Denetimi: Yerel ağ, localhost ve aynı kaynak
 function isAllowedOrigin(origin, req) {
@@ -22,7 +23,36 @@ function isAllowedOrigin(origin, req) {
     return false;
 }
 
+function isIpLiteral(hostname) {
+    return net.isIP(hostname.replace(/^\[|\]$/g, '')) !== 0;
+}
+
+const EXTRA_ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS || '')
+    .split(',')
+    .map(h => h.trim().toLowerCase())
+    .filter(Boolean);
+
+// DNS rebinding korumasi: Host basligi yalnizca IP, localhost, yerel alan adlari veya ALLOWED_HOSTS ile eslesen adlar olabilir
+function isAllowedHost(hostHeader) {
+    if (!hostHeader) return true;
+    let hostname;
+    try {
+        hostname = new URL(`http://${hostHeader}`).hostname.toLowerCase();
+    } catch {
+        return false;
+    }
+    if (hostname === 'localhost' || isIpLiteral(hostname)) return true;
+    if (!hostname.includes('.')) return true;
+    if (/\.(local|lan|internal|localdomain|home\.arpa)$/.test(hostname)) return true;
+    return EXTRA_ALLOWED_HOSTS.includes(hostname);
+}
+
 function applySecurity(app) {
+    app.use((req, res, next) => {
+        if (isAllowedHost(req.headers.host)) return next();
+        console.warn(`[Guvenlik] Gecersiz Host basligi engellendi: ${req.headers.host}`);
+        res.status(421).json({ success: false, error: 'Gecersiz Host basligi. Farkli bir alan adi kullaniyorsaniz ALLOWED_HOSTS ortam degiskenine ekleyin.' });
+    });
     // Sunucu Teknolojisi İmzası Gizleme (Fingerprinting Koruması)
     app.disable('x-powered-by');
 
@@ -127,4 +157,4 @@ function applySecurity(app) {
     });
 }
 
-module.exports = { applySecurity, isAllowedOrigin };
+module.exports = { applySecurity, isAllowedOrigin, isAllowedHost };
