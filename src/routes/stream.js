@@ -47,6 +47,19 @@ router.get('/api/stream/status', auth.requireAuth, (req, res) => {
 });
 
 router.post('/api/stream/pin', auth.requireAuth, (req, res) => {
+    if (state.slideshowOrder === 'random') {
+        if (req.body && req.body.disableShuffle) {
+            settings.setSlideshowOrder('sequential');
+            activity.logActivity('settings', 'Slayt sıralaması güncellendi', 'Görsel sabitleme için sıralı döngüye geçildi');
+            console.log('[i] Görsel sabitleme için karışık çalma kapatıldı.');
+        } else {
+            return res.status(400).json({
+                success: false,
+                isRandomOrder: true,
+                error: 'Görseli sabitlemek için karışık çalma modunu kapatmanız gerekmektedir.'
+            });
+        }
+    }
     state.isImagePinned = true;
     if (state.slideshowTimer) {
         clearInterval(state.slideshowTimer);
@@ -85,6 +98,19 @@ router.post('/api/stream/unpin', auth.requireAuth, (req, res) => {
 });
 
 router.post('/api/stream/toggle-pin', auth.requireAuth, (req, res) => {
+    if (!state.isImagePinned && state.slideshowOrder === 'random') {
+        if (req.body && req.body.disableShuffle) {
+            settings.setSlideshowOrder('sequential');
+            activity.logActivity('settings', 'Slayt sıralaması güncellendi', 'Görsel sabitleme için sıralı döngüye geçildi');
+            console.log('[i] Görsel sabitleme için karışık çalma kapatıldı.');
+        } else {
+            return res.status(400).json({
+                success: false,
+                isRandomOrder: true,
+                error: 'Görseli sabitlemek için karışık çalma modunu kapatmanız gerekmektedir.'
+            });
+        }
+    }
     state.isImagePinned = !state.isImagePinned;
     if (state.isImagePinned) {
         if (state.slideshowTimer) {

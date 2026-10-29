@@ -11,6 +11,7 @@ const httpServer = require('../services/httpServer');
 const media = require('../services/media');
 const network = require('../services/network');
 const settings = require('../services/settings');
+const slideshow = require('../services/slideshow');
 const state = require('../state');
 
 const router = express.Router();
@@ -263,7 +264,30 @@ router.post('/api/settings/transition-effect', auth.requireAuth, (req, res) => {
 });
 
 router.post('/api/settings/slideshow-order', auth.requireAuth, (req, res) => {
-    if (!settings.setSlideshowOrder(req.body && req.body.slideshowOrder)) {
+    const requestedOrder = req.body && req.body.slideshowOrder;
+    if (requestedOrder === 'random' && state.isImagePinned) {
+        if (req.body && req.body.unpin) {
+            state.isImagePinned = false;
+            state.lastBroadcast.time = Date.now();
+            slideshow.restartSlideshowTimer();
+            broadcast.broadcastToAll({
+                tip: 'pin_control',
+                isPinned: false,
+                fileName: state.lastBroadcast.fileName,
+                isVideo: state.lastBroadcast.fileName ? media.isVideoFile(state.lastBroadcast.fileName) : false
+            });
+            broadcast.broadcastStreamStatus({ isPinned: false });
+            activity.logActivity('stream', 'Sabitleme kaldırıldı', 'Karışık çalma moduna geçiş için sabitleme kaldırıldı');
+            console.log('[▶️ Yayın] Karışık çalma moduna geçiş için görsel sabitlemesi kaldırıldı.');
+        } else {
+            return res.status(400).json({
+                success: false,
+                isPinned: true,
+                error: 'Karışık çalma moduna geçmek için pini kaldırmanız gerekmektedir.'
+            });
+        }
+    }
+    if (!settings.setSlideshowOrder(requestedOrder)) {
         return res.status(400).json({
             success: false,
             error: 'Geçersiz sıralama modu. Seçenekler: sequential, random'

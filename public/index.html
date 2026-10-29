@@ -2990,7 +2990,7 @@
         <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="streamPinConfirmTitle">
             <div class="modal-header">
                 <div class="modal-icon-badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border-color: rgba(245, 158, 11, 0.25);">
-                    <svg class="icon"><use href="#icon-pin"></use></svg>
+                    <svg class="icon"><use id="streamPinModalIconUse" href="#icon-pin"></use></svg>
                 </div>
                 <div class="modal-header-copy">
                     <h2 id="streamPinConfirmTitle">Sabitlemeyi Kaldır</h2>
@@ -5065,25 +5065,58 @@
                 }
             }
             const nextOrder = currentOrder === 'random' ? 'sequential' : 'random';
-
-            if (currentStreamData) {
-                currentStreamData.slideshowOrder = nextOrder;
-            }
-            updateStreamShuffleButton(nextOrder);
-
             await updateSlideshowOrder(nextOrder);
         }
 
-        async function updateSlideshowOrder(val) {
+        async function updateSlideshowOrder(val, forceUnpin) {
+            const isPinned = Boolean(
+                streamCountdownIsPinned ||
+                (currentStreamData && currentStreamData.isPinned) ||
+                document.getElementById('btnStreamPin')?.classList.contains('is-pinned')
+            );
+
+            if (val === 'random' && isPinned && !forceUnpin) {
+                if (isStreamFullscreen()) {
+                    await exitStreamFullscreen();
+                }
+                openStreamPinModal({
+                    title: 'Sabitlemeyi Kaldır',
+                    subtitle: 'Görsel Sabitlenmiş Durumda',
+                    message: 'Karışık çalma moduna geçmek için pini kaldırmanız gerekmektedir. Kaldırılsın mı?',
+                    confirmText: 'Pini Kaldır ve Karışık Çal',
+                    icon: '#icon-pin',
+                    onConfirm: async () => {
+                        closeStreamPinModal();
+                        await doUpdateSlideshowOrder('random', true);
+                    }
+                });
+                const radios = document.getElementsByName('slideshowOrder');
+                for (const r of radios) {
+                    r.checked = (r.value === 'sequential');
+                }
+                updateStreamShuffleButton('sequential');
+                return;
+            }
+
+            await doUpdateSlideshowOrder(val, forceUnpin);
+        }
+
+        async function doUpdateSlideshowOrder(val, forceUnpin) {
             const status = document.getElementById('slideshowOrderStatus');
             try {
+                if (forceUnpin) {
+                    await fetch('/api/stream/unpin', {
+                        method: 'POST',
+                        headers: getAuthHeaders()
+                    });
+                }
                 const res = await fetch('/api/settings/slideshow-order', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         ...getAuthHeaders()
                     },
-                    body: JSON.stringify({ slideshowOrder: val })
+                    body: JSON.stringify({ slideshowOrder: val, unpin: Boolean(forceUnpin) })
                 });
                 if (handleApiError(res)) return;
 
@@ -5103,6 +5136,9 @@
                     }
                     updateStreamShuffleButton(val);
                     loadDashboardStats();
+                    if (forceUnpin) {
+                        await loadStreamStatus();
+                    }
                 } else {
                     if (status) {
                         status.style.color = '#dc2626';
@@ -5113,6 +5149,7 @@
                     }
                 }
             } catch (e) {
+                console.error('Slayt sıralaması güncelleme hatası:', e);
                 if (status) {
                     status.style.color = '#dc2626';
                     status.innerText = 'Hata oluştu';
@@ -6362,6 +6399,58 @@
         }
 
         async function toggleStreamPin() {
+            const isCurrentlyPinned = Boolean(
+                streamCountdownIsPinned ||
+                (currentStreamData && currentStreamData.isPinned) ||
+                document.getElementById('btnStreamPin')?.classList.contains('is-pinned')
+            );
+
+            const isRandomOrder = Boolean(
+                (currentStreamData && currentStreamData.slideshowOrder === 'random') ||
+                document.querySelector('input[name="slideshowOrder"]:checked')?.value === 'random' ||
+                document.getElementById('btnStreamShuffle')?.classList.contains('is-active')
+            );
+
+            // Eğer sabitleme KAPALI ve karışık çalma modu AÇIKSA: Sabitlemeden önce karışık çalmayı kapatma onayı sor
+            if (!isCurrentlyPinned && isRandomOrder) {
+                if (isStreamFullscreen()) {
+                    await exitStreamFullscreen();
+                }
+                openStreamPinModal({
+                    title: 'Karışık Çalmayı Kapat',
+                    subtitle: 'Karışık Çalma Modu Aktif',
+                    message: 'Görseli sabitlemek için karışık çalma modunu kapatmanız gerekmektedir. Kapatılsın mı?',
+                    confirmText: 'Karışık Çalmayı Kapat ve Sabitle',
+                    icon: '#icon-shuffle',
+                    onConfirm: async () => {
+                        closeStreamPinModal();
+                        try {
+                            // 1. Karışık çalmayı kapat (sıralı moda geç)
+                            await doUpdateSlideshowOrder('sequential');
+                            // 2. Görseli sabitle
+                            const res = await fetch('/api/stream/toggle-pin', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...getAuthHeaders()
+                                },
+                                body: JSON.stringify({ disableShuffle: true })
+                            });
+                            if (handleApiError(res)) return;
+                            const result = await res.json();
+                            if (result.success) {
+                                await loadStreamStatus();
+                            } else {
+                                alert(result.error || 'Sabitleme işlemi gerçekleştirilemedi.');
+                            }
+                        } catch (err) {
+                            console.error('Sabitleme hatası:', err);
+                        }
+                    }
+                });
+                return;
+            }
+
             try {
                 const res = await fetch('/api/stream/toggle-pin', {
                     method: 'POST',
@@ -6381,17 +6470,19 @@
 
         let streamPinConfirmAction = null;
 
-        function openStreamPinModal({ title, subtitle, message, confirmText, onConfirm }) {
+        function openStreamPinModal({ title, subtitle, message, confirmText, icon, onConfirm }) {
             const titleEl = document.getElementById('streamPinConfirmTitle');
             const subtitleEl = document.getElementById('streamPinConfirmSubtitle');
             const contentEl = document.getElementById('streamPinConfirmContent');
             const confirmBtnText = document.getElementById('btnExecuteStreamPinText');
             const confirmBtn = document.getElementById('btnExecuteStreamPin');
+            const iconUse = document.getElementById('streamPinModalIconUse');
 
             if (titleEl && title) titleEl.innerText = title;
             if (subtitleEl && subtitle) subtitleEl.innerText = subtitle;
             if (contentEl && message) contentEl.innerText = message;
             if (confirmBtnText && confirmText) confirmBtnText.innerText = confirmText;
+            if (iconUse) iconUse.setAttribute('href', icon || '#icon-pin');
 
             streamPinConfirmAction = onConfirm;
             if (confirmBtn) {
