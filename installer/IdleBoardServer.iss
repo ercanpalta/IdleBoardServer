@@ -3,7 +3,7 @@
 ; ==========================================================
 
 #define MyAppName "IdleBoard Server"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Ercan Palta"
 #define MyAppURL "http://localhost:3000"
 
@@ -33,7 +33,7 @@ WizardStyle=modern
 ; Windows Dosya ve Versiyon Bilgileri
 VersionInfoCompany=IdleBoard
 VersionInfoDescription=IdleBoard Server Kurulumu
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.1.0.0
 VersionInfoCopyright=Copyright 2026 Ercan Palta
 VersionInfoProductName=IdleBoard Server
 

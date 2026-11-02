@@ -1,6 +1,6 @@
 {
   "name": "idleboard",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Node.js and Express SSE streaming server with web administration panel for digital signage displays",
   "main": "server.js",
   "scripts": {
